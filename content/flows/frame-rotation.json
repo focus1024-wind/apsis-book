@@ -1,0 +1,34 @@
+{
+  "id": "frame-rotation",
+  "title": "Frame rotation and geodetic conversion",
+  "summary": "The two transformations between the representations of a position: the Cartesian rotation about the pole, and the ellipsoidal conversion.",
+  "nodes": [
+    {"id": "angle", "label": "Earth Rotation Angle from UT1", "kind": "data", "group": "input", "summary": "A linear function of the days of UT1 since J2000.0, in turns.", "api": "EarthRotationAngle"},
+    {"id": "eci", "label": "Eci", "kind": "data", "group": "frames", "summary": "A Cartesian position in the inertial frame, in meters.", "api": "Eci"},
+    {"id": "ecef", "label": "Ecef", "kind": "data", "group": "frames", "summary": "A Cartesian position in the Earth-fixed frame, in meters.", "api": "Ecef"},
+    {"id": "matrix", "label": "Build the rotation matrix", "kind": "step", "group": "rotate", "summary": "A clockwise turn about the third axis, whose transpose is the inverse.", "api": "rotation_eci_to_ecef"},
+    {"id": "to_ecef", "label": "Rotate inertial to Earth-fixed", "kind": "step", "group": "rotate", "summary": "Apply the rotation to the vector. The length is preserved.", "api": "Eci"},
+    {"id": "to_eci", "label": "Rotate Earth-fixed to inertial", "kind": "step", "group": "rotate", "summary": "Apply the transposed rotation. The length is preserved.", "api": "Ecef"},
+    {"id": "cartesian", "label": "Cartesian to geodetic", "kind": "step", "group": "geodetic", "summary": "Solve for latitude, longitude, and height on an ellipsoid. Iterative, because no elementary closed form exists.", "api": "geodetic_from_cartesian"},
+    {"id": "polar", "label": "On the rotation axis?", "kind": "decision", "group": "geodetic", "summary": "No longitude is defined on the axis."},
+    {"id": "undefined", "label": "No longitude", "kind": "terminal", "group": "error", "summary": "The conversion returns no value rather than an arbitrary longitude."},
+    {"id": "geodetic", "label": "Geodetic", "kind": "terminal", "group": "output", "summary": "Latitude and longitude in radians, height in meters above the WGS 84 ellipsoid.", "api": "Geodetic"},
+    {"id": "forward", "label": "Geodetic to Cartesian", "kind": "step", "group": "geodetic", "summary": "Closed form, using the prime vertical radius of curvature.", "api": "cartesian_from_geodetic"},
+    {"id": "direct", "label": "Geodetic to Ecef", "kind": "terminal", "group": "output", "summary": "The Earth-fixed Cartesian position on the WGS 84 ellipsoid.", "api": "Geodetic"}
+  ],
+  "edges": [
+    {"source": "angle", "target": "matrix", "kind": "flow", "label": null},
+    {"source": "matrix", "target": "to_ecef", "kind": "flow", "label": null},
+    {"source": "matrix", "target": "to_eci", "kind": "flow", "label": null},
+    {"source": "eci", "target": "to_ecef", "kind": "flow", "label": null},
+    {"source": "ecef", "target": "to_eci", "kind": "flow", "label": null},
+    {"source": "to_ecef", "target": "ecef", "kind": "flow", "label": "Earth-fixed"},
+    {"source": "to_eci", "target": "eci", "kind": "flow", "label": "inertial"},
+    {"source": "to_ecef", "target": "cartesian", "kind": "flow", "label": null},
+    {"source": "cartesian", "target": "polar", "kind": "flow", "label": null},
+    {"source": "polar", "target": "undefined", "kind": "branch", "label": "yes"},
+    {"source": "polar", "target": "geodetic", "kind": "branch", "label": "no"},
+    {"source": "geodetic", "target": "forward", "kind": "flow", "label": null},
+    {"source": "forward", "target": "direct", "kind": "flow", "label": null}
+  ]
+}

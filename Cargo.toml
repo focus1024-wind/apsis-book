@@ -1,0 +1,33 @@
+# apsis-book: the web service layer of ApsisRS.
+#
+# The service exposes the ApsisRS computational kernels over HTTP together
+# with the concept documentation, the knowledge graph, and the online tool
+# set. The only runtime dependency is the public `apsis-rs` facade; every
+# other facility, including the HTTP server and the JSON codec, is written
+# against the standard library so that the crate stays self-contained and
+# auditable.
+
+[package]
+name = "apsis-book"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "GPL-3.0-or-later"
+description = "Web service for the ApsisRS computational kernels."
+publish = false
+
+[[bin]]
+name = "apsis-book"
+path = "src/main.rs"
+
+[dependencies]
+apsis-rs = { path = "../apsis-rs/crates/apsis-rs", features = ["orbit"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.dist]
+inherits = "release"

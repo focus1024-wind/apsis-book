@@ -1,0 +1,36 @@
+{
+  "id": "tle-parsing",
+  "title": "Two-line element parsing",
+  "summary": "From raw text to a structured element set: line classification, checksum verification, field extraction, and the cross checks.",
+  "nodes": [
+    {"id": "text", "label": "Input text", "kind": "data", "group": "input", "summary": "One, two, or three lines; blank lines are ignored and any of the common line endings is accepted."},
+    {"id": "split", "label": "Split and classify lines", "kind": "step", "group": "parse", "summary": "A leading line that does not begin with '1 ' is the satellite name; the next two lines are the data lines."},
+    {"id": "count", "label": "Two data lines?", "kind": "decision", "group": "parse", "summary": "The format requires exactly two data lines."},
+    {"id": "too_few", "label": "TooShort", "kind": "terminal", "group": "error", "summary": "Fewer than two data lines were present."},
+    {"id": "checksum1", "label": "Verify line 1 checksum", "kind": "step", "group": "verify", "summary": "Sum the digits and the minus signs of the first 68 columns modulo ten and compare with column 69.", "api": "verify_line_checksum"},
+    {"id": "checksum_ok", "label": "Checksums match?", "kind": "decision", "group": "verify", "summary": "Each line is verified independently, so a corrupted line is reported with its number."},
+    {"id": "checksum_fail", "label": "Checksum error", "kind": "terminal", "group": "error", "summary": "A line checksum does not match its contents.", "api": "ElementErrorKind"},
+    {"id": "fields1", "label": "Read line 1 fields", "kind": "step", "group": "fields", "summary": "Catalog number, classification, designator, epoch, the two derivatives, BSTAR, and the element set number."},
+    {"id": "fields2", "label": "Read line 2 fields", "kind": "step", "group": "fields", "summary": "Inclination, right ascension, eccentricity, argument of perigee, mean anomaly, mean motion, and the revolution number."},
+    {"id": "exponent", "label": "Decode exponent fields", "kind": "step", "group": "fields", "summary": "A sign, a mantissa with an assumed decimal point, an exponent sign, and one exponent digit.", "api": "ElementErrorKind"},
+    {"id": "epoch", "label": "Expand the two digit year", "kind": "step", "group": "fields", "summary": "Years 57 through 99 are in the twentieth century and 00 through 56 in the twenty-first.", "api": "Epoch"},
+    {"id": "match", "label": "Catalog numbers match?", "kind": "decision", "group": "crosscheck", "summary": "The two lines must describe the same object."},
+    {"id": "mismatch", "label": "MismatchedElementSet", "kind": "terminal", "group": "error", "summary": "The two lines carry different element set numbers.", "api": "ElementErrorKind"},
+    {"id": "element", "label": "TwoLineElement", "kind": "terminal", "group": "output", "summary": "The structured element set, with the units of the format preserved.", "api": "TwoLineElement"}
+  ],
+  "edges": [
+    {"source": "text", "target": "split", "kind": "flow", "label": null},
+    {"source": "split", "target": "count", "kind": "flow", "label": null},
+    {"source": "count", "target": "too_few", "kind": "branch", "label": "no"},
+    {"source": "count", "target": "checksum1", "kind": "branch", "label": "yes"},
+    {"source": "checksum1", "target": "checksum_ok", "kind": "flow", "label": null},
+    {"source": "checksum_ok", "target": "checksum_fail", "kind": "branch", "label": "no"},
+    {"source": "checksum_ok", "target": "fields1", "kind": "branch", "label": "yes"},
+    {"source": "fields1", "target": "fields2", "kind": "flow", "label": null},
+    {"source": "fields2", "target": "exponent", "kind": "flow", "label": null},
+    {"source": "exponent", "target": "epoch", "kind": "flow", "label": null},
+    {"source": "epoch", "target": "match", "kind": "flow", "label": null},
+    {"source": "match", "target": "mismatch", "kind": "branch", "label": "no"},
+    {"source": "match", "target": "element", "kind": "branch", "label": "yes"}
+  ]
+}

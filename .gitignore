@@ -1,0 +1,16 @@
+# Build output of the Rust crate.
+/target
+
+# Frontend dependencies and build output. The build output is embedded in
+# the binary by build.rs and is not committed.
+/frontend/node_modules
+/frontend/dist
+
+# Editor and operating system files.
+.DS_Store
+*.swp
+*~
+
+# Vite and TypeScript caches.
+/frontend/.vite
+/frontend/*.tsbuildinfo

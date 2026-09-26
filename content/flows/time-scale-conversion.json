@@ -1,0 +1,32 @@
+{
+  "id": "time-scale-conversion",
+  "title": "Time scale conversion",
+  "summary": "How an instant enters the model, is stored on one uniform scale, and is read back on any supported scale.",
+  "nodes": [
+    {"id": "input", "label": "Calendar fields or an MJD, with a scale", "kind": "data", "group": "input", "summary": "The caller states which scale the number is on. A calendar date is also accepted."},
+    {"id": "valid", "label": "Fields a valid date?", "kind": "decision", "group": "validate", "summary": "The month and day must exist in that year, including the leap year rule."},
+    {"id": "invalid", "label": "Rejected", "kind": "terminal", "group": "error", "summary": "The fields do not form a valid calendar date, or the request is outside the leap second table."},
+    {"id": "to_mjd", "label": "Convert to a day number", "kind": "step", "group": "convert", "summary": "A calendar date becomes a Modified Julian Date on the stated scale.", "api": "mjd_from_ymd"},
+    {"id": "scale", "label": "Which scale?", "kind": "decision", "group": "convert", "summary": "TAI, TT, and GPS convert by a constant offset; UTC converts through the leap second table."},
+    {"id": "constant", "label": "Apply the constant offset", "kind": "step", "group": "convert", "summary": "TT minus TAI is 32.184 seconds and TAI minus GPS is 19 seconds.", "api": "Epoch"},
+    {"id": "leap", "label": "Look up the leap second offset", "kind": "step", "group": "convert", "summary": "Search the embedded table for the interval that contains the instant.", "api": "Epoch"},
+    {"id": "covered", "label": "Covered by the table?", "kind": "decision", "group": "convert", "summary": "The table starts at the beginning of 1972."},
+    {"id": "tai", "label": "Epoch on the TAI scale", "kind": "data", "group": "store", "summary": "The instant is stored as a Modified Julian Date on TAI, so the difference between two instants is exact elapsed time."},
+    {"id": "read", "label": "Read back on the requested scale", "kind": "step", "group": "convert", "summary": "The inverse of the entry conversion, producing an MJD and a calendar value.", "api": "Epoch"},
+    {"id": "output", "label": "MJD and calendar on every scale", "kind": "terminal", "group": "output", "summary": "The result reports UTC, TAI, TT, and GPS together with the offset at that instant."}
+  ],
+  "edges": [
+    {"source": "input", "target": "valid", "kind": "flow", "label": null},
+    {"source": "valid", "target": "invalid", "kind": "branch", "label": "no"},
+    {"source": "valid", "target": "to_mjd", "kind": "branch", "label": "yes"},
+    {"source": "to_mjd", "target": "scale", "kind": "flow", "label": null},
+    {"source": "scale", "target": "constant", "kind": "branch", "label": "TAI, TT, or GPS"},
+    {"source": "scale", "target": "leap", "kind": "branch", "label": "UTC"},
+    {"source": "leap", "target": "covered", "kind": "flow", "label": null},
+    {"source": "covered", "target": "invalid", "kind": "branch", "label": "no"},
+    {"source": "covered", "target": "tai", "kind": "branch", "label": "yes"},
+    {"source": "constant", "target": "tai", "kind": "flow", "label": null},
+    {"source": "tai", "target": "read", "kind": "flow", "label": null},
+    {"source": "read", "target": "output", "kind": "flow", "label": null}
+  ]
+}

@@ -1,0 +1,3093 @@
+{
+ "generated_from": [
+  "crates/foundation/apsis-core/src",
+  "crates/foundation/apsis-units/src",
+  "crates/foundation/apsis-math/src",
+  "crates/foundation/apsis-macros/src",
+  "crates/physics/apsis-time/src",
+  "crates/physics/apsis-leap/src",
+  "crates/physics/apsis-coord/src",
+  "crates/physics/apsis-geodesy/src",
+  "crates/physics/apsis-frames/src",
+  "crates/orbit/apsis-tle/src",
+  "crates/orbit/apsis-sgp4/src",
+  "crates/orbit/apsis-kepler/src",
+  "crates/orbit/apsis-ephemeris/src",
+  "crates/orbit/apsis-maneuver/src",
+  "crates/orbit/apsis-orbit/src"
+ ],
+ "crates": [
+  {
+   "name": "apsis-core",
+   "layer": "foundation",
+   "summary": "Shared foundation types for the ApsisRS workspace: a general purpose error type, result aliases, physical constants, and the unit marker trait. This crate sits at the bottom of the dependency graph. It has no dependency on any other ApsisRS crate, so every other crate may use it. Three concerns live here: - [`Error`] and [`Result`] are a general purpose error carrying a coarse [`ErrorKind`]. They exist so that a function whose failure has no interesting structure can report it without inventing a type, and so that the workspace has a shape to fall back on. They are deliberately *not* the error type of the layers: a layer with a domain specific failure defines its own `Error` and `ErrorKind`, whose variants name the concrete conditions a caller would want to match on. See `docs/design/errors.md` for why, and for the conventions the domain errors follow. - [`constant`] holds physical and astronomical constants expressed in SI units. - [`Quantity`] marks newtypes that carry a physical unit, so generic code can accept any quantity and still recover its unit type.",
+   "items": [
+    {
+     "kind": "const",
+     "name": "SPEED_OF_LIGHT",
+     "signature": "pub const SPEED_OF_LIGHT: f64 = 299_792_458.0;",
+     "doc": "Speed of light in vacuum, in meters per second.\n\nExact by definition of the metre in the SI.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "GRAVITATIONAL_CONSTANT",
+     "signature": "pub const GRAVITATIONAL_CONSTANT: f64 = 6.674_30e-11;",
+     "doc": "Newtonian constant of gravitation, in cubic meters per kilogram per\nsecond squared.\n\nCODATA 2018 value with its standard uncertainty of\n`1.5e-11 m^3 kg^-1 s^-2`.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "BOLTZMANN",
+     "signature": "pub const BOLTZMANN: f64 = 1.380_649e-23;",
+     "doc": "Boltzmann constant, in joules per kelvin.\n\nExact by definition of the kelvin in the SI.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "PLANCK",
+     "signature": "pub const PLANCK: f64 = 6.626_070_15e-34;",
+     "doc": "Planck constant, in joule seconds.\n\nExact by definition of the kilogram in the SI.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "ELEMENTARY_CHARGE",
+     "signature": "pub const ELEMENTARY_CHARGE: f64 = 1.602_176_634e-19;",
+     "doc": "Elementary charge, in coulombs.\n\nExact by definition of the ampere in the SI.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "ASTRONOMICAL_UNIT",
+     "signature": "pub const ASTRONOMICAL_UNIT: f64 = 149_597_870_700.0;",
+     "doc": "Astronomical unit, in meters.\n\nExact by IAU 2012 Resolution B2.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "STANDARD_GRAVITY",
+     "signature": "pub const STANDARD_GRAVITY: f64 = 9.806_65;",
+     "doc": "Standard gravity, in meters per second squared.\n\nExact by definition of the standard atmosphere.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "MINUTE",
+     "signature": "pub const MINUTE: f64 = 60.0;",
+     "doc": "One minute, in seconds.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "HOUR",
+     "signature": "pub const HOUR: f64 = 3_600.0;",
+     "doc": "One hour, in seconds.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "DAY",
+     "signature": "pub const DAY: f64 = 86_400.0;",
+     "doc": "One day of 24 hours, in seconds.\n\nThis is the SI day. It is not the mean solar day, which is slightly\nlonger, and not the Julian day of 86 400 seconds used in Julian date\narithmetic, which is identical to this value.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "JULIAN_YEAR",
+     "signature": "pub const JULIAN_YEAR: f64 = 31_557_600.0;",
+     "doc": "One Julian year of 365.25 days, in seconds.\n\nExact by definition of the Julian year.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "JULIAN_CENTURY",
+     "signature": "pub const JULIAN_CENTURY: f64 = 3_155_760_000.0;",
+     "doc": "One Julian century of 36 525 days, in seconds.\n\nExact by definition of the Julian year, used by precession and secular\nrate expressions quoted per Julian century.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "JULIAN_DATE_UNIX_EPOCH",
+     "signature": "pub const JULIAN_DATE_UNIX_EPOCH: f64 = 2_440_587.5;",
+     "doc": "Julian date of the Unix epoch, 1970-01-01T00:00:00 UTC.\n\nThis is `2 440 587.5` in the Julian date system.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "JULIAN_DATE_J2000",
+     "signature": "pub const JULIAN_DATE_J2000: f64 = 2_451_545.0;",
+     "doc": "Julian date of the J2000.0 epoch, 2000-01-01T12:00:00 TT.\n\nExact by definition of the J2000.0 epoch.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "SECONDS_J2000_TO_UNIX",
+     "signature": "pub const SECONDS_J2000_TO_UNIX: f64 = (JULIAN_DATE_J2000 - JULIAN_DATE_UNIX_EPOCH) * DAY;",
+     "doc": "The number of seconds between the J2000.0 epoch and the Unix epoch.\n\nDerived from [`JULIAN_DATE_J2000`] and [`JULIAN_DATE_UNIX_EPOCH`].",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "EARTH_MU",
+     "signature": "pub const EARTH_MU: f64 = 398_600.441_8;",
+     "doc": "Earth gravitational parameter, in cubic kilometers per second squared.\n\nWGS 84 value, `GM = 398 600.4418 km^3/s^2`, with an uncertainty that is\ndominated by the uncertainty in the Newtonian constant of gravitation.\nOrbit propagation uses kilometers, so the value is given in those units\nrather than in SI.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "EARTH_EQUATORIAL_RADIUS",
+     "signature": "pub const EARTH_EQUATORIAL_RADIUS: f64 = 6_378.137;",
+     "doc": "Earth equatorial radius, in kilometers.\n\nWGS 84 semi-major axis, `a = 6 378.137 km`.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "EARTH_FLATTENING",
+     "signature": "pub const EARTH_FLATTENING: f64 = 1.0 / 298.257_223_563;",
+     "doc": "Earth flattening, dimensionless.\n\nWGS 84 value, `f = 1 / 298.257 223 563`.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "EARTH_ROTATION_RATE",
+     "signature": "pub const EARTH_ROTATION_RATE: f64 = 7.292_115_0e-5;",
+     "doc": "Earth rotation rate, in radians per second.\n\nWGS 84 value. This is the nominal mean angular velocity of the Earth,\n`omega = 7.292 115e-5 rad/s`.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "EARTH_J2",
+     "signature": "pub const EARTH_J2: f64 = 1.082_626_683e-3;",
+     "doc": "Earth second zonal harmonic, dimensionless.\n\nWGS 84 value, `J2 = 1.082 626 683e-3`.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "STANDARD_ATMOSPHERE",
+     "signature": "pub const STANDARD_ATMOSPHERE: f64 = 101_325.0;",
+     "doc": "Standard atmosphere sea level pressure, in pascals.\n\nExact by definition of the standard atmosphere.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "ZERO_CELSIUS_IN_KELVIN",
+     "signature": "pub const ZERO_CELSIUS_IN_KELVIN: f64 = 273.15;",
+     "doc": "Zero degrees Celsius on the thermodynamic temperature scale, in kelvin.\n\nExact by definition of the Celsius scale.",
+     "associated": false
+    },
+    {
+     "kind": "enum",
+     "name": "ErrorKind",
+     "signature": "pub enum ErrorKind {",
+     "doc": "The category of an [`Error`].\n\nThe variants are grouped by the layer that most often produces them, but\nany layer may return any variant. Callers should match on the variant\nthat is relevant to their own recovery logic and treat the rest as\nopaque.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Error",
+     "signature": "pub struct Error {",
+     "doc": "The error type used across the workspace.\n\n`Error` carries a machine matchable [`ErrorKind`] plus a human readable\nmessage. An optional source records the lower level error that caused\nthis one.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub fn new(kind: ErrorKind) -> Self {",
+     "doc": "Creates an error with the given kind and no message.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "with_message",
+     "signature": "pub fn with_message(kind: ErrorKind, message: impl Into<String>) -> Self {",
+     "doc": "Creates an error with the given kind and message.\n\nThe message should describe the concrete cause of this specific\nfailure. It is meant for humans reading logs, not for matching.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "with_source",
+     "signature": "pub fn with_source<E>(kind: ErrorKind, source: E) -> Self where E: StdError + Send + Sync + 'static, {",
+     "doc": "Creates an error with the given kind and a source error.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "with_context",
+     "signature": "pub fn with_context(mut self, message: impl Into<String>) -> Self {",
+     "doc": "Attaches a message to this error, replacing any existing message.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "caused_by",
+     "signature": "pub fn caused_by<E>(mut self, source: E) -> Self where E: StdError + Send + Sync + 'static, {",
+     "doc": "Attaches a source error, replacing any existing source.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "kind",
+     "signature": "pub fn kind(&self) -> ErrorKind {",
+     "doc": "Returns the category of this error.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "message",
+     "signature": "pub fn message(&self) -> Option<&str> {",
+     "doc": "Returns the message attached to this error, if any.",
+     "associated": true
+    },
+    {
+     "kind": "type",
+     "name": "Result",
+     "signature": "pub type Result<T> = core::result::Result<T, Error>;",
+     "doc": "A [`Result`](core::result::Result) whose error type is [`Error`].",
+     "associated": false
+    },
+    {
+     "kind": "trait",
+     "name": "Unit",
+     "signature": "pub trait Unit: Copy + fmt::Debug + fmt::Display + 'static {",
+     "doc": "A unit of a single physical dimension.\n\nImplementors are zero sized marker types. Two units that implement\n`Unit` for the same dimension convert through\n[`Quantity::to_unit`](crate::Quantity::to_unit).",
+     "associated": false
+    },
+    {
+     "kind": "trait",
+     "name": "Quantity",
+     "signature": "pub trait Quantity: Copy {",
+     "doc": "A value paired with a unit.\n\nImplementors are newtypes over `f64` and a [`Unit`]. The trait gives\ngeneric code access to the stored value and its unit without assuming\nwhich newtype it was handed.",
+     "associated": false
+    }
+   ]
+  },
+  {
+   "name": "apsis-units",
+   "layer": "foundation",
+   "summary": "Strongly typed newtypes for physical quantities. Each quantity is a newtype over `f64` that carries its unit in the type system, so a length cannot be passed where a duration is expected. Units of the same dimension convert through [`Quantity::to_unit`], and each unit also offers direct conversions for the common cases. A newtype implements both [`Unit`] and [`Quantity`], with its own type as the associated unit. For example [`Meters`] is a [`Length`](dimension::Length) unit and a quantity whose unit is itself. The dimensions covered here are length, time, frequency, angle, and thermodynamic temperature. Temperature is the only affine scale in the set, so Celsius is handled by explicit methods on [`Kelvin`] rather than by the linear [`Unit`] conversion factor. ``` use apsis_core::Quantity; use apsis_units::{Kilometers, Meters}; let distance = Meters::new(2_500.0); let in_kilometers: Kilometers = distance.to_unit(); assert!((in_kilometers.value() - 2.5).abs() < 1e-12); ```",
+   "items": [
+    {
+     "kind": "struct",
+     "name": "Radians",
+     "signature": "pub struct Radians(f64);",
+     "doc": "An angle in radians.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Degrees",
+     "signature": "pub struct Degrees(f64);",
+     "doc": "An angle in degrees.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub const fn new(value: f64) -> Self {",
+     "doc": "Creates an angle from a value in radians.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "value",
+     "signature": "pub const fn value(self) -> f64 {",
+     "doc": "Returns this angle in radians.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "to_degrees",
+     "signature": "pub fn to_degrees(self) -> Degrees {",
+     "doc": "Converts this angle to degrees.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "wrap",
+     "signature": "pub fn wrap(self) -> Self {",
+     "doc": "Returns this angle wrapped to the half-open interval `[-pi, pi)`.\n\nWrapping uses [`f64::rem_euclid`](f64::rem_euclid) so the result is\nwell defined for negative inputs as well as large ones.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "to_radians",
+     "signature": "pub fn to_radians(self) -> Radians {",
+     "doc": "Converts this angle to radians.",
+     "associated": true
+    },
+    {
+     "kind": "struct",
+     "name": "Length",
+     "signature": "pub struct Length;",
+     "doc": "Length.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Time",
+     "signature": "pub struct Time;",
+     "doc": "Duration.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Frequency",
+     "signature": "pub struct Frequency;",
+     "doc": "Frequency, the reciprocal of time.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Angle",
+     "signature": "pub struct Angle;",
+     "doc": "Plane angle.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Temperature",
+     "signature": "pub struct Temperature;",
+     "doc": "Thermodynamic temperature.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Hertz",
+     "signature": "pub struct Hertz(f64);",
+     "doc": "A frequency in hertz.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "period",
+     "signature": "pub fn period(self) -> f64 {",
+     "doc": "Returns the period corresponding to this frequency, in seconds.\n\nReturns `f64::INFINITY` when the frequency is zero, which is the\ncorrect limit of an infinite period.",
+     "associated": true
+    },
+    {
+     "kind": "struct",
+     "name": "Meters",
+     "signature": "pub struct Meters(f64);",
+     "doc": "A length in meters.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Kilometers",
+     "signature": "pub struct Kilometers(f64);",
+     "doc": "A length in kilometers.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "to_kilometers",
+     "signature": "pub fn to_kilometers(self) -> Kilometers {",
+     "doc": "Converts this length to kilometers.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "to_meters",
+     "signature": "pub fn to_meters(self) -> Meters {",
+     "doc": "Converts this length to meters.",
+     "associated": true
+    },
+    {
+     "kind": "struct",
+     "name": "Kelvin",
+     "signature": "pub struct Kelvin(f64);",
+     "doc": "A thermodynamic temperature in kelvin.\n\nValues below absolute zero are not rejected, because intermediate\narithmetic may legitimately pass through them; callers that require a\nphysical temperature should check the value.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "from_celsius",
+     "signature": "pub fn from_celsius(celsius: f64) -> Self {",
+     "doc": "Creates a temperature from a value in degrees Celsius.\n\nUses the exact offset defined by the Celsius scale.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "to_celsius",
+     "signature": "pub fn to_celsius(self) -> f64 {",
+     "doc": "Converts this temperature to degrees Celsius.",
+     "associated": true
+    },
+    {
+     "kind": "struct",
+     "name": "Seconds",
+     "signature": "pub struct Seconds(f64);",
+     "doc": "A duration in seconds.",
+     "associated": false
+    }
+   ]
+  },
+  {
+   "name": "apsis-math",
+   "layer": "foundation",
+   "summary": "Dependency-free linear algebra for the ApsisRS workspace. The crate provides three types: - [`Vec3`], a three component column vector over `f64` - [`Quat`], a unit quaternion used for rotations - [`Mat3`], a three by three matrix stored in column-major order The types are plain data with no interior invariants beyond those documented on each method, so their fields are public and a value can be built by struct literal expression. Operations that are mathematically undefined for some inputs, such as normalizing the zero vector, return [`Option`] instead of panicking or producing a non-finite result. All rotations use the right-hand rule about the given axis, and all angles are in radians. Angles are not wrapped on input; methods that require a canonical range document that requirement. ``` use apsis_math::Vec3; let x = Vec3::new(1.0, 0.0, 0.0); let y = Vec3::new(0.0, 1.0, 0.0); let z = x.cross(y); assert_eq!(z, Vec3::new(0.0, 0.0, 1.0)); ```",
+   "items": [
+    {
+     "kind": "struct",
+     "name": "Mat3",
+     "signature": "pub struct Mat3 {",
+     "doc": "A three by three matrix stored in column-major order.\n\nThe field names follow the `m<row><column>` convention, so `m01` is the\nentry in the first row and second column. The fields are listed in\ncolumn-major order, and the same order is used by [`Mat3::from_columns`]\nand [`Mat3::column`].",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "ZERO",
+     "signature": "pub const ZERO: Self = Self::from_rows_raw([0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]);",
+     "doc": "The zero matrix.",
+     "associated": true
+    },
+    {
+     "kind": "const",
+     "name": "IDENTITY",
+     "signature": "pub const IDENTITY: Self = Self::from_rows_raw([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]);",
+     "doc": "The identity matrix.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_rows",
+     "signature": "pub const fn from_rows(row0: [f64; 3], row1: [f64; 3], row2: [f64; 3]) -> Self {",
+     "doc": "Creates a matrix from its nine entries in row-major order.\n\nThe arguments are grouped by row: `row0`, then `row1`, then `row2`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_columns",
+     "signature": "pub const fn from_columns(c0: Vec3, c1: Vec3, c2: Vec3) -> Self {",
+     "doc": "Creates a matrix from three column vectors.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_diagonal",
+     "signature": "pub const fn from_diagonal(diagonal: Vec3) -> Self {",
+     "doc": "Creates a diagonal matrix from a vector of diagonal entries.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_quat",
+     "signature": "pub fn from_quat(q: Quat) -> Self {",
+     "doc": "Creates a rotation matrix from a unit quaternion.\n\nThe quaternion is assumed to have unit length. A non-unit quaternion\nproduces a scaled matrix, which [`Mat3::is_rotation`] then rejects.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_axis_angle",
+     "signature": "pub fn from_axis_angle(axis: Vec3, angle: f64) -> Option<Self> {",
+     "doc": "Creates a rotation matrix of `angle` radians about the unit axis\n`axis`.\n\nReturns `None` when the axis has zero or non-finite length.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_rotation_x",
+     "signature": "pub fn from_rotation_x(angle: f64) -> Self {",
+     "doc": "Creates a rotation matrix of `angle` radians about the first axis.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_rotation_y",
+     "signature": "pub fn from_rotation_y(angle: f64) -> Self {",
+     "doc": "Creates a rotation matrix of `angle` radians about the second axis.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_rotation_z",
+     "signature": "pub fn from_rotation_z(angle: f64) -> Self {",
+     "doc": "Creates a rotation matrix of `angle` radians about the third axis.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "get",
+     "signature": "pub const fn get(self, row: usize, column: usize) -> Option<f64> {",
+     "doc": "Returns the entry in row `row` and column `column`.\n\nReturns `None` when either index is outside `0..=2`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "column",
+     "signature": "pub const fn column(self, index: usize) -> Option<Vec3> {",
+     "doc": "Returns column `index`.\n\nReturns `None` when `index` is outside `0..=2`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "row",
+     "signature": "pub const fn row(self, index: usize) -> Option<Vec3> {",
+     "doc": "Returns row `index`.\n\nReturns `None` when `index` is outside `0..=2`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "transpose",
+     "signature": "pub const fn transpose(self) -> Self {",
+     "doc": "Returns the transpose.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "trace",
+     "signature": "pub const fn trace(self) -> f64 {",
+     "doc": "Returns the sum of the diagonal entries.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "determinant",
+     "signature": "pub fn determinant(self) -> f64 {",
+     "doc": "Returns the determinant.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "is_rotation",
+     "signature": "pub fn is_rotation(self, tolerance: f64) -> bool {",
+     "doc": "Returns `true` when this matrix is a rotation within `tolerance`.\n\nA matrix is a rotation when it is orthonormal with determinant one.\nThe check compares `M^T M` to the identity entry by entry and then\ncompares the determinant to one.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "is_finite",
+     "signature": "pub fn is_finite(self) -> bool {",
+     "doc": "Returns `true` when all nine entries are finite.",
+     "associated": true
+    },
+    {
+     "kind": "struct",
+     "name": "Quat",
+     "signature": "pub struct Quat {",
+     "doc": "A quaternion `w + xi + yj + zk`.\n\nMethods that rotate vectors assume the quaternion has unit length.\nMultiplication and addition do not, because arbitrary quaternion\narithmetic is well defined without that assumption. Use\n[`Quat::normalize`] to enforce unit length, and\n[`Quat::is_normalized`] to check it.\n\nA rotation by angle `theta` about a unit axis `u` is\n`w = cos(theta / 2)`, `(x, y, z) = u * sin(theta / 2)`. Composition uses\nthe same convention as matrix multiplication: `(a * b)` applied to a\nvector applies `b` first, then `a`.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "IDENTITY",
+     "signature": "pub const IDENTITY: Self = Self::new(1.0, 0.0, 0.0, 0.0);",
+     "doc": "The identity rotation.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub const fn new(w: f64, x: f64, y: f64, z: f64) -> Self {",
+     "doc": "Creates a quaternion from its four components.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_mat3",
+     "signature": "pub fn from_mat3(m: crate::mat3::Mat3) -> Option<Self> {",
+     "doc": "Creates a quaternion from the rotation matrix `m`.\n\nThe algorithm picks the largest diagonal entry to divide by, which\nkeeps the square root well conditioned for every input rotation.\nReturns `None` when `m` is not a rotation matrix, that is when it is\nnot orthonormal with determinant one within a tolerance of `1e-9`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "vector",
+     "signature": "pub const fn vector(self) -> Vec3 {",
+     "doc": "Returns the vector part `(x, y, z)`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "norm_squared",
+     "signature": "pub fn norm_squared(self) -> f64 {",
+     "doc": "Returns the squared length of this quaternion.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "norm",
+     "signature": "pub fn norm(self) -> f64 {",
+     "doc": "Returns the length of this quaternion.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "normalize",
+     "signature": "pub fn normalize(self) -> Option<Self> {",
+     "doc": "Returns this quaternion scaled to unit length.\n\nReturns `None` when the length is zero or not finite.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "conjugate",
+     "signature": "pub const fn conjugate(self) -> Self {",
+     "doc": "Returns the conjugate `w - xi - yj - zk`.\n\nFor a unit quaternion this is the inverse rotation.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "inverse",
+     "signature": "pub fn inverse(self) -> Option<Self> {",
+     "doc": "Returns the inverse rotation.\n\nReturns `None` when the length is zero or not finite.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "dot",
+     "signature": "pub fn dot(self, rhs: Self) -> f64 {",
+     "doc": "Returns the dot product of `self` and `rhs`, treating both as four\ncomponent vectors.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "rotate",
+     "signature": "pub fn rotate(self, v: Vec3) -> Vec3 {",
+     "doc": "Rotates `v` by this rotation.\n\nAssumes this quaternion has unit length. The rotation is computed as\n`v + 2 * cross(vector, cross(vector, v) + w * v)`, which avoids\nforming the quaternion product matrix twice.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "angle",
+     "signature": "pub fn angle(self) -> f64 {",
+     "doc": "Returns the rotation angle in radians, in `[0, pi]`.\n\nAssumes this quaternion has unit length.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "axis",
+     "signature": "pub fn axis(self) -> Option<Vec3> {",
+     "doc": "Returns the rotation axis as a unit vector.\n\nReturns `None` for the identity rotation, where no axis is defined.\nAssumes this quaternion has unit length.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "lerp",
+     "signature": "pub fn lerp(self, rhs: Self, t: f64) -> Self {",
+     "doc": "Returns the linear interpolation from `self` to `rhs`.\n\nThis is a chord interpolation, so the result is not a unit\nquaternion and the angular speed is not constant. Use\n[`Quat::slerp`] when the intermediate rotations must be uniform.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "slerp",
+     "signature": "pub fn slerp(self, rhs: Self, t: f64) -> Self {",
+     "doc": "Returns the spherical linear interpolation from `self` to `rhs`.\n\nThe shortest of the two arcs is taken, so the result follows the\npath a rotation would take if the angle were kept minimal. Falls\nback to [`Quat::lerp`] when the inputs are nearly parallel, where\nthe sine in the denominator would otherwise lose precision.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "is_normalized",
+     "signature": "pub fn is_normalized(self) -> bool {",
+     "doc": "Returns `true` when the length is one within a tolerance of `1e-9`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "quarter_turn_x",
+     "signature": "pub fn quarter_turn_x() -> Self {",
+     "doc": "Returns a rotation of a quarter turn about the first axis.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "half_turn_z",
+     "signature": "pub fn half_turn_z() -> Self {",
+     "doc": "Returns a rotation of a half turn about the third axis.",
+     "associated": true
+    },
+    {
+     "kind": "struct",
+     "name": "Vec3",
+     "signature": "pub struct Vec3 {",
+     "doc": "A three component column vector.\n\nThe components are named `x`, `y`, and `z`. No meaning is attached to\nthem here; the reference frame is defined by the crate that uses the\nvector.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "ZERO",
+     "signature": "pub const ZERO: Self = Self::new(0.0, 0.0, 0.0);",
+     "doc": "The zero vector.",
+     "associated": true
+    },
+    {
+     "kind": "const",
+     "name": "X",
+     "signature": "pub const X: Self = Self::new(1.0, 0.0, 0.0);",
+     "doc": "The unit vector along the first axis.",
+     "associated": true
+    },
+    {
+     "kind": "const",
+     "name": "Y",
+     "signature": "pub const Y: Self = Self::new(0.0, 1.0, 0.0);",
+     "doc": "The unit vector along the second axis.",
+     "associated": true
+    },
+    {
+     "kind": "const",
+     "name": "Z",
+     "signature": "pub const Z: Self = Self::new(0.0, 0.0, 1.0);",
+     "doc": "The unit vector along the third axis.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub const fn new(x: f64, y: f64, z: f64) -> Self {",
+     "doc": "Creates a vector from its three components.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "splat",
+     "signature": "pub const fn splat(value: f64) -> Self {",
+     "doc": "Creates a vector whose three components all equal `value`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "x",
+     "signature": "pub const fn x(self) -> f64 {",
+     "doc": "Returns the first component.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "y",
+     "signature": "pub const fn y(self) -> f64 {",
+     "doc": "Returns the second component.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "z",
+     "signature": "pub const fn z(self) -> f64 {",
+     "doc": "Returns the third component.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "get",
+     "signature": "pub const fn get(self, index: usize) -> Option<f64> {",
+     "doc": "Returns the component selected by `index`, where `0`, `1`, and `2`\nselect `x`, `y`, and `z` respectively.\n\nReturns `None` for an index outside `0..=2`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "cross",
+     "signature": "pub fn cross(self, rhs: Self) -> Self {",
+     "doc": "Returns the cross product `self x rhs`.\n\nThe result is perpendicular to both inputs and follows the\nright-hand rule, so `Vec3::X.cross(Vec3::Y)` equals `Vec3::Z`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "distance",
+     "signature": "pub fn distance(self, rhs: Self) -> f64 {",
+     "doc": "Returns the Euclidean distance between `self` and `rhs`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "distance_squared",
+     "signature": "pub fn distance_squared(self, rhs: Self) -> f64 {",
+     "doc": "Returns the squared Euclidean distance between `self` and `rhs`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "angle_between",
+     "signature": "pub fn angle_between(self, rhs: Self) -> Option<f64> {",
+     "doc": "Returns the angle between `self` and `rhs`, in radians.\n\nThe result lies in `[0, pi]`. Returns `None` when either vector has\nzero or non-finite length, or when either vector has a non-finite\ncomponent.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "abs",
+     "signature": "pub fn abs(self) -> Self {",
+     "doc": "Returns a vector with each component replaced by its absolute value.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "max_component",
+     "signature": "pub fn max_component(self) -> f64 {",
+     "doc": "Returns the largest component.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "min_component",
+     "signature": "pub fn min_component(self) -> f64 {",
+     "doc": "Returns the smallest component.",
+     "associated": true
+    }
+   ]
+  },
+  {
+   "name": "apsis-macros",
+   "layer": "foundation",
+   "summary": "Macros that support the ApsisRS workspace. This crate currently defines no macros. It exists so that the workspace has a single place for macro definitions if a need arises, and so that adding one later does not require a new crate. The decision to leave it empty follows from what the workspace actually needs. Rust's built in `macro_rules!` can already do everything the foundation layer requires: - Substituting a type and a literal to build a quantity, as `quantity!(Meters, 1.5)`. - Dispatching on a trailing token to accept a unit suffix, as `to_meters!(2.5 km)`. Both forms are demonstrated by the tests in `tests/probe.rs`. They can be written directly in the crate that uses them, so no shared macro crate is needed. Two limits are worth recording, because they explain why a macro based unit system is not provided: - A `macro_rules!` macro cannot be generic over a unit suffix that is not an identifier. `1.5 m` and `1.5 km` are accepted by separate rules, so the macro must enumerate every suffix it supports. The unit newtypes in `apsis-units` already give compile time unit safety without that list, so the macro would add surface area without adding checking. - A declarative macro cannot inspect the value of its arguments, so it cannot fold a unit conversion at compile time beyond what constant evaluation already does. A literal such as `2.5 * 1000.0` is folded by the compiler anyway. If the workspace later needs macros that generate items, such as deriving a set of conversions from one definition, that is the point at which this crate should gain its first macro.",
+   "items": []
+  },
+  {
+   "name": "apsis-time",
+   "layer": "physics",
+   "summary": "Time scales, epochs, and calendar conversions. This crate provides the time model used by the rest of the workspace. An [`Epoch`] is an instant stored as a Modified Julian Date on the International Atomic Time scale, and [`TimeScale`] names the scale a number is expressed in. Storing a single uniform scale makes the arithmetic exact: the difference between two epochs is the elapsed SI time between them, independent of the scales they were created in. UTC is not uniform, because leap seconds are inserted to keep it near the rotation of the Earth, so UTC conversions are routed through the table in `apsis-leap`. ``` use apsis_time::{Calendar, Epoch, TimeScale}; // Build an instant from a UTC calendar date and read it back. let calendar = Calendar::from_ymd(2024, 6, 15); let epoch = Epoch::from_calendar(calendar, TimeScale::Utc).expect(\"covered by the leap table\"); let back = epoch.calendar(TimeScale::Utc).expect(\"covered by the leap table\"); assert_eq!(back.year, 2024); assert_eq!(back.month, 6); assert_eq!(back.day, 15); ``` Sources: - Julian date and Modified Julian date conventions: IAU, as described in the *Explanatory Supplement to the Astronomical Almanac*. - Terrestrial Time offset from TAI: IAU 2000 Resolution B1.9. - Leap seconds: IERS Bulletin C, embedded by `apsis-leap`. - Calendar algorithms: Howard Hinnant, *chrono-Compatible Low-Level Date Algorithms*, 2015.",
+   "items": [
+    {
+     "kind": "const",
+     "name": "SECONDS_PER_DAY",
+     "signature": "pub const SECONDS_PER_DAY: f64 = 86_400.0;",
+     "doc": "The number of seconds in a day, not counting leap seconds.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Calendar",
+     "signature": "pub struct Calendar {",
+     "doc": "A calendar date and time of day.\n\nFields are the proleptic Gregorian calendar fields. `second` is a\nfloating point number in the range `[0, 60)`.\n\nThe second may not reach 60. A leap second is written as second 60 in\nUTC, but that label does not have a unique position on a continuous time\nscale: it occupies the same interval that the following midnight would\notherwise occupy. This crate therefore treats leap seconds only where\nthey are unambiguous, in the `TAI - UTC` offset lookup, and not as\ncalendar instants.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub const fn new(year: i32, month: u32, day: u32, hour: u32, minute: u32, second: f64) -> Self {",
+     "doc": "Creates a calendar date from its fields.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_ymd",
+     "signature": "pub const fn from_ymd(year: i32, month: u32, day: u32) -> Self {",
+     "doc": "Creates a calendar date at the start of the given day.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "seconds_of_day",
+     "signature": "pub fn seconds_of_day(self) -> f64 {",
+     "doc": "Returns the seconds elapsed since the start of the day.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "is_valid",
+     "signature": "pub fn is_valid(self) -> bool {",
+     "doc": "Returns `true` when the fields form a date that exists in the\nproleptic Gregorian calendar.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "is_leap_year",
+     "signature": "pub const fn is_leap_year(year: i32) -> bool {",
+     "doc": "Returns `true` when `year` is a leap year in the proleptic Gregorian\ncalendar.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "days_in_month",
+     "signature": "pub const fn days_in_month(year: i32, month: u32) -> u32 {",
+     "doc": "Returns the number of days in the given month of the given year.\n\nReturns zero when `month` is outside `1..=12`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mjd_from_ymd",
+     "signature": "pub const fn mjd_from_ymd(year: i32, month: u32, day: u32) -> f64 {",
+     "doc": "Converts a calendar date, ignoring the time of day, to a Modified Julian\nDate.\n\nThe result is the MJD of the start of the given day, so it is an\ninteger. The time of day is ignored; use [`Calendar::seconds_of_day`] to\naccount for it.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "ymd_from_mjd",
+     "signature": "pub fn ymd_from_mjd(mjd: f64) -> (i32, u32, u32) {",
+     "doc": "Converts a Modified Julian Date to a calendar date.\n\nThe fractional part is ignored, so the result is the calendar day\ncontaining the instant.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "seconds_of_day_from_mjd",
+     "signature": "pub fn seconds_of_day_from_mjd(mjd: f64) -> f64 {",
+     "doc": "Keeps only the fractional part of an MJD as seconds since midnight.\n\nThe result lies in `[0, 86400)` for any finite input.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Epoch",
+     "signature": "pub struct Epoch {",
+     "doc": "An instant on the TAI time scale, stored as a Modified Julian Date.\n\nThe field is private so that the stored scale is guaranteed. Use\n[`Epoch::from_mjd`] or the named constructors to build one.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "J2000",
+     "signature": "pub const J2000: Self = Self::from_tai_mjd_const(51_544.5 - TT_MINUS_TAI / SECONDS_PER_DAY);",
+     "doc": "The instant 2000-01-01T12:00:00 TT, which defines the J2000.0 epoch.\n\nThe value is `2451545.0` on the TT scale, offset back to TAI.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_tai_mjd",
+     "signature": "pub const fn from_tai_mjd(tai_mjd: f64) -> Self {",
+     "doc": "Creates an epoch from a Modified Julian Date on the TAI scale.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_mjd",
+     "signature": "pub fn from_mjd(mjd: f64, scale: TimeScale) -> Option<Self> {",
+     "doc": "Creates an epoch from a Modified Julian Date on the given scale.\n\nReturns `None` when the instant cannot be expressed on the requested\nscale. This happens for UTC before 1972, where the leap second table\nused to convert from UTC does not apply.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_calendar",
+     "signature": "pub fn from_calendar(calendar: Calendar, scale: TimeScale) -> Option<Self> {",
+     "doc": "Creates an epoch from a calendar date, interpreting it on the given\nscale.\n\nReturns `None` when the fields do not form a valid date, or when the\ninstant cannot be expressed on the requested scale.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "tai_mjd",
+     "signature": "pub const fn tai_mjd(self) -> f64 {",
+     "doc": "Returns the instant as a Modified Julian Date on the TAI scale.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "mjd",
+     "signature": "pub fn mjd(self, scale: TimeScale) -> Option<f64> {",
+     "doc": "Returns the instant as a Modified Julian Date on the given scale.\n\nReturns `None` when the instant precedes 1972 and the UTC scale is\nrequested, because the leap second table does not cover that range.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "calendar",
+     "signature": "pub fn calendar(self, scale: TimeScale) -> Option<Calendar> {",
+     "doc": "Returns the instant as a calendar date on the given scale.\n\nReturns `None` when the scale conversion is not available for this\ninstant; see [`Epoch::mjd`].",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "seconds_until",
+     "signature": "pub fn seconds_until(self, other: Self) -> f64 {",
+     "doc": "Returns the signed number of seconds from `self` to `other`.\n\nThe result is positive when `other` is later. Because both epochs\nare stored on the uniform TAI scale, the difference is exact and\ndoes not depend on the scales used to create either epoch.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "add_seconds",
+     "signature": "pub fn add_seconds(self, seconds: f64) -> Self {",
+     "doc": "Returns an epoch shifted by `seconds`.\n\nThe shift is measured in SI seconds on the uniform TAI scale, so it\nadvances the instant by exactly that much elapsed time. This is the\nonly shift offered: a shift measured on the UTC clock would differ\nwhen the interval spans an inserted leap second, and the UTC clock\ndoes not have a single well defined numeric value across such an\ninstant. Callers that need calendar arithmetic on the UTC scale\nshould convert to a [`Calendar`], adjust it, and convert back.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "is_finite",
+     "signature": "pub const fn is_finite(self) -> bool {",
+     "doc": "Returns `true` when the stored Modified Julian Date is finite.",
+     "associated": true
+    },
+    {
+     "kind": "const",
+     "name": "JULIAN_DATE_OFFSET",
+     "signature": "pub const JULIAN_DATE_OFFSET: f64 = 2_400_000.5;",
+     "doc": "The number of days between the start of the Julian Date scale and the\nstart of the Modified Julian Date scale.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mjd_from_julian_date",
+     "signature": "pub const fn mjd_from_julian_date(julian_date: f64) -> f64 {",
+     "doc": "Converts a Julian Date to a Modified Julian Date.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "julian_date_from_mjd",
+     "signature": "pub const fn julian_date_from_mjd(mjd: f64) -> f64 {",
+     "doc": "Converts a Modified Julian Date to a Julian Date.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "TT_MINUS_TAI",
+     "signature": "pub const TT_MINUS_TAI: f64 = 32.184;",
+     "doc": "Terrestrial Time minus International Atomic Time, in seconds.\n\nExact by the definition of Terrestrial Time.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "TAI_MINUS_GPS",
+     "signature": "pub const TAI_MINUS_GPS: f64 = 19.0;",
+     "doc": "International Atomic Time minus GPS time, in seconds.\n\nExact by the definition of GPS time.",
+     "associated": false
+    },
+    {
+     "kind": "enum",
+     "name": "TimeScale",
+     "signature": "pub enum TimeScale {",
+     "doc": "A time scale.\n\nThe scale determines how a numeric instant is interpreted. It does not\nchange the instant itself; converting an [`Epoch`](crate::Epoch) between\nscales only changes the number used to display it.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "is_uniform",
+     "signature": "pub const fn is_uniform(self) -> bool {",
+     "doc": "Returns `true` when the scale runs at a uniform rate.\n\nUTC is the only scale here that is not uniform, because leap seconds\nmake some of its minutes 61 seconds long.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "name",
+     "signature": "pub const fn name(self) -> &'static str {",
+     "doc": "Returns the short name of the scale, such as `TAI` or `UTC`.",
+     "associated": true
+    }
+   ]
+  },
+  {
+   "name": "apsis-leap",
+   "layer": "physics",
+   "summary": "Embedded leap second table for the UTC time scale. Coordinated Universal Time (UTC) is kept within 0.9 s of UT1 by inserting or removing leap seconds. Because UTC is not a uniform time scale, converting between UTC and the uniform scales TAI, TT, and GPS requires the offset `TAI - UTC` in force at the instant of interest. This crate embeds that offset as a compile time table and answers queries against it. Dates are handled as Modified Julian Date (MJD), which is the Julian Date minus 2 400 000.5. An MJD is a count of days since 1858-11-17T00:00:00, so it carries no time scale of its own; the caller states the scale by choosing which function to call. The table begins at 1972-01-01, when UTC adopted the current integer second offset scheme. Offsets before that date were fractional and followed a different rule, so queries earlier than the first entry return `None` rather than a misleading value. Source: IERS Bulletin C, which announces leap seconds after confirmation by the International Earth Rotation and Reference Systems Service. The most recent entry in this table is the leap second of 2017-01-01; no leap second has been announced since. ``` use apsis_leap::{tai_minus_utc_at_mjd, LEAP_SECONDS}; // The last entry in the embedded table fixes the current offset. let last = LEAP_SECONDS.last().expect(\"table is not empty\"); assert_eq!(last.tai_minus_utc, 37.0); assert_eq!(tai_minus_utc_at_mjd(60_000.0), Some(37.0)); ```",
+   "items": [
+    {
+     "kind": "struct",
+     "name": "LeapSecond",
+     "signature": "pub struct LeapSecond {",
+     "doc": "One leap second announcement.\n\nThe entry records the date on which a new value of `TAI - UTC` took\neffect. It does not record the size of the inserted second, because in\nevery announcement to date the inserted second was exactly one second\nand the new offset is one greater than the previous one.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "effective_mjd",
+     "signature": "pub const fn effective_mjd(self) -> f64 {",
+     "doc": "Returns the Modified Julian Date of the effective instant.\n\nLeap seconds take effect at 00:00:00 UTC, so the effective instant\nis the start of the given calendar day.",
+     "associated": true
+    },
+    {
+     "kind": "const",
+     "name": "LEAP_SECONDS",
+     "signature": "pub const LEAP_SECONDS: &[LeapSecond] = &[ LeapSecond {",
+     "doc": "The leap second table, ordered by effective date.\n\nSource: IERS Bulletin C. The first entry is 1972-01-01, when the\ncurrent scheme began with an initial offset of 10 s inherited from\nearlier adjustments.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "TABLE_COVERS_FROM_MJD",
+     "signature": "pub const TABLE_COVERS_FROM_MJD: f64 = mjd_from_ymd( LEAP_SECONDS[0].year, LEAP_SECONDS[0].month, LEAP_SECONDS[0].day, );",
+     "doc": "The Modified Julian Date of the first table entry, 1972-01-01.\n\nQueries earlier than this instant are rejected because UTC did not yet\nuse integer second offsets.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "TAI_MINUS_UTC_AFTER_LAST_ENTRY",
+     "signature": "pub const TAI_MINUS_UTC_AFTER_LAST_ENTRY: f64 = LEAP_SECONDS[LEAP_SECONDS.len() - 1].tai_minus_utc;",
+     "doc": "The value of `TAI - UTC` on and after the last table entry.\n\nThis is the offset that remains in force until a new leap second is\nannounced.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mjd_from_ymd",
+     "signature": "pub const fn mjd_from_ymd(year: i32, month: u32, day: u32) -> f64 {",
+     "doc": "Converts a proleptic Gregorian calendar date to a Modified Julian Date.\n\nThe result is the MJD of 00:00:00 on the given day. The algorithm is the\nFliegel-Van Flandern integer conversion, which is exact for every date\nthe Gregorian calendar is defined on and does not need a lookup table.\n\nThe computation is done in `i64` and converted once at the end, so the\nresult is exact for the range of dates in which a leap second can\nplausibly occur.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "MJD_AT_UNIX_EPOCH",
+     "signature": "pub const MJD_AT_UNIX_EPOCH: f64 = 40_587.0;",
+     "doc": "The Modified Julian Date of the Unix epoch, 1970-01-01T00:00:00.\n\nMJD carries no time scale of its own, so this constant is the same\nnumber whether the instant is read in UTC, TAI, or any other scale.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "tai_minus_utc_at_mjd",
+     "signature": "pub fn tai_minus_utc_at_mjd(utc_mjd: f64) -> Option<f64> {",
+     "doc": "Returns the value of `TAI - UTC` in seconds at the given UTC Modified\nJulian Date.\n\nThe offset is a step function: it changes at 00:00:00 UTC on the\neffective date of each leap second and is constant in between. A query\nexactly on an effective date returns the new value.\n\nReturns `None` when the instant precedes 1972-01-01, before which UTC\nused fractional offsets and this table does not apply.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "tai_mjd_from_utc_mjd",
+     "signature": "pub fn tai_mjd_from_utc_mjd(utc_mjd: f64) -> Option<f64> {",
+     "doc": "Converts a UTC Modified Julian Date to the corresponding TAI Modified\nJulian Date.\n\nThe conversion adds the offset in force at that instant. Because the\noffset is a step function evaluated on the UTC side, the conversion is\ndefined for every UTC instant; the inverse conversion is not, because a\nleap second makes some TAI instants correspond to no UTC instant.\n\nReturns `None` when the instant precedes 1972-01-01.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "utc_mjd_from_tai_mjd",
+     "signature": "pub fn utc_mjd_from_tai_mjd(tai_mjd: f64) -> Option<f64> {",
+     "doc": "Converts a TAI Modified Julian Date to the corresponding UTC Modified\nJulian Date.\n\nEach candidate offset from the table is tried in turn. A candidate is\naccepted when the offset in force at the resulting UTC instant is the\nsame offset that produced it. At most one offset can satisfy that\ncondition for a given input, so the search is unambiguous.\n\nReturns `None` in two cases. The first is an instant before the start of\nthe table, where UTC carried fractional offsets that this table does not\ndescribe. The second is an instant that falls strictly inside an\ninserted leap second. Such an instant has no UTC representation, because\nthe UTC clock labels that interval `23:59:60`, a value that does not\nexist on the continuous Modified Julian Date scale.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "calendar_mjd",
+     "signature": "pub const fn calendar_mjd(year: i32, month: u32, day: u32) -> f64 {",
+     "doc": "Converts a proleptic Gregorian calendar date at 00:00:00 to a Modified\nJulian Date.\n\nThis is a convenience re-export of the calendar conversion used to place\nthe leap second table entries. It is provided so that callers do not\nhave to reproduce the conversion, and because the calibration scripts in\n`validation/` need the same function on both sides of a comparison.",
+     "associated": false
+    }
+   ]
+  },
+  {
+   "name": "apsis-coord",
+   "layer": "physics",
+   "summary": "Coordinate frames and the transformations between them. This crate defines positions that carry their reference frame in the type, so a position expressed in one frame cannot be passed where another is expected. The two frames are the Earth-centered inertial (ECI) frame and the Earth-centered Earth-fixed (ECEF) frame. Three position representations are offered: - [`Eci`], an inertial Cartesian position in meters - [`Ecef`], an Earth-fixed Cartesian position in meters - [`Geodetic`], a latitude, longitude, and height above the WGS 84 ellipsoid The transformation between [`Eci`] and [`Ecef`] is the rotation defined by the Earth Rotation Angle, which `apsis-frames` computes. The transformation between [`Ecef`] and [`Geodetic`] uses the WGS 84 ellipsoid from `apsis-geodesy`. ``` use apsis_coord::{Ecef, Eci, Geodetic, WGS84}; use apsis_frames::EarthRotationAngle; use apsis_math::Vec3; // A station on the equator at zero longitude. let station = Geodetic::new(0.0, 0.0, 0.0); let fixed = station.to_ecef(); assert!((fixed.vector().x - WGS84.semi_major_axis()).abs() < 1e-6); // Rotating it into the inertial frame preserves its length. let inertial = fixed.to_eci(EarthRotationAngle::from_ut1_days(0.0)); assert!((inertial.vector().norm() - fixed.vector().norm()).abs() < 1e-6); let _ = Eci::new(Vec3::X); ``` Sources: - Earth Rotation Angle: *IERS Conventions (2010)*, equation 8.32, as implemented by `apsis-frames`. - Geodetic conversions and the WGS 84 ellipsoid: NIMA TR8350.2, third edition, 2000, as implemented by `apsis-geodesy`.",
+   "items": [
+    {
+     "kind": "struct",
+     "name": "Eci",
+     "signature": "pub struct Eci(Vec3);",
+     "doc": "A Cartesian position in the Earth-centered inertial frame.\n\nThe frame is aligned with the mean equator and equinox of J2000.0 and is\ntreated as inertial, so it does not rotate with the Earth. Coordinates\nare in meters.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Ecef",
+     "signature": "pub struct Ecef(Vec3);",
+     "doc": "A Cartesian position in the Earth-centered Earth-fixed frame.\n\nThe frame rotates with the Earth, so a point fixed to the ground has\nconstant coordinates in it. Coordinates are in meters.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Geodetic",
+     "signature": "pub struct Geodetic(EllipsoidalPosition);",
+     "doc": "A position in the Earth-fixed frame given as latitude, longitude, and\nheight above the WGS 84 ellipsoid.\n\nLatitude and longitude are in radians and height is in meters. Latitude\nis geodetic, measured between the ellipsoid normal and the equatorial\nplane.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub const fn new(vector: Vec3) -> Self {",
+     "doc": "Creates an inertial position from a vector in meters.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "vector",
+     "signature": "pub const fn vector(self) -> Vec3 {",
+     "doc": "Returns the position in meters.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "to_ecef",
+     "signature": "pub fn to_ecef(self, angle: EarthRotationAngle) -> Ecef {",
+     "doc": "Converts this inertial position to the Earth-fixed frame at the given\nEarth Rotation Angle.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "to_eci",
+     "signature": "pub fn to_eci(self, angle: EarthRotationAngle) -> Eci {",
+     "doc": "Converts this Earth-fixed position to the inertial frame at the given\nEarth Rotation Angle.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "to_geodetic",
+     "signature": "pub fn to_geodetic(self, ellipsoid: Ellipsoid) -> Option<Geodetic> {",
+     "doc": "Converts this Earth-fixed position to latitude, longitude, and height\nabove the given ellipsoid.\n\nReturns `None` when the position lies on the polar axis, where no\nlongitude is defined.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub const fn new(latitude: f64, longitude: f64, height: f64) -> Self {",
+     "doc": "Creates a geodetic position from latitude, longitude, and height.\n\nLatitude and longitude are in radians and height is in meters.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "latitude",
+     "signature": "pub const fn latitude(self) -> f64 {",
+     "doc": "Returns the geodetic latitude in radians.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "longitude",
+     "signature": "pub const fn longitude(self) -> f64 {",
+     "doc": "Returns the longitude in radians, positive east.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "height",
+     "signature": "pub const fn height(self) -> f64 {",
+     "doc": "Returns the height above the ellipsoid in meters.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "ellipsoidal",
+     "signature": "pub const fn ellipsoidal(self) -> EllipsoidalPosition {",
+     "doc": "Returns the underlying ellipsoidal position.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "to_ecef",
+     "signature": "pub fn to_ecef(self) -> Ecef {",
+     "doc": "Converts this position to the Earth-fixed frame on the WGS 84\nellipsoid.\n\nThis is the common case. Use [`Geodetic::to_ecef_on`] for a different\nellipsoid.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "to_ecef_on",
+     "signature": "pub fn to_ecef_on(self, ellipsoid: Ellipsoid) -> Ecef {",
+     "doc": "Converts this position to the Earth-fixed frame on the given\nellipsoid.",
+     "associated": true
+    }
+   ]
+  },
+  {
+   "name": "apsis-geodesy",
+   "layer": "physics",
+   "summary": "Reference ellipsoids and geodetic computations. A geodetic position is written as latitude, longitude, and height above an ellipsoid. Latitude here is always geodetic, the angle between the ellipsoid normal and the equatorial plane, not geocentric. The two differ by up to about 0.19 degrees at mid latitudes, so the distinction matters for pointing and ranging. [`WGS84`] is the ellipsoid used by GPS and by almost all satellite work. Its defining parameters are the semi-major axis and the inverse flattening; every other quantity is derived from those two, so the derived values agree with the ones published in the standard to the precision of the defining parameters. Source: National Imagery and Mapping Agency, *Department of Defense World Geodetic System 1984*, Technical Report TR8350.2, third edition, 2000. ``` use apsis_geodesy::{Geodetic, WGS84}; // The equator has zero height and a radius equal to the semi-major axis. let point = Geodetic::new(0.0, 0.0, 0.0); let cartesian = point.to_cartesian(WGS84); assert!((cartesian.norm() - WGS84.semi_major_axis()).abs() < 1e-9); ```",
+   "items": [
+    {
+     "kind": "struct",
+     "name": "Ellipsoid",
+     "signature": "pub struct Ellipsoid {",
+     "doc": "A biaxial reference ellipsoid: an ellipse of revolution about its minor\naxis.\n\nThe shape is fixed by two numbers. This crate stores the semi-major axis\nand the inverse flattening, which are the two defining parameters of the\nWGS 84 ellipsoid in the standard. Every other quantity is derived, so\nthere is no risk of the parameters disagreeing with each other.\n\nLengths are in meters and angles are in radians.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub const fn new(semi_major_axis: f64, inverse_flattening: f64) -> Self {",
+     "doc": "Creates an ellipsoid from its semi-major axis and inverse\nflattening.\n\nLengths are in meters. The inverse flattening must be positive and\nfinite; a value of infinity describes a sphere.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "semi_major_axis",
+     "signature": "pub const fn semi_major_axis(self) -> f64 {",
+     "doc": "Returns the semi-major axis, in meters.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "inverse_flattening",
+     "signature": "pub const fn inverse_flattening(self) -> f64 {",
+     "doc": "Returns the inverse flattening.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "flattening",
+     "signature": "pub fn flattening(self) -> f64 {",
+     "doc": "Returns the flattening.\n\nThis is zero for a sphere.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "semi_minor_axis",
+     "signature": "pub fn semi_minor_axis(self) -> f64 {",
+     "doc": "Returns the semi-minor axis, in meters.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "eccentricity_squared",
+     "signature": "pub fn eccentricity_squared(self) -> f64 {",
+     "doc": "Returns the first eccentricity squared, a dimensionless number in\n`[0, 1)`.\n\nIt is `2f - f^2` for flattening `f`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "eccentricity",
+     "signature": "pub fn eccentricity(self) -> f64 {",
+     "doc": "Returns the first eccentricity, a dimensionless number in `[0, 1)`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "second_eccentricity_squared",
+     "signature": "pub fn second_eccentricity_squared(self) -> f64 {",
+     "doc": "Returns the second eccentricity squared, a dimensionless number.\n\nIt is `e^2 / (1 - e^2)`, which appears in the closed form for\nconverting a geodetic position to Cartesian coordinates.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "polar_radius_of_curvature",
+     "signature": "pub fn polar_radius_of_curvature(self) -> f64 {",
+     "doc": "Returns the polar radius of curvature, in meters.\n\nThis is the radius of curvature in the meridian at the pole, equal\nto `a / sqrt(1 - e^2)`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "prime_vertical_radius",
+     "signature": "pub fn prime_vertical_radius(self, latitude: f64) -> f64 {",
+     "doc": "Returns the radius of curvature in the prime vertical at the given\ngeodetic latitude, in meters.\n\nThis is the distance from the surface to the polar axis measured\nalong the ellipsoid normal, and it grows from the semi-major axis at\nthe equator to [`Ellipsoid::polar_radius_of_curvature`] at the pole.\n\nThe latitude is in radians.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "meridian_radius",
+     "signature": "pub fn meridian_radius(self, latitude: f64) -> f64 {",
+     "doc": "Returns the radius of curvature in the meridian at the given\ngeodetic latitude, in meters.\n\nThe latitude is in radians.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "geocentric_latitude",
+     "signature": "pub fn geocentric_latitude(self, geodetic_latitude: f64) -> f64 {",
+     "doc": "Returns the geocentric latitude corresponding to a geodetic\nlatitude, in radians.\n\nThe geocentric latitude is measured from the equatorial plane to the\nradius vector, while the geodetic latitude is measured to the\nellipsoid normal. The geocentric value is the smaller of the two\naway from the equator and the poles.",
+     "associated": true
+    },
+    {
+     "kind": "const",
+     "name": "WGS84",
+     "signature": "pub const WGS84: Ellipsoid = Ellipsoid::new(6_378_137.0, 298.257_223_563);",
+     "doc": "The WGS 84 reference ellipsoid.\n\nThe two defining parameters are the semi-major axis `a = 6 378 137 m` and\nthe inverse flattening `1 / f = 298.257 223 563`.\n\nSource: NIMA TR8350.2, third edition, 2000.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "WGS84_GRAVITATIONAL_PARAMETER",
+     "signature": "pub const WGS84_GRAVITATIONAL_PARAMETER: f64 = 3.986_004_418e14;",
+     "doc": "The Earth gravitational parameter for WGS 84, in cubic meters per second\nsquared.\n\nThis is held here rather than in `apsis-core` so that a caller working\nwith the ellipsoid can use the matching gravity field. The value is\n`3.986 004 418e14 m^3/s^2`.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Geodetic",
+     "signature": "pub struct Geodetic {",
+     "doc": "A geodetic position: latitude, longitude, and height above an ellipsoid.\n\nLatitude and longitude are in radians and height is in meters. Latitude\nis geodetic, measured between the ellipsoid normal and the equatorial\nplane, and lies in `[-pi/2, pi/2]`. Longitude is measured east from the\nprime meridian. Height is the distance along the ellipsoid normal, taken\nas positive outside the ellipsoid.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub const fn new(latitude: f64, longitude: f64, height: f64) -> Self {",
+     "doc": "Creates a geodetic position from latitude, longitude, and height.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "to_cartesian",
+     "signature": "pub fn to_cartesian(self, ellipsoid: Ellipsoid) -> Vec3 {",
+     "doc": "Converts this geodetic position to Earth-fixed Cartesian coordinates\non the given ellipsoid.\n\nThe frame has its third axis along the ellipsoid's minor axis through\nthe north pole, its first axis through the intersection of the\nequator and the prime meridian, and its second axis completing a\nright-handed set. The result is in meters.\n\nThe closed form is\n\n```text\nN = a / sqrt(1 - e^2 sin^2(lat))\nx = (N + h) cos(lat) cos(lon)\ny = (N + h) cos(lat) sin(lon)\nz = (N (1 - e^2) + h) sin(lat)\n```\n\nwhere `N` is the prime vertical radius of curvature. This form is\nexact everywhere, including at the poles, where the cosine factors\nvanish.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "is_valid",
+     "signature": "pub fn is_valid(self) -> bool {",
+     "doc": "Returns `true` when every field is finite and the latitude and\nlongitude are inside their ranges.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "cartesian_from_geodetic",
+     "signature": "pub fn cartesian_from_geodetic(geodetic: Geodetic, ellipsoid: Ellipsoid) -> Vec3 {",
+     "doc": "Converts a geodetic position to Earth-fixed Cartesian coordinates.\n\nSee [`Geodetic::to_cartesian`] for the frame definition and the closed\nform.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "geodetic_from_cartesian",
+     "signature": "pub fn geodetic_from_cartesian(cartesian: Vec3, ellipsoid: Ellipsoid) -> Option<Geodetic> {",
+     "doc": "Converts Earth-fixed Cartesian coordinates to a geodetic position.\n\nThe latitude and height are recovered by Bowring's method, which solves\nthe meridian equation in closed form and then refines the result with a\nfew fixed point steps. The iteration converges to well below a\nmicrometer for positions from below the ellipsoid out to geostationary\nradius.\n\nReturns `None` when the position is not finite, or when it lies on the\npolar axis so that no longitude is defined.",
+     "associated": false
+    }
+   ]
+  },
+  {
+   "name": "apsis-frames",
+   "layer": "physics",
+   "summary": "Reference frame definitions and the rotation between the inertial and Earth-fixed frames. A reference frame fixes the orientation and origin that a vector is expressed relative to. This crate names the two frames used for near-Earth work and computes the rotation between them. Concrete position types that carry a frame are defined in `apsis-coord`; this crate works with the rotation matrix and the angle that defines it. The inertial frame is the Earth-centered inertial (ECI) frame aligned with the mean equator and equinox of J2000.0. Its axes are fixed in inertial space, so an orbit propagated in it is not affected by the rotation of the Earth. The rotating frame is the Earth-centered Earth-fixed (ECEF) frame. Its third axis is the Earth's rotation axis and its first axis follows the prime meridian, so a point fixed to the ground has constant coordinates in it. The two are related by a rotation of [`EarthRotationAngle`] about the common third axis. This crate models the Earth's rotation with the Earth Rotation Angle, which is a function of UT1 only. It does not apply precession or nutation, because an angle accurate to a few hundredths of a degree is sufficient for pointing and coverage work and the full model needs the orientation of the celestial pole, which is a separate computation. Source: the Earth Rotation Angle expression is from the International Astronomical Union, as given in the *IERS Conventions (2010)*, equation 8.32. ``` use apsis_frames::{EarthRotationAngle, rotation_eci_to_ecef}; // The angle advances by roughly 360.9856 degrees per day. let first = EarthRotationAngle::from_ut1_days(0.0); let second = EarthRotationAngle::from_ut1_days(1.0); let advance = (second.radians() - first.radians()).to_degrees(); assert!((advance - 360.985_612_288_088).abs() < 1e-6); // The rotation is ready to apply to a vector. let _ = rotation_eci_to_ecef(first); ```",
+   "items": [
+    {
+     "kind": "const",
+     "name": "ERA_J2000_TURNS",
+     "signature": "pub const ERA_J2000_TURNS: f64 = 0.0;",
+     "doc": "The Earth Rotation Angle at the J2000.0 epoch, in turns.\n\nThe epoch value is zero by the definition of the angle: the International\nAstronomical Union defines the Earth Rotation Angle to be zero at\n2000-01-01T12:00:00 UT1.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "ERA_RATE_TURNS_PER_DAY",
+     "signature": "pub const ERA_RATE_TURNS_PER_DAY: f64 = 1.002_737_811_911_354_6;",
+     "doc": "The rate of change of the Earth Rotation Angle, in turns per day of UT1.\n\nThis is `1.002 737 811 911 354 6`, which is `360.985 612 288 088`\ndegrees per day. It exceeds one turn per day because the Earth turns once\nin a sidereal day, which is shorter than a solar day.\n\nSource: IERS Conventions (2010), equation 8.32.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "ut1_days_from_j2000",
+     "signature": "pub fn ut1_days_from_j2000(ut1_julian_date: f64) -> f64 {",
+     "doc": "The number of days from the J2000.0 epoch to the given Julian Date on the\nUT1 scale.\n\nThe J2000.0 epoch is Julian Date 2451545.0, which is noon on\n2000-01-01.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "EarthRotationAngle",
+     "signature": "pub struct EarthRotationAngle {",
+     "doc": "The Earth Rotation Angle at a given instant.\n\nThe angle is the rotation from the celestial intermediate origin to the\nterrestrial intermediate origin, measured about the celestial\nintermediate pole. It replaces Greenwich Mean Sidereal Time in modern\npractice and, unlike sidereal time, is a linear function of UT1.\n\nThe value is held in turns. A turn is one full revolution, so the angle\nis periodic with a period of one. The value returned is not reduced to\nany interval, so differences between two angles are meaningful even when\nthe interval is longer than a day.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "from_turns",
+     "signature": "pub const fn from_turns(turns: f64) -> Self {",
+     "doc": "Creates an angle from a value in turns.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_radians",
+     "signature": "pub fn from_radians(radians: f64) -> Self {",
+     "doc": "Creates an angle from a value in radians.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_ut1_julian_date",
+     "signature": "pub fn from_ut1_julian_date(ut1_julian_date: f64) -> Self {",
+     "doc": "Returns the angle for a Julian Date on the UT1 scale.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_ut1_days",
+     "signature": "pub fn from_ut1_days(days_since_j2000: f64) -> Self {",
+     "doc": "Returns the angle for a number of days of UT1 since the J2000.0\nepoch.\n\nThe expression is linear: `theta = 0.779 057 273 2640 + 1.002 737\n909 350 795 * d`, where `d` is the interval in days. The constant\nterm of `0.779 057` turns is the angle at the epoch itself, which is\nabout 280.46 degrees.\n\nSource: IERS Conventions (2010), equation 8.32.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "turns",
+     "signature": "pub const fn turns(self) -> f64 {",
+     "doc": "Returns the angle in turns.\n\nThe value is not reduced to `[0, 1)`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "turns_positive",
+     "signature": "pub fn turns_positive(self) -> f64 {",
+     "doc": "Returns the angle in turns, reduced to `[0, 1)`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "radians",
+     "signature": "pub fn radians(self) -> f64 {",
+     "doc": "Returns the angle in radians.\n\nThe value is not reduced to `[0, 2 pi)`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "radians_positive",
+     "signature": "pub fn radians_positive(self) -> f64 {",
+     "doc": "Returns the angle in radians, reduced to `[0, 2 pi)`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "rotation_eci_to_ecef",
+     "signature": "pub fn rotation_eci_to_ecef(angle: EarthRotationAngle) -> Mat3 {",
+     "doc": "Returns the rotation that maps a vector in the inertial frame to the\nEarth-fixed frame.\n\nThe rotation is a clockwise turn about the third axis by the Earth\nRotation Angle. Applying it to an inertial vector yields the Earth-fixed\nvector, so a vector that is fixed in inertial space acquires a negative\nrotation as the Earth turns beneath it.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "rotation_ecef_to_eci",
+     "signature": "pub fn rotation_ecef_to_eci(angle: EarthRotationAngle) -> Mat3 {",
+     "doc": "Returns the rotation that maps a vector in the Earth-fixed frame to the\ninertial frame.\n\nThis is the transpose of [`rotation_eci_to_ecef`], which for a rotation\nmatrix is also its inverse.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_anomaly_moon",
+     "signature": "pub fn mean_anomaly_moon(t: f64) -> f64 {",
+     "doc": "Returns the mean anomaly of the Moon, in radians.\n\nThis is the Delaunay argument `l`, from the IERS 2003 expressions.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_anomaly_sun",
+     "signature": "pub fn mean_anomaly_sun(t: f64) -> f64 {",
+     "doc": "Returns the mean anomaly of the Sun, in radians.\n\nThis is the Delaunay argument `l'`. The reference evaluates it inline\nrather than through the general function, and the two differ slightly.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_anomaly_sun_iers2003",
+     "signature": "pub fn mean_anomaly_sun_iers2003(t: f64) -> f64 {",
+     "doc": "Returns the mean anomaly of the Sun from the IERS 2003 expressions.\n\nThis differs from [`mean_anomaly_sun`] in the last digits of the constant\nand linear terms. The nutation series uses the inline form; the\ncomplementary terms of the equation of the equinoxes use this one.\n\nSource: as implemented by `eraFalp03`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_elongation_moon_sun_iers2003",
+     "signature": "pub fn mean_elongation_moon_sun_iers2003(t: f64) -> f64 {",
+     "doc": "Returns the mean elongation of the Moon from the Sun from the IERS 2003\nexpressions.\n\nThis differs from [`mean_elongation_moon_sun`] in the last digits of the\nconstant term. The nutation series uses the inline form; the\ncomplementary terms of the equation of the equinoxes use this one.\n\nSource: as implemented by `eraFad03`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_latitude_moon",
+     "signature": "pub fn mean_latitude_moon(t: f64) -> f64 {",
+     "doc": "Returns the mean argument of latitude of the Moon, in radians.\n\nThis is the Delaunay argument `F`, the mean longitude of the Moon minus\nthe mean longitude of its ascending node.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_elongation_moon_sun",
+     "signature": "pub fn mean_elongation_moon_sun(t: f64) -> f64 {",
+     "doc": "Returns the mean elongation of the Moon from the Sun, in radians.\n\nThis is the Delaunay argument `D`. The reference evaluates it inline.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_longitude_node",
+     "signature": "pub fn mean_longitude_node(t: f64) -> f64 {",
+     "doc": "Returns the mean longitude of the Moon's ascending node, in radians.\n\nThis is the Delaunay argument `Om`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_longitude_mercury",
+     "signature": "pub fn mean_longitude_mercury(t: f64) -> f64 {",
+     "doc": "Returns the mean longitude of Mercury, in radians.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_longitude_venus",
+     "signature": "pub fn mean_longitude_venus(t: f64) -> f64 {",
+     "doc": "Returns the mean longitude of Venus, in radians.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_longitude_earth",
+     "signature": "pub fn mean_longitude_earth(t: f64) -> f64 {",
+     "doc": "Returns the mean longitude of the Earth, in radians.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_longitude_mars",
+     "signature": "pub fn mean_longitude_mars(t: f64) -> f64 {",
+     "doc": "Returns the mean longitude of Mars, in radians.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_longitude_jupiter",
+     "signature": "pub fn mean_longitude_jupiter(t: f64) -> f64 {",
+     "doc": "Returns the mean longitude of Jupiter, in radians.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_longitude_saturn",
+     "signature": "pub fn mean_longitude_saturn(t: f64) -> f64 {",
+     "doc": "Returns the mean longitude of Saturn, in radians.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_longitude_uranus",
+     "signature": "pub fn mean_longitude_uranus(t: f64) -> f64 {",
+     "doc": "Returns the mean longitude of Uranus, in radians.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_longitude_neptune",
+     "signature": "pub fn mean_longitude_neptune(t: f64) -> f64 {",
+     "doc": "Returns the mean longitude of Neptune, in radians.\n\nThe reference evaluates this inline, from the MHB2000 model rather than\nfrom the IERS 2003 expressions used for the other planets.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "general_precession",
+     "signature": "pub fn general_precession(t: f64) -> f64 {",
+     "doc": "Returns the general accumulated precession in longitude, in radians.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "DelaunayArguments",
+     "signature": "pub struct DelaunayArguments {",
+     "doc": "The five Delaunay arguments, in the order the luni-solar series uses.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "at",
+     "signature": "pub fn at(t: f64) -> Self {",
+     "doc": "Returns the five arguments for a time in Julian centuries.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "as_array",
+     "signature": "pub const fn as_array(self) -> [f64; 5] {",
+     "doc": "Returns the arguments as an array in series order.",
+     "associated": true
+    },
+    {
+     "kind": "struct",
+     "name": "PlanetaryArguments",
+     "signature": "pub struct PlanetaryArguments {",
+     "doc": "The thirteen arguments of the planetary series, in series order.\n\nThe order is `l`, `F`, `D`, `Om`, Mercury through Uranus, Neptune, and the\ngeneral accumulated precession. Note that `l'` does not appear; the\nplanetary series uses the Moon's mean anomaly, not the Sun's.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "as_array",
+     "signature": "pub const fn as_array(self) -> [f64; 13] {",
+     "doc": "Returns the arguments as an array in series order.",
+     "associated": true
+    },
+    {
+     "kind": "struct",
+     "name": "SeriesTerm",
+     "signature": "pub struct SeriesTerm {",
+     "doc": "One term of the luni-solar nutation series.\n\nThe five multipliers are applied to the Delaunay arguments in the order\n`l`, `l'`, `F`, `D`, `Om`. The six coefficients are the longitude sine,\nits time derivative, the longitude cosine, the obliquity cosine, its time\nderivative, and the obliquity sine, in units of 0.1 microarcsecond.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "ComplementaryTerm",
+     "signature": "pub struct ComplementaryTerm {",
+     "doc": "One term of the complementary terms of the equation of the equinoxes.\n\nThe eight multipliers apply to the arguments `l`, `l'`, `F`, `D`, `Om`,\nthe mean longitude of Venus, the mean longitude of the Earth, and the\ngeneral accumulated precession. The two coefficients are the sine and\ncosine amplitudes, in arcseconds.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "PlanetaryTerm",
+     "signature": "pub struct PlanetaryTerm {",
+     "doc": "One term of the planetary nutation series.\n\nThe thirteen multipliers are applied to the planetary arguments in the\norder `l`, `F`, `D`, `Om`, Mercury through Uranus, Neptune, and the\ngeneral accumulated precession. The four coefficients are the longitude\nsine, the longitude cosine, the obliquity sine, and the obliquity cosine,\nin units of 0.1 microarcsecond.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Nutation",
+     "signature": "pub struct Nutation {",
+     "doc": "The nutation in longitude and obliquity, in radians.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub const fn new(longitude: f64, obliquity: f64) -> Self {",
+     "doc": "Creates a nutation from its two angles.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "longitude_arcseconds",
+     "signature": "pub fn longitude_arcseconds(self) -> f64 {",
+     "doc": "Returns the nutation in longitude, in arcseconds.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "obliquity_arcseconds",
+     "signature": "pub fn obliquity_arcseconds(self) -> f64 {",
+     "doc": "Returns the nutation in obliquity, in arcseconds.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "plus",
+     "signature": "pub const fn plus(self, other: Self) -> Self {",
+     "doc": "Returns the sum of two nutations.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "nutation_2000a",
+     "signature": "pub fn nutation_2000a(t: f64) -> Nutation {",
+     "doc": "Returns the nutation in longitude and obliquity for a time.\n\nThe time is in Julian centuries from J2000.0 on the Terrestrial Time\nscale. This is the IAU 2000A model, which includes the planetary terms.\n\nSource: IAU 2000A, as implemented by `eraNut00a`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "nutation_2000a_with_2006_adjustment",
+     "signature": "pub fn nutation_2000a_with_2006_adjustment(t: f64) -> Nutation {",
+     "doc": "Returns the nutation with the IAU 2006 precession adjustments applied.\n\nThe IAU 2000A model was built on the IAU 1976 precession, and the IAU\n2006 precession changed the precession rates. The adjustment brings the\nnutation into consistency with the newer precession, which is the\ncombination used for the modern celestial-to-terrestrial transformation.\n\nSource: IAU 2006, as implemented by `eraNut06a`, which applies the\nexpressions of Wallace and Capitaine (2006), equations 5.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "FRAME_BIAS_RIGHT_ASCENSION",
+     "signature": "pub const FRAME_BIAS_RIGHT_ASCENSION: f64 = -0.014_6 * ARCSECOND_TO_RADIAN;",
+     "doc": "The frame bias in right ascension, in radians.\n\nThe offset between the origin of the International Celestial Reference\nSystem and the dynamical equinox of J2000.0. The value is\nminus 0.0146 arcseconds.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "FRAME_BIAS_DECLINATION",
+     "signature": "pub const FRAME_BIAS_DECLINATION: f64 = -0.006_819_2 * ARCSECOND_TO_RADIAN;",
+     "doc": "The frame bias in declination, in radians.\n\nThe offset between the pole of the International Celestial Reference\nSystem and the mean pole of J2000.0. The value is minus 0.0068192\narcseconds.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "FRAME_BIAS_LONGITUDE",
+     "signature": "pub const FRAME_BIAS_LONGITUDE: f64 = -0.041_775 * ARCSECOND_TO_RADIAN;",
+     "doc": "The frame bias in longitude, in radians.\n\nThe offset between the two origins measured along the equator. The value\nis minus 0.041775 arcseconds.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "PrecessionAngles",
+     "signature": "pub struct PrecessionAngles {",
+     "doc": "The four angles that describe the precession from J2000.0 to a date.\n\nThey are applied in the order the reference uses: a rotation by\n`gamma_bar` about the third axis, then by `phi_bar` about the first, then\nby minus `psi_bar` about the third, then by minus `epsilon_a` about the\nfirst.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_obliquity",
+     "signature": "pub fn mean_obliquity(t: f64) -> f64 {",
+     "doc": "Returns the mean obliquity of the ecliptic, in radians.\n\nThe polynomial is the IAU 2006 expression, evaluated for a time in Julian\ncenturies from J2000.0 on the Terrestrial Time scale. The constant term\nis 84381.406 arcseconds, which is the obliquity at J2000.0.\n\nSource: the IAU 2006 precession, as implemented by `eraObl06`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "precession_angles",
+     "signature": "pub fn precession_angles(t: f64) -> PrecessionAngles {",
+     "doc": "Returns the four precession angles for a time.\n\nThe time is in Julian centuries from J2000.0 on the Terrestrial Time\nscale.\n\nSource: the P03 precession, as implemented by `eraPfw06`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "frame_bias_matrix",
+     "signature": "pub fn frame_bias_matrix() -> Mat3 {",
+     "doc": "Returns the frame bias rotation matrix.\n\nThe bias is a constant rotation from the International Celestial\nReference System to the dynamical mean equator and equinox of J2000.0.\nIts three angles are far below a tenth of an arcsecond, but omitting it\nwould leave a systematic error that is larger than the precision of the\nnutation series.\n\nSource: as implemented by `eraBi00`, which gives the bias as three small\nrotations rather than as a matrix.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "bias_precession_matrix",
+     "signature": "pub fn bias_precession_matrix(t: f64) -> Mat3 {",
+     "doc": "Returns the rotation from the celestial reference frame to the mean\nequator and equinox of date.\n\nThis is the bias-precession matrix. Nutation is applied on top of it to\nreach the true equator and equinox of date.\n\nThe time is in Julian centuries from J2000.0 on the Terrestrial Time\nscale.\n\nSource: as implemented by `eraPmat06`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "frame_to_mean_of_date",
+     "signature": "pub fn frame_to_mean_of_date(angles: &PrecessionAngles) -> Mat3 {",
+     "doc": "Returns the rotation from the celestial reference frame to the mean\nequator and equinox of date, given precomputed precession angles.\n\nSource: as implemented by `eraFw2m`, which applies the four elementary\nrotations in sequence. The reference helper composes each new rotation\non the left of the accumulator, so the product here is written with the\nlast rotation applied first, in the same order.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "rotation_z",
+     "signature": "pub fn rotation_z(angle: f64) -> Mat3 {",
+     "doc": "Returns a rotation of `angle` about the third axis, in radians.\n\nThe sign convention matches the other axis rotations in this module.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "greenwich_mean_sidereal_time_1982",
+     "signature": "pub fn greenwich_mean_sidereal_time_1982(day: f64, fraction: f64) -> f64 {",
+     "doc": "Returns Greenwich mean sidereal time from the 1982 expression, in\nradians.\n\nThe expression is a polynomial in the number of Julian centuries from\nJ2000.0 plus the fraction of the day in seconds of time. It is the\nsidereal time the SGP4 theory was fitted against, which is why it is used\nhere rather than the modern expression: the element sets are consistent\nwith it.\n\nThe Julian date is taken in two parts, a whole number of days and a\nfraction, because a single `f64` near 2 461 000 has a resolution of about\n40 microseconds and the sidereal time is wanted to better than that. The\ncaller that has only one value may pass the whole part and the fraction\nseparately, or pass a value twice: `(jd, 0.0)`, `(2400000.5, mjd)`, and\n`(jd - 0.5, 0.5)` are all accepted, but the split with the smaller whole\npart preserves more of the fraction.\n\nSource: as implemented by `eraGmst82`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "teme_to_terrestrial_matrix",
+     "signature": "pub fn teme_to_terrestrial_matrix( ut1_day: f64, ut1_fraction: f64, polar_motion: PolarMotion, ) -> Mat3 {",
+     "doc": "Returns the rotation from the True Equator Mean Equinox frame to the\nEarth-fixed frame.\n\nThe argument is the UT1 Julian date, because the rotation is the Earth's\nrotation, and the polar motion is supplied by the caller because it is\nmeasured rather than modelled.\n\nThis is the transformation to apply to the position and velocity that\n`apsis-sgp4` produces.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "bias_precession_nutation_matrix",
+     "signature": "pub fn bias_precession_nutation_matrix(t: f64) -> Mat3 {",
+     "doc": "Returns the bias-precession-nutation matrix for a time.\n\nThe matrix carries a vector from the celestial reference frame to the\ntrue equator and equinox of date. It is built from the four precession\nangles with the nutation added to the last two, which is the form the\nreference uses.\n\nSource: as implemented by `eraPnm06a` and `eraFw2m`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "equation_of_the_equinoxes_complementary_terms",
+     "signature": "pub fn equation_of_the_equinoxes_complementary_terms(t: f64) -> f64 {",
+     "doc": "Returns the complementary terms of the equation of the equinoxes.\n\nThe equation of the equinoxes has, besides the projection of the nutation\nin longitude onto the true equator, a set of small periodic terms from\nthe same theory. They reach about twice the constant term of the\nosculating nutation, which is a millisecond of time, so they matter for a\nsidereal time that is quoted to that precision.\n\nSource: the MHB2000 complementary terms, as implemented by `eraEect00`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "equation_of_the_equinoxes",
+     "signature": "pub fn equation_of_the_equinoxes(t: f64) -> f64 {",
+     "doc": "Returns the equation of the equinoxes for a time.\n\nThe equation of the equinoxes is the difference between the true and mean\nequinoxes measured along the true equator. It is the quantity a sidereal\ntime must be corrected by to become the hour angle of the true equinox.\n\nThe value is the projection of the nutation in longitude onto the true\nequator, `dpsi cos(eps)`, plus the complementary terms of the theory.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "PolarMotion",
+     "signature": "pub struct PolarMotion {",
+     "doc": "The polar motion of the Earth, as two angles and the rotation.\n\nThe polar motion is the motion of the rotation pole within the Earth. It\nis measured daily and published by the International Earth Rotation and\nReference Systems Service, so it cannot be computed from a model and is\nsupplied by the caller.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "NONE",
+     "signature": "pub const NONE: Self = Self {",
+     "doc": "The zero polar motion, which is the approximation used when the\npublished values are not available.\n\nThe error from omitting the polar motion is under a tenth of an\narcsecond, well below the nutation but above the precision of a\nmodern transformation.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub const fn new(x: f64, y: f64, s: f64) -> Self {",
+     "doc": "Creates a polar motion from its three angles.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "is_valid",
+     "signature": "pub fn is_valid(self) -> bool {",
+     "doc": "Returns `true` when the angles are usable.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "matrix",
+     "signature": "pub fn matrix(self) -> Mat3 {",
+     "doc": "Returns the rotation matrix of the polar motion.\n\nThe rotation is a turn about the third axis by the locator, then\nabout the second by minus the `x` displacement, then about the first\nby minus the `y` displacement. The signs are the ones the reference\nuses, which carry the terrestrial frame into alignment with the\ncelestial pole.\n\nSource: as implemented by `eraPom00`, which applies the rotations in\nsequence by composing each on the left of the accumulator.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "intermediate_to_terrestrial_matrix",
+     "signature": "pub fn intermediate_to_terrestrial_matrix(ut1_julian_date: f64, tt_julian_date: f64) -> Mat3 {",
+     "doc": "Returns the intermediate-to-terrestrial matrix for a time.\n\nThe intermediate frame is the true equator and equinox of date, and the\nterrestrial frame is the Earth-fixed frame at the same date. This uses\nthe equinox-based approach, in which the rotation from one to the other\nis Greenwich apparent sidereal time.\n\nThe time arguments are the UT1 and TT Julian dates.\n\nSource: the composition is the one `eraC2t06a` produces for the equinox\nbased chain, with the polar motion applied separately by the caller of\nthe full transformation.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "greenwich_apparent_sidereal_time",
+     "signature": "pub fn greenwich_apparent_sidereal_time(ut1_julian_date: f64, tt_julian_date: f64) -> f64 {",
+     "doc": "Returns Greenwich apparent sidereal time for a UT1 and a TT Julian date.\n\nThis is the mean sidereal time plus the equation of the equinoxes, so it\nis the hour angle of the true equinox.\n\nSource: as implemented by `eraGst06a`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "greenwich_mean_sidereal_time",
+     "signature": "pub fn greenwich_mean_sidereal_time(ut1_julian_date: f64, tt_julian_date: f64) -> f64 {",
+     "doc": "Returns Greenwich mean sidereal time for a UT1 and a TT Julian date.\n\nThe relation is the Earth rotation angle plus the accumulated precession\nin right ascension, which is the quantity that relates the equinox to the\nnon-rotating origin.\n\nSource: as implemented by `eraGmst06`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "earth_rotation_angle",
+     "signature": "pub fn earth_rotation_angle(ut1_julian_date: f64) -> f64 {",
+     "doc": "Returns the Earth rotation angle for a UT1 Julian date.\n\nThis is the linear expression of the International Astronomical Union,\nwhich is exact to the precision the angle is known.\n\nSource: IERS Conventions (2010), equation 8.32.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "celestial_to_terrestrial_matrix",
+     "signature": "pub fn celestial_to_terrestrial_matrix( ut1_julian_date: f64, tt_julian_date: f64, polar_motion: PolarMotion, ) -> Mat3 {",
+     "doc": "Returns the celestial-to-terrestrial matrix for a time.\n\nThis composes the whole chain: the frame bias, the precession, the\nnutation, the Earth rotation, and the polar motion.\n\nThe time arguments are the UT1 and TT Julian dates, and the polar motion\nis supplied by the caller because it is measured rather than modelled.\n\nSource: the composition is the one `eraC2t06a` produces.",
+     "associated": false
+    }
+   ]
+  },
+  {
+   "name": "apsis-tle",
+   "layer": "orbit",
+   "summary": "Parsing of two-line element sets. A two-line element set (TLE) describes a satellite orbit in the form used by the North American Aerospace Defense Command and distributed by Space-Track. The name of the satellite is carried on an optional first line, and the two following lines carry the orbital data. The format is fixed width. Every field occupies a fixed range of columns and the checksum of each line is the sum of its digits modulo ten, where a minus sign counts as one. This crate parses a TLE into structured fields and verifies the line checksums and the matching element set number. It does not interpret the fields; the mean elements and their units are the concern of `apsis-sgp4`. Column positions are one based, matching the documentation of the format. Two conventions from the format are worth stating explicitly, because they are easy to misread: - An exponent field is written as a signed single digit followed by the magnitude. For example ` 12345-3` means `0.12345e-3`, not `12345e-3`. - An assumed decimal point is written without a decimal point. For example the eccentricity field `0006703` means `0.0006703`. Source: the field layout follows the format description published by CelesTrak, *FAQs: Two-Line Element Set Format*, which documents the columns defined by the original NORAD specification. The checksum rule is the one stated there and used by Space-Track. ``` use apsis_tle::TwoLineElement; let text = concat!( \"1 25544U 98067A 08264.51782528 -.00002182 00000-0 -11606-4 0 2927\\r\\n\", \"2 25544 51.6416 247.4627 0006703 130.5360 325.0288 15.72125391563537\\r\\n\", ); let element = TwoLineElement::parse(text).expect(\"sample is well formed\"); assert_eq!(element.satellite_number, 25544); assert!((element.eccentricity - 0.0006703).abs() < 1e-12); ```",
+   "items": [
+    {
+     "kind": "fn",
+     "name": "line_checksum",
+     "signature": "pub fn line_checksum(line: &str) -> u32 {",
+     "doc": "Returns the checksum of the first 68 columns of a line.\n\nThe input may include the trailing checksum digit, which is ignored\nbecause only the first 68 columns contribute to the sum. A line shorter\nthan 68 characters contributes only the columns it has.\n\nA minus sign contributes one, a decimal digit contributes its value, and\nevery other character contributes nothing.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "verify_line_checksum",
+     "signature": "pub fn verify_line_checksum(line: &str, line_number: usize) -> Result<()> {",
+     "doc": "Verifies that the last character of a line is its checksum.\n\nThe line must be at least 69 characters long, because the checksum\noccupies column 69. The expected value is compared against\n[`line_checksum`] of the same line.\n\n`line_number` is the one based number used in any error that is\nreturned, so that a caller parsing a multi-line input can report which\nline failed.",
+     "associated": false
+    },
+    {
+     "kind": "enum",
+     "name": "Classification",
+     "signature": "pub enum Classification {",
+     "doc": "The security classification of an element set.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "as_char",
+     "signature": "pub const fn as_char(self) -> char {",
+     "doc": "Returns the character used in the element set.",
+     "associated": true
+    },
+    {
+     "kind": "struct",
+     "name": "TwoLineElement",
+     "signature": "pub struct TwoLineElement {",
+     "doc": "A parsed two-line element set.\n\nThe fields are the mean elements and identification data exactly as\nwritten in the element set. Units are the ones the format uses, named in\neach field's documentation. Converting them to a state vector is the\nconcern of `apsis-sgp4`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "expand_two_digit_year",
+     "signature": "pub const fn expand_two_digit_year(two_digit: u32) -> i32 {",
+     "doc": "Expands a two digit year using the convention that `57` through `99` are\nin the twentieth century and `00` through `56` are in the twenty-first.\n\nThe boundary sits before the start of the satellite catalogue, so no\ncatalogue entry is placed a century away from its true date.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "parse",
+     "signature": "pub fn parse(text: &str) -> Result<Self> {",
+     "doc": "Parses a two-line element set from one, two, or three lines.\n\nLine endings may be `\\n`, `\\r\\n`, or a mix; blank lines and lines\nthat are entirely whitespace are ignored. A leading line that does\nnot begin with `1 ` is taken as the satellite name, which is how the\noptional three line form is written.\n\nEach line is checked for the expected line number in column one, for\nits length, and for its checksum. The element set number of the two\nlines must agree.\n\nReturns an error describing the first failure and the line on which\nit occurred.",
+     "associated": true
+    },
+    {
+     "kind": "enum",
+     "name": "ElementErrorKind",
+     "signature": "pub enum ElementErrorKind {",
+     "doc": "The category of a parse failure.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "ElementError",
+     "signature": "pub struct ElementError {",
+     "doc": "A failure while parsing a two-line element set.\n\nThe error records which line failed and, where applicable, which columns\nwere being read, so that a caller can point at the offending text. Line\nnumbers are one based and column ranges are the one based inclusive\nrange from the format definition.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub fn new(kind: ElementErrorKind, line: usize, columns: Option<(usize, usize)>) -> Self {",
+     "doc": "Creates an error with the given kind, line number, and columns.\n\nThe line number is one based. The column range is the one based\ninclusive range that was being read, if the failure is tied to a\nfield.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "with_detail",
+     "signature": "pub fn with_detail(mut self, detail: impl Into<String>) -> Self {",
+     "doc": "Attaches a description of the offending text.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "kind",
+     "signature": "pub fn kind(&self) -> ElementErrorKind {",
+     "doc": "Returns the category of this failure.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "line",
+     "signature": "pub fn line(&self) -> usize {",
+     "doc": "Returns the one based number of the line that failed.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "columns",
+     "signature": "pub fn columns(&self) -> Option<(usize, usize)> {",
+     "doc": "Returns the one based inclusive column range that failed, if any.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "detail",
+     "signature": "pub fn detail(&self) -> Option<&str> {",
+     "doc": "Returns the detail text attached to this error, if any.",
+     "associated": true
+    },
+    {
+     "kind": "type",
+     "name": "Result",
+     "signature": "pub type Result<T> = core::result::Result<T, ElementError>;",
+     "doc": "A [`Result`](core::result::Result) whose error type is [`ElementError`].",
+     "associated": false
+    }
+   ]
+  },
+  {
+   "name": "apsis-sgp4",
+   "layer": "orbit",
+   "summary": "The SGP4 and SDP4 analytical orbit propagator. The propagator takes the mean orbital elements of a two-line element set and returns the position and velocity of the satellite at a requested instant. It is the model that the element sets are fitted to, so it is the correct way to use them; a general purpose numerical integrator given the same elements would drift away from the published positions. Two branches exist and the propagator selects between them by orbital period. A satellite with a period below 225 minutes is propagated with SGP4, which models the secular effect of the Earth's oblateness and a drag term. A satellite at or above that period is propagated with SDP4, which adds the resonance and the luni-solar perturbations that dominate at that altitude. Inputs and outputs: - Elements are the mean elements from [`apsis_tle::TwoLineElement`]. Angles in the element set are in degrees and mean motion is in revolutions per day; this crate converts to radians and radians per minute internally. - The output is expressed in the True Equator Mean Equinox (TEME) frame, with position in kilometers and velocity in kilometers per second. TEME is the frame the model defines; converting it to an Earth-fixed frame requires the Earth rotation and the equation of the equinoxes and is not part of this crate. - Time is measured from the element set epoch, in minutes. Source: the algorithm follows Vallado et al., *Revisiting Spacetrack Report #3*, AIAA 2006-6753, 2006, and the revised implementation distributed with that paper. ``` use apsis_sgp4::{GravityModel, Satellite}; use apsis_tle::TwoLineElement; let text = concat!( \"1 25544U 98067A 08264.51782528 -.00002182 00000-0 -11606-4 0 2927\\r\\n\", \"2 25544 51.6416 247.4627 0006703 130.5360 325.0288 15.72125391563537\\r\\n\", ); let element = TwoLineElement::parse(text).expect(\"sample is well formed\"); let satellite = Satellite::from_element(&element, GravityModel::WGS72) .expect(\"sample elements are propagatable\"); // Propagate to the epoch of the elements. let state = satellite.propagate_minutes(0.0).expect(\"epoch state exists\"); // The position of a low Earth satellite is a few thousand kilometers // from the center of the Earth. assert!(state.position.norm() > 6_600.0); assert!(state.position.norm() < 7_200.0); ```",
+   "items": [
+    {
+     "kind": "enum",
+     "name": "PropagationErrorKind",
+     "signature": "pub enum PropagationErrorKind {",
+     "doc": "The category of a propagation failure.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "PropagationError",
+     "signature": "pub struct PropagationError {",
+     "doc": "A failure while initialising or propagating a satellite.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub fn new(kind: PropagationErrorKind) -> Self {",
+     "doc": "Creates an error with the given category.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "with_detail",
+     "signature": "pub fn with_detail(mut self, detail: impl Into<String>) -> Self {",
+     "doc": "Attaches a description of the value that caused the failure.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "kind",
+     "signature": "pub fn kind(&self) -> PropagationErrorKind {",
+     "doc": "Returns the category of this failure.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "detail",
+     "signature": "pub fn detail(&self) -> Option<&str> {",
+     "doc": "Returns the detail text attached to this error, if any.",
+     "associated": true
+    },
+    {
+     "kind": "struct",
+     "name": "Elements",
+     "signature": "pub struct Elements {",
+     "doc": "The elements of a satellite in the units the propagator uses.\n\nAngles are in radians and mean motion is in radians per minute. Helpers\nconvert a [`TwoLineElement`] into this form.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "from_tle",
+     "signature": "pub fn from_tle(element: &TwoLineElement) -> Option<Self> {",
+     "doc": "Converts a parsed element set into the units the propagator uses.\n\nThe epoch is taken as the UTC Modified Julian Date exactly as written\nin the element set. The element set epoch is a UTC calendar instant,\nbut the propagator treats it as a uniform time origin, which is the\nconvention the theory was fitted under. Converting it to a uniform\nscale first would shift the epoch by the leap second offset, about\n33 seconds, and that shift propagates into the solar and lunar series\nof the deep space branch.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "unkozai_mean_motion",
+     "signature": "pub fn unkozai_mean_motion( mean_motion: f64, eccentricity: f64, inclination: f64, model: GravityModel, ) -> f64 {",
+     "doc": "Applies the Kozai to Brouwer mean motion correction.\n\nThe mean motion in an element set is a Kozai mean motion, which the\ntheory must convert to a Brouwer mean motion before use. The relation is\n\n```text\nn0 = n / (1 + 1.5 k2 (3 cos^2 i - 1) / (a^2 sqrt(1 - e^2)) / a^2)\n```\n\nwritten in the form used here as a fixed point iteration, because `a`\ndepends on `n0` through Kepler's third law. The iteration converges from\nthe unmodified mean motion in a few steps for every orbit that appears in\nan element set.\nApplies the Kozai to Brouwer mean motion correction.\n\nThe mean motion in an element set is a Kozai mean motion, which the\ntheory must convert to a Brouwer mean motion before use. Writing `no` for\nthe element set value and `xke` for the Kepler constant, the reference\nimplementation evaluates\n\n```text\nak   = (xke / no)^(2/3)\nd1   = 0.75 j2 (3 cos^2 i - 1) / (sqrt(1 - e^2) (1 - e^2))\ndel  = d1 / ak^2\nadel = ak (1 - del^2 - del (1/3 + 134 del^2 / 81))\ndel  = d1 / adel^2\nn0   = no / (1 + del)\n```\n\nThe second evaluation of `del` uses `adel` rather than `ak`, which is\nwhat makes the correction consistent with the semi-major axis implied by\nthe corrected mean motion.\n\nSource: Vallado et al., *Revisiting Spacetrack Report #3*, AIAA\n2006-6753, 2006.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "validate",
+     "signature": "pub fn validate(elements: &Elements) -> Result<(), PropagationError> {",
+     "doc": "Validates the mean elements before initialisation.\n\nReturns an error when the orbit cannot be propagated, for example when\nthe eccentricity does not describe a closed orbit or the mean motion is\nnot positive.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "is_deep_space",
+     "signature": "pub fn is_deep_space(mean_motion: f64) -> bool {",
+     "doc": "Returns `true` when the elements describe a deep space orbit.\n\nThe test is on the orbital period, which follows from the mean motion.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "GravityModel",
+     "signature": "pub struct GravityModel {",
+     "doc": "A gravity model: the Earth constants used by the propagator.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "WGS72",
+     "signature": "pub const WGS72: Self = Self {",
+     "doc": "The WGS 72 gravity model.\n\nThis is the model the SGP4 theory was fitted to and the one that\nmatches the standard element sets.",
+     "associated": true
+    },
+    {
+     "kind": "const",
+     "name": "WGS84",
+     "signature": "pub const WGS84: Self = Self {",
+     "doc": "The WGS 84 gravity model.\n\nUse this only with element sets fitted against WGS 84.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "reciprocal_sqrt_mu",
+     "signature": "pub fn reciprocal_sqrt_mu(self) -> f64 {",
+     "doc": "Returns the reciprocal of the square root of the gravitational\nparameter, in seconds per kilometer to the three halves.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "sqrt_mu",
+     "signature": "pub fn sqrt_mu(self) -> f64 {",
+     "doc": "Returns the square root of the gravitational parameter, in kilometers\nto the three halves per second.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "xke",
+     "signature": "pub fn xke(self) -> f64 {",
+     "doc": "Returns `xke`, the Kepler constant, in units of `er^1.5 / min`.\n\nThe propagator works in minutes and Earth radii, so the gravitational\nparameter is converted by\n\n```text\nxke = 60 / sqrt(radius^3 / mu)\n```\n\nwhich is the angular rate, in radians per minute, of a circular orbit\nof radius one Earth radius.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "tumin",
+     "signature": "pub fn tumin(self) -> f64 {",
+     "doc": "Returns the reciprocal of `xke`, in minutes.\n\nThis is the time unit of the model: the period of the reference\ncircular orbit divided by two pi.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "j3_over_j2",
+     "signature": "pub fn j3_over_j2(self) -> f64 {",
+     "doc": "Returns `j3 / j2`, which appears as a single ratio in the theory.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "x2o3",
+     "signature": "pub fn x2o3(self) -> f64 {",
+     "doc": "Returns `2 * xke^2`, a term that appears in the mean motion\ncorrection.",
+     "associated": true
+    },
+    {
+     "kind": "struct",
+     "name": "Satellite",
+     "signature": "pub struct Satellite {",
+     "doc": "A satellite prepared for propagation.\n\nConstruct one with [`Satellite::from_element`], then call\n[`Satellite::propagate_minutes`] or [`Satellite::propagate_at`] for each\ninstant of interest. The initialisation work, including the mean motion\ncorrection and every coefficient that depends only on the elements, is\ndone once at construction.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "from_element",
+     "signature": "pub fn from_element(element: &TwoLineElement, model: GravityModel) -> Option<Self> {",
+     "doc": "Initialises a satellite from a parsed element set.\n\nReturns `None` when the mean elements do not describe an orbit the\nmodel can propagate, for example when the eccentricity is at least\none. A caller that needs the reason should use\n[`Satellite::try_from_element`].",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "try_from_element",
+     "signature": "pub fn try_from_element( element: &TwoLineElement, model: GravityModel, ) -> Result<Self, PropagationError> {",
+     "doc": "Initialises a satellite from a parsed element set.\n\nReturns an error describing which element is not propagatable when\nthe elements are rejected.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "try_from_elements",
+     "signature": "pub fn try_from_elements( elements: &Elements, model: GravityModel, ) -> Result<Self, PropagationError> {",
+     "doc": "Initialises a satellite from mean elements already in model units.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "epoch_mjd",
+     "signature": "pub fn epoch_mjd(&self) -> f64 {",
+     "doc": "Returns the epoch of the elements as a Modified Julian Date on the\nTAI scale.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "is_deep_space",
+     "signature": "pub fn is_deep_space(&self) -> bool {",
+     "doc": "Returns `true` when the deep space branch applies.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "minutes_since_epoch",
+     "signature": "pub fn minutes_since_epoch(&self, tai_mjd: f64) -> f64 {",
+     "doc": "Returns the number of minutes from the element set epoch to the\ngiven instant.\n\nThe instant is given as a Modified Julian Date on the TAI scale, the\nsame scale as [`Satellite::epoch_mjd`].",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "propagate_at",
+     "signature": "pub fn propagate_at(&self, tai_mjd: f64) -> Result<State, PropagationError> {",
+     "doc": "Returns the state of the satellite at a given instant.\n\nThe instant is a Modified Julian Date on the TAI scale.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "propagate_minutes",
+     "signature": "pub fn propagate_minutes(&self, minutes: f64) -> Result<State, PropagationError> {",
+     "doc": "Returns the state of the satellite at a number of minutes from the\nelement set epoch.\n\nNegative values propagate backwards. The result is in the True\nEquator Mean Equinox frame, with position in kilometers and velocity\nin kilometers per second.\n\nReturns [`PropagationErrorKind::Decayed`](crate::PropagationErrorKind::Decayed)\nwhen the propagated radius falls below one Earth radius, which the\nmodel treats as the satellite having re-entered.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "xke",
+     "signature": "pub fn xke(&self) -> f64 {",
+     "doc": "Returns the Kepler constant of the model, in radians per minute per\nEarth radius to the three halves.",
+     "associated": true
+    },
+    {
+     "kind": "struct",
+     "name": "State",
+     "signature": "pub struct State {",
+     "doc": "The position and velocity of a satellite in the True Equator Mean Equinox\nframe.\n\nPosition is in kilometers and velocity is in kilometers per second. The\nframe is the one the model defines, with its first axis toward the mean\nequinox, its third axis along the true equator pole, and the second\ncompleting a right-handed set.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "altitude_radius",
+     "signature": "pub fn altitude_radius(self) -> f64 {",
+     "doc": "Returns the distance from the center of the Earth, in kilometers.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "speed",
+     "signature": "pub fn speed(self) -> f64 {",
+     "doc": "Returns the speed relative to the Earth's center, in kilometers per\nsecond.",
+     "associated": true
+    }
+   ]
+  },
+  {
+   "name": "apsis-kepler",
+   "layer": "orbit",
+   "summary": "Keplerian orbital elements and two-body propagation. A Keplerian element set describes an orbit as an ellipse, a parabola, or a hyperbola with a fixed orientation in space. From the six elements and the gravitational parameter, this crate computes the position and velocity at any time under the two-body assumption, and converts in the other direction. The two-body model includes only the point mass gravity of the central body. It omits the oblateness of the Earth, drag, and third body perturbations, so it drifts from reality over time. It is the right model for analysing an orbit whose elements are already known, for example to find the radius at a true anomaly, and the wrong model for propagating a two-line element set, which is the job of `apsis-sgp4`. Angles are in radians. Lengths are kilometers and the gravitational parameter is in cubic kilometers per second squared, matching the rest of the orbit layer. ``` use apsis_kepler::{GravityParameter, KeplerianElements}; // A circular orbit at the Earth's equatorial radius has the speed // sqrt(mu / r), about 7.9 km/s. let elements = KeplerianElements { semi_major_axis: 6_378.137, eccentricity: 0.0, inclination: 0.0, right_ascension: 0.0, argument_of_perigee: 0.0, true_anomaly: 0.0, }; let state = elements.to_state(GravityParameter::WGS84).expect(\"valid elements\"); assert!((state.velocity.norm() - 7.909).abs() < 0.01); ```",
+   "items": [
+    {
+     "kind": "fn",
+     "name": "wrap_to_pi",
+     "signature": "pub fn wrap_to_pi(angle: f64) -> f64 {",
+     "doc": "Reduces an angle into `[-pi, pi)`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "true_from_eccentric",
+     "signature": "pub fn true_from_eccentric(eccentric_anomaly: f64, eccentricity: f64) -> f64 {",
+     "doc": "Returns the true anomaly for an eccentric anomaly and eccentricity.\n\nThe relation follows from the geometry of the auxiliary circle:\n\n```text\ntan(nu / 2) = sqrt((1 + e) / (1 - e)) tan(E / 2)\n```\n\nThe half angle form is used rather than the direct cosine relation so\nthat the result is correct in all four quadrants without a quadrant\ncheck.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "eccentric_from_true",
+     "signature": "pub fn eccentric_from_true(true_anomaly: f64, eccentricity: f64) -> f64 {",
+     "doc": "Returns the eccentric anomaly for a true anomaly and eccentricity.\n\nThis is the inverse of [`true_from_eccentric`].",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "eccentric_from_mean",
+     "signature": "pub fn eccentric_from_mean(mean_anomaly: f64, eccentricity: f64) -> f64 {",
+     "doc": "Returns the eccentric anomaly for a mean anomaly and eccentricity.\n\nThis solves Kepler's equation\n\n```text\nM = E - e sin E\n```\n\nby Newton's method. The starting guess is the mean anomaly plus a term\nproportional to the eccentricity, which keeps the iteration stable for\neccentricities approaching one. The iteration always terminates, and the\nresult is the value reached after at most a fixed number of steps.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_from_eccentric",
+     "signature": "pub fn mean_from_eccentric(eccentric_anomaly: f64, eccentricity: f64) -> f64 {",
+     "doc": "Returns the mean anomaly for an eccentric anomaly and eccentricity.\n\nThis is Kepler's equation evaluated directly, `M = E - e sin E`.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "mean_from_true",
+     "signature": "pub fn mean_from_true(true_anomaly: f64, eccentricity: f64) -> f64 {",
+     "doc": "Returns the mean anomaly for a true anomaly and eccentricity.\n\nThe true anomaly is first converted to the eccentric anomaly, and the\nmean anomaly then follows from Kepler's equation. Going through the\neccentric anomaly avoids the separate closed form for the swept area and\nkeeps a single expression responsible for the relation.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "true_from_mean",
+     "signature": "pub fn true_from_mean(mean_anomaly: f64, eccentricity: f64) -> f64 {",
+     "doc": "Returns the true anomaly for a mean anomaly and eccentricity.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "KeplerianElements",
+     "signature": "pub struct KeplerianElements {",
+     "doc": "The six Keplerian elements of an orbit.\n\nThe shape and size are given by the semi-major axis and the eccentricity,\nthe orientation by the inclination, the right ascension of the ascending\nnode, and the argument of perigee, and the position along the orbit by\nthe true anomaly.\n\nAngles are in radians and the semi-major axis is in kilometers. The orbit\nis elliptical, so the eccentricity must be below one.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "State",
+     "signature": "pub struct State {",
+     "doc": "The position and velocity of a satellite in the inertial frame the\nelements are referred to.\n\nPosition is in kilometers and velocity is in kilometers per second. The\nframe has its first axis toward the reference direction, its third axis\nalong the orbit normal, and its second completing a right-handed set.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "is_valid",
+     "signature": "pub fn is_valid(self) -> bool {",
+     "doc": "Returns `true` when the elements describe an elliptical orbit.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "semi_latus_rectum",
+     "signature": "pub fn semi_latus_rectum(self) -> f64 {",
+     "doc": "Returns the semi-latus rectum, in kilometers.\n\nThis is `a (1 - e^2)`, the distance from the focus to the orbit\nmeasured perpendicular to the major axis.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "semi_minor_axis",
+     "signature": "pub fn semi_minor_axis(self) -> f64 {",
+     "doc": "Returns the semi-minor axis, in kilometers.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "perigee_radius",
+     "signature": "pub fn perigee_radius(self) -> f64 {",
+     "doc": "Returns the perigee radius, in kilometers.\n\nThis is the closest approach to the focus, `a (1 - e)`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "apogee_radius",
+     "signature": "pub fn apogee_radius(self) -> f64 {",
+     "doc": "Returns the apogee radius, in kilometers.\n\nThis is the farthest point from the focus, `a (1 + e)`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "period",
+     "signature": "pub fn period(self, parameter: GravityParameter) -> f64 {",
+     "doc": "Returns the orbital period, in seconds.\n\nThis is Kepler's third law, `T = 2 pi sqrt(a^3 / mu)`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "eccentric_anomaly",
+     "signature": "pub fn eccentric_anomaly(self) -> f64 {",
+     "doc": "Returns the eccentric anomaly corresponding to the true anomaly.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "mean_anomaly",
+     "signature": "pub fn mean_anomaly(self) -> f64 {",
+     "doc": "Returns the mean anomaly corresponding to the true anomaly.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "to_state",
+     "signature": "pub fn to_state(self, parameter: GravityParameter) -> Option<State> {",
+     "doc": "Converts these elements to a position and velocity.\n\nReturns `None` when the elements are not a valid elliptical orbit.\n\nThe conversion places the satellite in the perifocal frame, where the\nfirst axis points to perigee and the third along the orbit normal,\n\n```text\nr = p / (1 + e cos nu)\nx = r cos nu,  y = r sin nu,  z = 0\nvx = -sqrt(mu / p) sin nu\nvy =  sqrt(mu / p) (e + cos nu)\n```\n\nand then rotates by the argument of perigee, the inclination, and the\nright ascension of the ascending node.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_state",
+     "signature": "pub fn from_state(state: &State, parameter: GravityParameter) -> Option<Self> {",
+     "doc": "Returns the elements for a position and velocity.\n\nReturns `None` when the state is not finite, when the radius is zero,\nor when the orbit is not elliptical. This conversion assumes the\norbit is bound, so a parabolic or hyperbolic state is rejected rather\nthan returned with an eccentricity at or above one.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "with_true_anomaly",
+     "signature": "pub fn with_true_anomaly(self, true_anomaly: f64) -> Self {",
+     "doc": "Returns a copy of these elements with a different true anomaly.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "with_mean_anomaly",
+     "signature": "pub fn with_mean_anomaly(self, mean_anomaly: f64) -> Self {",
+     "doc": "Returns a copy of these elements at a mean anomaly.\n\nThe true anomaly is recovered from the mean anomaly through Kepler's\nequation.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "to_mean_anomaly",
+     "signature": "pub fn to_mean_anomaly(self) -> f64 {",
+     "doc": "Returns the mean anomaly, which is the linear measure of time along\nthe orbit.\n\nThis is the same value as [`KeplerianElements::mean_anomaly`], named\nfor symmetry with [`KeplerianElements::with_mean_anomaly`].",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "perifocal_to_inertial",
+     "signature": "pub fn perifocal_to_inertial( argument_of_perigee: f64, inclination: f64, right_ascension: f64, ) -> apsis_math::Mat3 {",
+     "doc": "Returns the rotation from the perifocal frame to the inertial frame.\n\nThe rotation is a product of three elementary rotations: by the argument\nof perigee about the third axis, then the inclination about the first,\nthen the right ascension about the third.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "GravityParameter",
+     "signature": "pub struct GravityParameter(pub f64);",
+     "doc": "The gravitational parameter of the central body, in cubic kilometers per\nsecond squared.\n\nTwo values are offered because the workspace supports both gravity\nmodels, and the correct choice is the one that matches the source of the\norbital elements. For elements derived from a two-line element set, the\nWGS 72 value is the one the SGP4 theory was fitted to.",
+     "associated": false
+    },
+    {
+     "kind": "const",
+     "name": "WGS72",
+     "signature": "pub const WGS72: Self = Self(398_600.8);",
+     "doc": "The WGS 72 gravitational parameter, `398 600.8 km^3/s^2`.",
+     "associated": true
+    },
+    {
+     "kind": "const",
+     "name": "WGS84",
+     "signature": "pub const WGS84: Self = Self(398_600.5);",
+     "doc": "The WGS 84 gravitational parameter, `398 600.5 km^3/s^2`.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "value",
+     "signature": "pub const fn value(self) -> f64 {",
+     "doc": "Returns the value in cubic kilometers per second squared.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "sqrt",
+     "signature": "pub fn sqrt(self) -> f64 {",
+     "doc": "Returns the square root of the parameter, in kilometers to the three\nhalves per second.",
+     "associated": true
+    }
+   ]
+  },
+  {
+   "name": "apsis-ephemeris",
+   "layer": "orbit",
+   "summary": "Ephemeris sampling and interpolation. A propagator gives the state of a satellite at any instant, but calling it millions of times is wasteful when the result is only needed to draw a track or to search for a crossing. This crate records the state at a grid of times, called samples, and answers queries between them by interpolation. The two halves are deliberately independent: - [`Ephemeris`] is a table of times and states. It knows nothing about where the states came from, so a table propagated by SGP4, computed by two-body theory, or read from a file all work the same way. - [`Sampler`] fills a table by calling a function that produces a state from a time. In this workspace that function is normally `apsis_sgp4::Satellite::propagate_at`, but the sampler only requires a closure, so a test can use an analytic function. Interpolation is Hermite cubic, which uses both the position and the velocity at each end of an interval. Using the velocity is what makes it accurate: a cubic through two positions alone has no information about how fast the satellite is moving, while Hermite reconstruction matches the slope at both ends and so reproduces a smooth orbit far better for the same sample spacing. On a circular orbit the error is of order the fourth power of the step, so halving the step cuts the error about sixteen fold. Times are in seconds from an origin chosen by the caller, matching the rest of the orbit layer. Positions are in kilometers and velocities in kilometers per second. ``` use apsis_ephemeris::{Sample, Sampler}; use apsis_kepler::{GravityParameter, KeplerianElements}; // A circular orbit at the Earth's equatorial radius. let elements = KeplerianElements { semi_major_axis: 7_000.0, eccentricity: 0.0, inclination: 0.9, right_ascension: 0.0, argument_of_perigee: 0.0, true_anomaly: 0.0, }; let state_at = |seconds: f64| { let mean = 2.0 * core::f64::consts::PI * seconds / elements.period(GravityParameter::WGS84); let state = elements .with_mean_anomaly(mean) .to_state(GravityParameter::WGS84) .expect(\"the orbit is valid\"); Sample::new(seconds, state.position, state.velocity) }; let sampler = Sampler::new(0.0, 600.0, 60.0); let ephemeris = sampler.sample(state_at).expect(\"the grid is usable\"); assert_eq!(ephemeris.len(), 11); // A query between two samples is interpolated. let state = ephemeris.state_at(30.0).expect(\"the time is covered\"); assert!(state.position.norm() > 6_900.0); ```",
+   "items": [
+    {
+     "kind": "struct",
+     "name": "Sample",
+     "signature": "pub struct Sample {",
+     "doc": "One sampled state.\n\nA sample is a position and velocity at a time, which is the form every\npropagator in the workspace produces and the form the interpolation\nneeds.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub const fn new(seconds: f64, position: Vec3, velocity: Vec3) -> Self {",
+     "doc": "Creates a sample.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "is_valid",
+     "signature": "pub fn is_valid(&self) -> bool {",
+     "doc": "Returns `true` when the time, position, and velocity are finite.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "radius",
+     "signature": "pub fn radius(&self) -> f64 {",
+     "doc": "Returns the distance from the origin, in kilometers.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "speed",
+     "signature": "pub fn speed(&self) -> f64 {",
+     "doc": "Returns the speed, in kilometers per second.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "hermite_position",
+     "signature": "pub fn hermite_position(p0: Vec3, v0: Vec3, p1: Vec3, v1: Vec3, dt: f64, s: f64) -> Vec3 {",
+     "doc": "Evaluates the Hermite cubic for one component.\n\n`p0` and `p1` are the endpoint values, `v0` and `v1` the endpoint\nderivatives with respect to time, `dt` the interval length, and `s` the\nfraction along the interval in `[0, 1]`.\n\nThe four terms are the standard cubic Hermite basis: the first and third\ncarry the endpoints, the second and fourth the slopes. The derivative\nterms are scaled by `dt` because the slopes are per unit time while `s`\nis per unit interval.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "hermite_velocity",
+     "signature": "pub fn hermite_velocity(p0: Vec3, v0: Vec3, p1: Vec3, v1: Vec3, dt: f64, s: f64) -> Vec3 {",
+     "doc": "Evaluates the derivative of the Hermite cubic for one component.\n\nThis is the velocity that goes with [`hermite_position`]. It is the exact\nderivative of that cubic, so the reconstructed state is internally\nconsistent: a caller that differentiates the position gets this velocity.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "hermite_state",
+     "signature": "pub fn hermite_state(p0: Vec3, v0: Vec3, p1: Vec3, v1: Vec3, dt: f64, s: f64) -> (Vec3, Vec3) {",
+     "doc": "Evaluates both the Hermite position and velocity.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Ephemeris",
+     "signature": "pub struct Ephemeris {",
+     "doc": "A table of sampled states that answers queries by interpolation.\n\nThe table holds at least two samples in strictly increasing time order.\nA query at a sample time returns that sample exactly; a query between two\nsamples returns the Hermite cubic through the four endpoint values. A\nquery outside the covered interval is refused rather than extrapolated,\nbecause the interpolation has no information there and an extrapolated\norbit can diverge quickly.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "from_samples",
+     "signature": "pub fn from_samples(samples: Vec<Sample>) -> Result<Self, EphemerisError> {",
+     "doc": "Builds a table from samples in increasing time order.\n\nReturns an error when there are fewer than two samples, when a sample\nis not finite, or when the times do not strictly increase.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "samples",
+     "signature": "pub fn samples(&self) -> &[Sample] {",
+     "doc": "Returns the samples in time order.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "len",
+     "signature": "pub fn len(&self) -> usize {",
+     "doc": "Returns the number of samples.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "is_empty",
+     "signature": "pub fn is_empty(&self) -> bool {",
+     "doc": "Returns `true` when the table is empty.\n\nA table built through [`Ephemeris::from_samples`] is never empty, so\nthis is always `false` for one that exists; it is provided so that\ngeneric code that accepts a slice can use the usual pair of methods.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "start_time",
+     "signature": "pub fn start_time(&self) -> f64 {",
+     "doc": "Returns the first sample time, in seconds.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "end_time",
+     "signature": "pub fn end_time(&self) -> f64 {",
+     "doc": "Returns the last sample time, in seconds.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "duration",
+     "signature": "pub fn duration(&self) -> f64 {",
+     "doc": "Returns the time the table covers, in seconds.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "covers",
+     "signature": "pub fn covers(&self, seconds: f64) -> bool {",
+     "doc": "Returns `true` when a time falls within the covered interval.\n\nThe interval is closed, so its endpoints are covered.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "uniform_step",
+     "signature": "pub fn uniform_step(&self) -> Option<f64> {",
+     "doc": "Returns the nominal step, when the samples are evenly spaced.\n\nReturns `None` when the spacing varies, which a caller checks before\nindexing samples by arithmetic.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "is_uniform",
+     "signature": "pub fn is_uniform(&self) -> bool {",
+     "doc": "Returns `true` when the samples are evenly spaced.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "state_at",
+     "signature": "pub fn state_at(&self, seconds: f64) -> Option<Sample> {",
+     "doc": "Returns the state at a time, interpolating between samples.\n\nA time equal to a sample time returns that sample. Returns `None`\nwhen the time is outside the covered interval.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "clamped_state_at",
+     "signature": "pub fn clamped_state_at(&self, seconds: f64) -> Option<Sample> {",
+     "doc": "Returns the state at a time, or the nearest endpoint when the time is\noutside the covered interval.\n\nThis is for a caller that must produce a value for any time and is\ncontent to hold the last known state rather than fail.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "nearest_sample",
+     "signature": "pub fn nearest_sample(&self, seconds: f64) -> Option<Sample> {",
+     "doc": "Returns the sample nearest to a time, without interpolating.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "times",
+     "signature": "pub fn times(&self) -> Vec<f64> {",
+     "doc": "Returns the times of every sample, in order.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "all_samples",
+     "signature": "pub fn all_samples<F>(&self, predicate: F) -> bool where F: Fn(&Sample) -> bool, {",
+     "doc": "Returns `true` when every state satisfies a predicate.\n\nThis is a convenience for a caller that wants to check a property of\nthe whole table, such as every radius being above the surface, once.",
+     "associated": true
+    },
+    {
+     "kind": "enum",
+     "name": "EphemerisErrorKind",
+     "signature": "pub enum EphemerisErrorKind {",
+     "doc": "The category of an ephemeris error.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "EphemerisError",
+     "signature": "pub struct EphemerisError {",
+     "doc": "A failure while building or querying an ephemeris.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub fn new(kind: EphemerisErrorKind) -> Self {",
+     "doc": "Creates an error with the given category.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "with_detail",
+     "signature": "pub fn with_detail(mut self, detail: impl Into<String>) -> Self {",
+     "doc": "Attaches a description of the value that caused the failure.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "kind",
+     "signature": "pub const fn kind(&self) -> EphemerisErrorKind {",
+     "doc": "Returns the category of this failure.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "detail",
+     "signature": "pub fn detail(&self) -> Option<&str> {",
+     "doc": "Returns the detail text attached to this error, if any.",
+     "associated": true
+    },
+    {
+     "kind": "struct",
+     "name": "Sampler",
+     "signature": "pub struct Sampler {",
+     "doc": "A uniform time grid that a state function is evaluated on.\n\nA sampler describes when to sample and how finely. The grid is defined by\na start time, an end time, and a step, and the number of samples follows\nfrom them: the samples are placed at the start and at every step up to\nthe end, with the end itself included whether or not it falls on the\ngrid. Including the end matters, because a caller that asks for coverage\nup to a time expects the table to reach it.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub const fn new(start_seconds: f64, end_seconds: f64, step_seconds: f64) -> Self {",
+     "doc": "Creates a sampler over an interval with a step.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "sample_count",
+     "signature": "pub fn sample_count(&self) -> Option<usize> {",
+     "doc": "Returns the number of samples the grid produces.\n\nThis is the number of whole steps that fit in the interval plus one\nfor the start and one for the end when the end is off the grid.\nReturns `None` when the sampler is not usable.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "times",
+     "signature": "pub fn times(&self) -> Option<Vec<f64>> {",
+     "doc": "Returns the times of the grid, in order.\n\nReturns `None` when the sampler is not usable. The last time is the\nend when the end does not fall on the grid, and the last grid point\notherwise.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "sample",
+     "signature": "pub fn sample<F>(&self, mut state_at: F) -> Result<Ephemeris, EphemerisError> where F: FnMut(f64) -> Sample, {",
+     "doc": "Fills an ephemeris by evaluating a state function on the grid.\n\nThe function maps a time in seconds to a position and velocity. In\nthis workspace it is normally a closure over\n`apsis_sgp4::Satellite::propagate_at`, but any function works, so\nthe sampler can be tested against an analytic orbit.\n\nReturns an error when the sampler is not usable or when the function\nproduces a state that is not finite.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "sample_positions",
+     "signature": "pub fn sample_positions<F>(&self, mut position_at: F) -> Result<Ephemeris, EphemerisError> where F: FnMut(f64) -> Vec3, {",
+     "doc": "Fills an ephemeris from a function that returns only a position.\n\nThe velocity is reconstructed from neighbouring positions by a\ncentral difference. This is for a position-only source, such as a\ntabulated file; where a velocity is available it should be used, so\nprefer [`Sampler::sample`].",
+     "associated": true
+    }
+   ]
+  },
+  {
+   "name": "apsis-maneuver",
+   "layer": "orbit",
+   "summary": "Impulsive and finite orbital maneuver models. A maneuver changes an orbit by applying thrust. The two models here are the two ends of the spectrum. An impulsive maneuver, [`Impulse`], applies a velocity change instantaneously, so the position is unchanged and only the velocity jumps. This is the model for a chemical burn, whose duration is short compared with the orbital period, and it is the model every textbook delta-v budget is written in. It is exact in the limit of zero burn time and the source of the closed form results for transfers between two orbits. A finite maneuver, [`FiniteBurn`], applies a constant acceleration over a duration, so the position drifts during the burn and the achieved velocity change is less than the thrust would give in free space when the thrust has to fight gravity. It is the model for an electric thruster, whose burn may last a large fraction of an orbit, and for any burn where the short duration approximation is not good enough. The two agree in the limit: a finite burn of acceleration `a` over a duration `t` delivers the impulse `a t`, so a [`FiniteBurn`] with a vanishing duration converges on the matching [`Impulse`]. The tests check that limit, which is what ties the two models together. The impulsive model also provides the classic two impulse transfer between two coplanar circular orbits, [`hohmann_transfer`], which is the reference every low thrust result is compared against. It gives the two burns and the total delta-v for a transfer between two circular orbits of given radii, together with the transfer time, the half period of the transfer ellipse. Conventions match the rest of the orbit layer: lengths are in kilometers, velocities in kilometers per second, and angles in radians. ``` use apsis_maneuver::{Impulse, hohmann_transfer}; use apsis_kepler::GravityParameter; use apsis_math::Vec3; // An impulsive burn straight along the velocity. let impulse = Impulse::new(Vec3::new(0.0, 1.0, 0.0)).expect(\"the change is usable\"); assert!((impulse.magnitude() - 1.0).abs() < 1e-12); // The two burns that raise a circular orbit from 7000 to 8000 km. let transfer = hohmann_transfer(7_000.0, 8_000.0, GravityParameter::WGS84) .expect(\"the radii are usable\"); assert!(transfer.first_burn > 0.0); assert!(transfer.total_delta_v() > 0.0); ```",
+   "items": [
+    {
+     "kind": "struct",
+     "name": "FiniteBurn",
+     "signature": "pub struct FiniteBurn {",
+     "doc": "A maneuver that applies a constant acceleration for a duration.\n\nA finite burn is the model for a thruster that is on for long enough that\nits duration cannot be ignored: an electric thruster, whose burn may last\na large fraction of an orbit, or any burn where the spacecraft moves\nappreciably while thrusting.\n\nThe acceleration is held constant in an inertial frame chosen by the\ncaller. That is the simplification this model makes: a real thruster\nfires along a body axis that rotates as the spacecraft turns to hold a\ndirection, and modelling that requires the attitude history, which is not\npart of this crate.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub fn new(acceleration: Vec3, duration: f64) -> Result<Self, ManeuverError> {",
+     "doc": "Creates a burn from an acceleration and a duration.\n\nReturns an error when a value is not finite, when the duration is not\npositive, or when the acceleration is zero.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "along",
+     "signature": "pub fn along(direction: Vec3, acceleration: f64, duration: f64) -> Result<Self, ManeuverError> {",
+     "doc": "Creates a burn of a given acceleration magnitude along a direction.\n\nThe direction is normalized, so the acceleration magnitude is fixed\nwhatever the length of the direction vector.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "acceleration",
+     "signature": "pub const fn acceleration(self) -> Vec3 {",
+     "doc": "Returns the acceleration vector, in kilometers per second squared.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "acceleration_magnitude",
+     "signature": "pub fn acceleration_magnitude(self) -> f64 {",
+     "doc": "Returns the magnitude of the acceleration, in kilometers per second\nsquared.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "duration",
+     "signature": "pub const fn duration(self) -> f64 {",
+     "doc": "Returns the duration, in seconds.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "nominal_delta_v",
+     "signature": "pub fn nominal_delta_v(self) -> f64 {",
+     "doc": "Returns the velocity change the acceleration would give in free space,\nin kilometers per second.\n\nThis is the acceleration times the duration, the delta-v the burn\nwould deliver without gravity acting during it. Under gravity the\nachieved change is close to this for a short burn and differs from it\nfor a long one, which is the difference the finite model exists to\ncapture.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "equivalent_impulse",
+     "signature": "pub fn equivalent_impulse(self) -> Result<crate::impulse::Impulse, ManeuverError> {",
+     "doc": "Returns the impulse equivalent to the nominal change.\n\nThis is the impulsive burn the finite one approximates as its\nduration shrinks, and it is what [`FiniteBurn::apply`] returns in the\nlimit of a constant gravity field.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "apply",
+     "signature": "pub fn apply( self, state: State, parameter: GravityParameter, steps: usize, ) -> Result<BurnOutcome, ManeuverError> {",
+     "doc": "Applies the burn to a state under two-body gravity.\n\nThe position and velocity are integrated forward over the duration\nwith the constant acceleration added to gravity. The exact solution\nof constant acceleration plus point mass gravity has no closed form,\nso the integration is a fixed step fourth order Runge-Kutta, which is\naccurate for the short arcs a burn occupies.\n\nThe achieved velocity change is measured against a coast of the same\nduration, not against the initial velocity. That distinction matters:\ngravity changes the velocity during the burn even with no thrust, so\nthe difference between the final and the initial velocity includes\nthe natural rotation of the velocity vector. Comparing against the\ncoast isolates the contribution of the thrust, which is what the\nburn bought; it also makes the result converge on the nominal change\nas the duration shrinks, which the difference from the initial\nvelocity would not.\n\nReturns the state at the end of the burn together with the achieved\nvelocity change.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "apply_to_elements",
+     "signature": "pub fn apply_to_elements( self, elements: KeplerianElements, parameter: GravityParameter, steps: usize, ) -> Result<BurnOutcome, ManeuverError> {",
+     "doc": "Applies the burn to a set of Keplerian elements.\n\nThe elements are converted to a state, the burn is applied to it, and\nthe result is converted back. Returns an error when the elements are\nnot valid, when the integration fails, or when the resulting state is\nno longer an elliptical orbit, which happens when the burn is large\nenough to escape.",
+     "associated": true
+    },
+    {
+     "kind": "struct",
+     "name": "BurnOutcome",
+     "signature": "pub struct BurnOutcome {",
+     "doc": "What a finite burn produced.\n\nThe outcome keeps the final state, the change the burn achieved, and the\nchange the acceleration would have given in free space, so a caller can\nsee how much gravity cost or added during the burn.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "achieved_magnitude",
+     "signature": "pub fn achieved_magnitude(&self) -> f64 {",
+     "doc": "Returns the magnitude of the achieved velocity change.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "gravity_loss",
+     "signature": "pub fn gravity_loss(&self) -> f64 {",
+     "doc": "Returns the difference between the achieved and nominal change, in\nkilometers per second.\n\nA negative value means gravity turned the velocity against the thrust\nduring the burn, so the burn bought less than its free space delta-v.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "elements",
+     "signature": "pub fn elements(&self, parameter: GravityParameter) -> Option<KeplerianElements> {",
+     "doc": "Returns the elements at the end of the burn.\n\nReturns `None` when the final state is not an elliptical orbit, which\nhappens when the burn is large enough to escape.",
+     "associated": true
+    },
+    {
+     "kind": "enum",
+     "name": "ManeuverErrorKind",
+     "signature": "pub enum ManeuverErrorKind {",
+     "doc": "The category of a maneuver error.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "ManeuverError",
+     "signature": "pub struct ManeuverError {",
+     "doc": "A failure while building or applying a maneuver.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub fn new(kind: ManeuverErrorKind) -> Self {",
+     "doc": "Creates an error with the given category.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "with_detail",
+     "signature": "pub fn with_detail(mut self, detail: impl Into<String>) -> Self {",
+     "doc": "Attaches a description of the value that caused the failure.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "kind",
+     "signature": "pub const fn kind(&self) -> ManeuverErrorKind {",
+     "doc": "Returns the category of this failure.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "detail",
+     "signature": "pub fn detail(&self) -> Option<&str> {",
+     "doc": "Returns the detail text attached to this error, if any.",
+     "associated": true
+    },
+    {
+     "kind": "struct",
+     "name": "HohmannTransfer",
+     "signature": "pub struct HohmannTransfer {",
+     "doc": "A two impulse transfer between two coplanar circular orbits.\n\nThe transfer is the classic Hohmann maneuver: a burn onto an ellipse\nwhose perigee touches the lower orbit and whose apogee touches the upper\none, a coast for half the ellipse's period, and a second burn onto the\ndestination circle. It is the cheapest two impulse transfer between two\ncoplanar circular orbits in the impulsive model, which is why it is the\nreference every other transfer is measured against.\n\nThe burns are signed along the direction of motion: a positive value\nraises the orbit and a negative one lowers it, so the same type covers a\nclimb and a descent. The total is the sum of the magnitudes, which is the\nquantity a propellant budget uses.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "total_delta_v",
+     "signature": "pub fn total_delta_v(&self) -> f64 {",
+     "doc": "Returns the total velocity change, in kilometers per second.\n\nThis is the sum of the magnitudes of the two burns, which is what the\ntransfer costs whatever its direction.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "is_raising",
+     "signature": "pub fn is_raising(&self) -> bool {",
+     "doc": "Returns `true` when the transfer raises the orbit.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "first_burn_magnitude",
+     "signature": "pub fn first_burn_magnitude(&self) -> f64 {",
+     "doc": "Returns the velocity change of the first burn, unsigned.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "second_burn_magnitude",
+     "signature": "pub fn second_burn_magnitude(&self) -> f64 {",
+     "doc": "Returns the velocity change of the second burn, unsigned.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "mean_radius",
+     "signature": "pub fn mean_radius(&self) -> f64 {",
+     "doc": "Returns the mean radius the transfer is symmetric about, in\nkilometers.\n\nThis is the semi-major axis of the ellipse, which is the arithmetic\nmean of the two orbit radii.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "hohmann_transfer",
+     "signature": "pub fn hohmann_transfer( from_radius: f64, to_radius: f64, parameter: GravityParameter, ) -> Result<HohmannTransfer, ManeuverError> {",
+     "doc": "Returns the two impulse transfer between two circular orbits.\n\nThe radii are in kilometers and must be finite and positive. The two may\nbe given in either order: a larger second radius is a climb and a smaller\none a descent.\n\nReturns an error when a radius is not usable or when the two are equal,\nbecause a transfer between an orbit and itself is not a maneuver and is\nalmost always a mistake in a plan.\n\nThe burns follow from the vis-viva equation. At the first radius the\ncircular speed is `sqrt(mu / r1)` and the speed on the transfer ellipse\nis `sqrt(mu (2 / r1 - 1 / a))`, where `a` is the semi-major axis of the\nellipse, so the first burn is the difference. The second burn is the\ndifference between the circular speed at the destination and the speed on\nthe ellipse there, taken the other way round because the ellipse arrives\nslower than the circle it must join. The coast time is half the period of\nthe ellipse.",
+     "associated": false
+    },
+    {
+     "kind": "struct",
+     "name": "Impulse",
+     "signature": "pub struct Impulse {",
+     "doc": "An instantaneous change in velocity.\n\nAn impulse is a velocity change applied in zero time, so it changes the\nvelocity of a state but not its position. That is the model for a burn\nshort compared with the orbital period, and it is how a delta-v budget is\nwritten.\n\nThe change is stored as a vector in the same frame as the state it will\nbe applied to, so the caller is responsible for expressing it in that\nframe. The magnitude is the delta-v, the quantity a propellant budget is\nmeasured in.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "new",
+     "signature": "pub fn new(delta_v: Vec3) -> Result<Self, ManeuverError> {",
+     "doc": "Creates an impulse from a velocity change vector, in kilometers per\nsecond.\n\nReturns an error when a component is not finite or when the vector is\nzero, because a zero change is not a maneuver and is almost always a\nmistake in a plan.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "along",
+     "signature": "pub fn along(direction: Vec3, magnitude: f64) -> Result<Self, ManeuverError> {",
+     "doc": "Creates an impulse of a given magnitude along a direction.\n\nThe direction is normalized, so the magnitude is the delta-v whatever\nthe length of the direction vector. Returns an error when the\nmagnitude is not positive and finite or when the direction is zero or\nnot finite.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "delta_v",
+     "signature": "pub const fn delta_v(self) -> Vec3 {",
+     "doc": "Returns the velocity change vector, in kilometers per second.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "magnitude",
+     "signature": "pub fn magnitude(self) -> f64 {",
+     "doc": "Returns the magnitude of the change, in kilometers per second.\n\nThis is the delta-v the burn costs.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "scaled",
+     "signature": "pub fn scaled(self, factor: f64) -> Result<Self, ManeuverError> {",
+     "doc": "Returns a copy of the change scaled by a factor.\n\nA factor of zero produces a zero impulse, which [`Impulse::new`]\nrejects, so this returns an error for it rather than a value that\ncannot be built.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "reversed",
+     "signature": "pub fn reversed(self) -> Self {",
+     "doc": "Returns a copy of the change reversed, which undoes the burn.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "apply_to_velocity",
+     "signature": "pub fn apply_to_velocity(self, velocity: Vec3) -> Vec3 {",
+     "doc": "Applies the impulse to a velocity, returning the new velocity.",
+     "associated": true
+    }
+   ]
+  },
+  {
+   "name": "apsis-orbit",
+   "layer": "orbit",
+   "summary": "Orbital state facade that integrates the orbit layer. This crate is the single entry point to the orbit layer. It re-exports the element parsing, the analytical propagator, and the two-body model, and adds one type that ties them together. [`Orbit`] holds a satellite prepared for propagation together with the gravity model it was initialised against, and offers the conversions between the two ways of describing an orbit that the layer supports: - Mean elements propagated by SGP4, which is the model a two-line element set is written for and the only way to reproduce the published positions of a catalogued satellite. - Instantaneous Keplerian elements, which describe the osculating two-body orbit at one instant and are useful for inspection and for planning a maneuver. The two descriptions are not interchangeable. Propagating mean elements with the two-body model, or osculating elements with SGP4, gives a different and wrong answer; the conversions here are explicit about which direction they go. Two further operations are built on the propagation and exposed here because they need the same gravity parameter to stay consistent: - [`Orbit::sample_ephemeris`] records the track on a time grid so that it can be queried by interpolation instead of by propagation, which is what a coverage or access search wants. - [`Orbit::apply_burn`] applies a finite maneuver to the osculating state and returns the resulting elements, which is what a maneuver plan produces. ``` use apsis_orbit::{GravityModel, Orbit}; use apsis_tle::TwoLineElement; let text = concat!( \"1 25544U 98067A 08264.51782528 -.00002182 00000-0 -11606-4 0 2927\\r\\n\", \"2 25544 51.6416 247.4627 0006703 130.5360 325.0288 15.72125391563537\\r\\n\", ); let element = TwoLineElement::parse(text).expect(\"sample is well formed\"); let orbit = Orbit::from_element(&element, GravityModel::WGS72) .expect(\"sample elements are propagatable\"); let state = orbit.propagate_minutes(60.0).expect(\"state exists\"); assert!(state.speed() > 7.0); // The osculating elements at that instant. let osculating = orbit.osculating_elements(60.0).expect(\"state exists\"); assert!(osculating.eccentricity < 0.01); ```",
+   "items": [
+    {
+     "kind": "struct",
+     "name": "Orbit",
+     "signature": "pub struct Orbit {",
+     "doc": "A satellite orbit, held as mean elements ready for propagation.\n\nThe type pairs a prepared SGP4 satellite with the gravity model it was\ninitialised against, because the osculating element conversion needs the\nsame gravitational parameter to be consistent with the propagation.",
+     "associated": false
+    },
+    {
+     "kind": "fn",
+     "name": "from_element",
+     "signature": "pub fn from_element(element: &TwoLineElement, model: GravityModel) -> Option<Self> {",
+     "doc": "Prepares an orbit from a parsed element set and a gravity model.\n\nThe gravity model must match the one the element set was fitted\nagainst, which for a catalogued satellite means\n[`GravityModel::WGS72`]. Returns `None` when the elements are not\npropagatable.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "try_from_element",
+     "signature": "pub fn try_from_element( element: &TwoLineElement, model: GravityModel, ) -> Result<Self, PropagationError> {",
+     "doc": "Prepares an orbit from a parsed element set and a gravity model.\n\nReturns an error describing which element is not propagatable.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "from_elements",
+     "signature": "pub fn from_elements( elements: &Elements, model: GravityModel, ) -> Result<Self, PropagationError> {",
+     "doc": "Prepares an orbit from mean elements already in model units.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "satellite",
+     "signature": "pub fn satellite(&self) -> &Satellite {",
+     "doc": "Returns the underlying propagator.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "gravity_parameter",
+     "signature": "pub fn gravity_parameter(&self) -> GravityParameter {",
+     "doc": "Returns the gravitational parameter paired with the gravity model.\n\nThe value is the one used for the osculating element conversion, so\nthat the conversion is consistent with the propagation.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "epoch_mjd",
+     "signature": "pub fn epoch_mjd(&self) -> f64 {",
+     "doc": "Returns the epoch of the elements as a Modified Julian Date on the\nUTC scale.\n\nThe epoch is the value written in the element set, which is the\norigin the propagator measures time from.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "is_deep_space",
+     "signature": "pub fn is_deep_space(&self) -> bool {",
+     "doc": "Returns `true` when the propagator uses the deep space branch.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "propagate_minutes",
+     "signature": "pub fn propagate_minutes(&self, minutes: f64) -> Result<State, PropagationError> {",
+     "doc": "Returns the state at a number of minutes from the element epoch.\n\nPosition is in kilometers and velocity in kilometers per second, in\nthe True Equator Mean Equinox frame.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "propagate_at",
+     "signature": "pub fn propagate_at(&self, utc_mjd: f64) -> Result<State, PropagationError> {",
+     "doc": "Returns the state at a Modified Julian Date on the UTC scale.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "osculating_elements",
+     "signature": "pub fn osculating_elements(&self, minutes: f64) -> Result<KeplerianElements, PropagationError> {",
+     "doc": "Returns the osculating Keplerian elements at a number of minutes from\nthe element epoch.\n\nThe osculating elements describe the two-body orbit that matches the\nposition and velocity at that instant. They are not the mean elements\nof the element set, and they change along the orbit because SGP4\nincludes perturbations that the two-body model does not.\n\nReturns an error when the state cannot be propagated, or when the\ninstantaneous orbit is not elliptical, which can happen for a state\nthe propagation has pushed onto an escape trajectory.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "radius_at",
+     "signature": "pub fn radius_at(&self, minutes: f64) -> Result<f64, PropagationError> {",
+     "doc": "Returns the magnitude of the state vector.\n\nThis is a convenience for the common case of wanting only the\ndistance from the center of the Earth.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "position_at",
+     "signature": "pub fn position_at(&self, minutes: f64) -> Result<Vec3, PropagationError> {",
+     "doc": "Returns the position at a number of minutes from the element epoch.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "sample_ephemeris",
+     "signature": "pub fn sample_ephemeris( &self, start_minutes: f64, end_minutes: f64, step_minutes: f64, ) -> Result<apsis_ephemeris::Ephemeris, EphemerisSamplingError> {",
+     "doc": "Samples the orbit into an ephemeris over a range of minutes.\n\nThe propagation is the expensive part of a track, so a table built\nonce and queried many times is worth the memory. The sample times are\nminutes from the element epoch, matching the rest of this type, while\nthe returned ephemeris keeps seconds, matching `apsis-ephemeris`.\n\nThe table is built with position and velocity from the propagator,\nso the Hermite interpolation has exact endpoint slopes and the error\nbetween samples is tiny; there is no need to use the position only\nroute except for a source that has no velocity.\n\nReturns an error when the grid is not usable or when a sample cannot\nbe propagated, which happens when the elements have decayed or the\nrange leaves the region where the model is defined.",
+     "associated": true
+    },
+    {
+     "kind": "fn",
+     "name": "apply_burn",
+     "signature": "pub fn apply_burn( &self, minutes: f64, burn: apsis_maneuver::FiniteBurn, steps: usize, ) -> Result<KeplerianElements, ManeuverApplicationError> {",
+     "doc": "Applies a finite burn and returns the resulting osculating elements.\n\nThe burn is applied to the osculating state at the given time, so the\nmanoeuvre is described relative to the orbit the satellite is\nactually on rather than the mean elements. The resulting elements are\nthe osculating elements of the post burn state, which is what a\nfollowing propagation needs. Because the underlying propagator is\nbuilt for one element set, this is a planning result rather than a\nnew propagator; a caller that wants to propagate the new orbit starts\na fresh `Orbit` from the returned elements.",
+     "associated": true
+    },
+    {
+     "kind": "enum",
+     "name": "EphemerisSamplingError",
+     "signature": "pub enum EphemerisSamplingError {",
+     "doc": "A failure while sampling an orbit into an ephemeris.",
+     "associated": false
+    },
+    {
+     "kind": "enum",
+     "name": "ManeuverApplicationError",
+     "signature": "pub enum ManeuverApplicationError {",
+     "doc": "A failure while applying a burn to an orbit.",
+     "associated": false
+    }
+   ]
+  }
+ ]
+}

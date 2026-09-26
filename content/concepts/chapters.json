@@ -1,0 +1,34 @@
+{
+  "chapters": [
+    {
+      "id": "overview",
+      "title": "Overview",
+      "summary": "What the ApsisRS kernels cover and how the layers are organized.",
+      "documents": ["overview", "architecture-apsis-rs", "standards-and-provenance"]
+    },
+    {
+      "id": "time",
+      "title": "Time",
+      "summary": "Time scales, leap seconds, and calendar conversions.",
+      "documents": ["time-scales", "leap-seconds", "calendar-and-mjd"]
+    },
+    {
+      "id": "geometry",
+      "title": "Frames and geodesy",
+      "summary": "Reference frames, the Earth Rotation Angle, and the WGS 84 ellipsoid.",
+      "documents": ["reference-frames", "earth-rotation-angle", "geodesy-wgs84"]
+    },
+    {
+      "id": "elements",
+      "title": "Element sets",
+      "summary": "The two-line element format and the Keplerian elements.",
+      "documents": ["tle-format", "keplerian-elements"]
+    },
+    {
+      "id": "propagation",
+      "title": "Propagation",
+      "summary": "Analytical and numerical orbit propagation, and how they compare.",
+      "documents": ["sgp4", "perturbations", "propagator-comparison", "ephemeris-interpolation"]
+    }
+  ]
+}

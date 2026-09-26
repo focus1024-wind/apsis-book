@@ -1,0 +1,366 @@
+{
+  "id": "concepts",
+  "title": "Concept map",
+  "summary": "The concepts of the ApsisRS kernels and the relationships between them. Each node opens the document that explains it.",
+  "nodes": [
+    {
+      "id": "overview",
+      "label": "Concept overview",
+      "kind": "concept",
+      "group": "overview",
+      "summary": "Scope and reading order of the concept set.",
+      "document": "overview"
+    },
+    {
+      "id": "architecture-apsis-rs",
+      "label": "Workspace architecture",
+      "kind": "concept",
+      "group": "overview",
+      "summary": "The layer order and the crates in each layer.",
+      "document": "architecture-apsis-rs"
+    },
+    {
+      "id": "standards-and-provenance",
+      "label": "Standards and provenance",
+      "kind": "concept",
+      "group": "overview",
+      "summary": "The public sources each algorithm follows.",
+      "document": "standards-and-provenance"
+    },
+    {
+      "id": "time-scales",
+      "label": "Time scales",
+      "kind": "concept",
+      "group": "time",
+      "summary": "UTC, TAI, TT, and GPS, and the storage convention.",
+      "document": "time-scales"
+    },
+    {
+      "id": "leap-seconds",
+      "label": "Leap seconds",
+      "kind": "concept",
+      "group": "time",
+      "summary": "The step discontinuities in UTC and the embedded table.",
+      "document": "leap-seconds"
+    },
+    {
+      "id": "calendar-and-mjd",
+      "label": "Calendars and MJD",
+      "kind": "concept",
+      "group": "time",
+      "summary": "Day numbering and the proleptic Gregorian calendar.",
+      "document": "calendar-and-mjd"
+    },
+    {
+      "id": "reference-frames",
+      "label": "Reference frames",
+      "kind": "concept",
+      "group": "geometry",
+      "summary": "Inertial, Earth-fixed, and geodetic frames.",
+      "document": "reference-frames"
+    },
+    {
+      "id": "earth-rotation-angle",
+      "label": "Earth Rotation Angle",
+      "kind": "concept",
+      "group": "geometry",
+      "summary": "The angle that relates the two Cartesian frames.",
+      "document": "earth-rotation-angle"
+    },
+    {
+      "id": "geodesy-wgs84",
+      "label": "WGS 84 and geodetic coordinates",
+      "kind": "concept",
+      "group": "geometry",
+      "summary": "Latitude, longitude, height, and the Cartesian conversion.",
+      "document": "geodesy-wgs84"
+    },
+    {
+      "id": "tle-format",
+      "label": "Two-line element format",
+      "kind": "data",
+      "group": "elements",
+      "summary": "The fixed width element record and its checksum.",
+      "document": "tle-format"
+    },
+    {
+      "id": "keplerian-elements",
+      "label": "Keplerian elements",
+      "kind": "concept",
+      "group": "elements",
+      "summary": "The six classical elements and the two-body solution.",
+      "document": "keplerian-elements"
+    },
+    {
+      "id": "sgp4",
+      "label": "SGP4 and SDP4",
+      "kind": "concept",
+      "group": "propagation",
+      "summary": "The analytical propagator the element sets are fitted to.",
+      "document": "sgp4"
+    },
+    {
+      "id": "perturbations",
+      "label": "Orbital perturbations",
+      "kind": "concept",
+      "group": "propagation",
+      "summary": "The forces that make an orbit deviate from an ellipse.",
+      "document": "perturbations"
+    },
+    {
+      "id": "propagator-comparison",
+      "label": "Choosing a propagator",
+      "kind": "concept",
+      "group": "propagation",
+      "summary": "The propagation methods compared by accuracy and cost.",
+      "document": "propagator-comparison"
+    },
+    {
+      "id": "ephemeris-interpolation",
+      "label": "Ephemeris interpolation",
+      "kind": "concept",
+      "group": "propagation",
+      "summary": "Sampling a track once and querying it by interpolation.",
+      "document": "ephemeris-interpolation"
+    },
+    {
+      "id": "method-hpop",
+      "label": "HPOP",
+      "kind": "concept",
+      "group": "methods",
+      "summary": "Numerical integration of a high order force model. Not implemented in apsis-rs.",
+      "document": "propagator-comparison"
+    },
+    {
+      "id": "method-numerical",
+      "label": "Numerical integration",
+      "kind": "concept",
+      "group": "methods",
+      "summary": "Integrating the equations of motion from a force model. Not implemented in apsis-rs.",
+      "document": "propagator-comparison"
+    },
+    {
+      "id": "method-two-body",
+      "label": "Two-body propagation",
+      "kind": "concept",
+      "group": "methods",
+      "summary": "The closed form Keplerian solution. Implemented as apsis-kepler.",
+      "document": "keplerian-elements"
+    },
+    {
+      "id": "crate-apsis-time",
+      "label": "apsis-time",
+      "kind": "crate",
+      "group": "time",
+      "summary": "Time scales, epochs, and calendar conversions.",
+      "document": "time-scales",
+      "api": "Epoch"
+    },
+    {
+      "id": "crate-apsis-coord",
+      "label": "apsis-coord",
+      "kind": "crate",
+      "group": "geometry",
+      "summary": "Positions that carry their reference frame in the type.",
+      "document": "reference-frames",
+      "api": "Eci"
+    },
+    {
+      "id": "crate-apsis-sgp4",
+      "label": "apsis-sgp4",
+      "kind": "crate",
+      "group": "propagation",
+      "summary": "The SGP4 and SDP4 analytical orbit propagator.",
+      "document": "sgp4",
+      "api": "Satellite"
+    }
+  ],
+  "edges": [
+    {
+      "source": "overview",
+      "target": "architecture-apsis-rs",
+      "kind": "explains",
+      "label": "structure"
+    },
+    {
+      "source": "overview",
+      "target": "standards-and-provenance",
+      "kind": "explains",
+      "label": "sources"
+    },
+    {
+      "source": "time-scales",
+      "target": "leap-seconds",
+      "kind": "uses",
+      "label": "UTC offset"
+    },
+    {
+      "source": "time-scales",
+      "target": "calendar-and-mjd",
+      "kind": "uses",
+      "label": "date display"
+    },
+    {
+      "source": "leap-seconds",
+      "target": "calendar-and-mjd",
+      "kind": "relates",
+      "label": "inserted seconds"
+    },
+    {
+      "source": "reference-frames",
+      "target": "earth-rotation-angle",
+      "kind": "uses",
+      "label": "rotation"
+    },
+    {
+      "source": "reference-frames",
+      "target": "geodesy-wgs84",
+      "kind": "uses",
+      "label": "ellipsoid"
+    },
+    {
+      "source": "earth-rotation-angle",
+      "target": "calendar-and-mjd",
+      "kind": "uses",
+      "label": "days since J2000"
+    },
+    {
+      "source": "earth-rotation-angle",
+      "target": "time-scales",
+      "kind": "uses",
+      "label": "UT1"
+    },
+    {
+      "source": "tle-format",
+      "target": "sgp4",
+      "kind": "feeds",
+      "label": "mean elements"
+    },
+    {
+      "source": "sgp4",
+      "target": "tle-format",
+      "kind": "consumes",
+      "label": "input"
+    },
+    {
+      "source": "sgp4",
+      "target": "keplerian-elements",
+      "kind": "compares",
+      "label": "osculating conversion"
+    },
+    {
+      "source": "sgp4",
+      "target": "perturbations",
+      "kind": "models",
+      "label": "J2 and drag"
+    },
+    {
+      "source": "sgp4",
+      "target": "reference-frames",
+      "kind": "outputs",
+      "label": "TEME"
+    },
+    {
+      "source": "sgp4",
+      "target": "time-scales",
+      "kind": "uses",
+      "label": "epoch"
+    },
+    {
+      "source": "keplerian-elements",
+      "target": "perturbations",
+      "kind": "contrasts",
+      "label": "no perturbations"
+    },
+    {
+      "source": "ephemeris-interpolation",
+      "target": "sgp4",
+      "kind": "uses",
+      "label": "samples"
+    },
+    {
+      "source": "propagator-comparison",
+      "target": "sgp4",
+      "kind": "compares",
+      "label": "accuracy and cost"
+    },
+    {
+      "source": "propagator-comparison",
+      "target": "method-hpop",
+      "kind": "compares",
+      "label": "accuracy and cost"
+    },
+    {
+      "source": "propagator-comparison",
+      "target": "method-numerical",
+      "kind": "compares",
+      "label": "accuracy and cost"
+    },
+    {
+      "source": "propagator-comparison",
+      "target": "method-two-body",
+      "kind": "compares",
+      "label": "accuracy and cost"
+    },
+    {
+      "source": "propagator-comparison",
+      "target": "ephemeris-interpolation",
+      "kind": "recommends",
+      "label": "many queries"
+    },
+    {
+      "source": "method-two-body",
+      "target": "keplerian-elements",
+      "kind": "defines",
+      "label": "solution"
+    },
+    {
+      "source": "method-hpop",
+      "target": "perturbations",
+      "kind": "models",
+      "label": "full force model"
+    },
+    {
+      "source": "method-numerical",
+      "target": "perturbations",
+      "kind": "models",
+      "label": "selected forces"
+    },
+    {
+      "source": "crate-apsis-time",
+      "target": "time-scales",
+      "kind": "implements",
+      "label": "Epoch"
+    },
+    {
+      "source": "crate-apsis-coord",
+      "target": "reference-frames",
+      "kind": "implements",
+      "label": "Eci, Ecef, Geodetic"
+    },
+    {
+      "source": "crate-apsis-sgp4",
+      "target": "sgp4",
+      "kind": "implements",
+      "label": "Satellite"
+    },
+    {
+      "source": "standards-and-provenance",
+      "target": "sgp4",
+      "kind": "cites",
+      "label": "Vallado 2006"
+    },
+    {
+      "source": "standards-and-provenance",
+      "target": "geodesy-wgs84",
+      "kind": "cites",
+      "label": "NIMA TR8350.2"
+    },
+    {
+      "source": "standards-and-provenance",
+      "target": "earth-rotation-angle",
+      "kind": "cites",
+      "label": "IERS 2010"
+    }
+  ]
+}
