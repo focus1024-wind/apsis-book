@@ -84,13 +84,16 @@ pub fn load_documents() -> Vec<Document> {
         .collect()
 }
 
-/// Parses the embedded interface catalog.
+/// Parses the embedded interface catalog, applying the translation when
+/// one is embedded.
 pub fn load_api_catalog() -> ApiCatalog {
-    match content::get("api.json") {
-        Some(text) => api::parse(text),
-        None => ApiCatalog {
+    let Some(text) = content::get("api.json") else {
+        return ApiCatalog {
             crates: Vec::new(),
             generated_from: Vec::new(),
-        },
-    }
+            item_names: std::collections::HashSet::new(),
+        };
+    };
+    let translation = content::get("api.zh.json").and_then(|text| crate::json::parse(text).ok());
+    api::parse_with(text, translation.as_ref())
 }

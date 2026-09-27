@@ -25,6 +25,12 @@ pub struct ApiItem {
     pub signature: String,
     /// Documentation comment, with the leading `///` markers removed.
     pub doc: String,
+    /// The documentation comment in Chinese, when a translation exists.
+    ///
+    /// The translation lives in `content/api.zh.json`, keyed by the item
+    /// name. Interface documentation is long, and a reader of the Chinese
+    /// interface should not have to read English to understand a function.
+    pub doc_zh: Option<String>,
     /// `true` when the item is an associated item rather than a module
     /// level one.
     pub associated: bool,
@@ -50,6 +56,8 @@ pub struct ApiCrate {
     pub layer: String,
     /// Crate level documentation, with the leading `//!` markers removed.
     pub summary: String,
+    /// The crate level documentation in Chinese, when a translation exists.
+    pub summary_zh: Option<String>,
     /// Public items, in source order.
     pub items: Vec<ApiItem>,
 }
@@ -68,6 +76,8 @@ impl ApiCrate {
 /// The whole catalog.
 #[derive(Debug, Clone)]
 pub struct ApiCatalog {
+    /// The names of every item, for resolving a doc comment link.
+    pub item_names: std::collections::HashSet<String>,
     /// The crates, in dependency order.
     pub crates: Vec<ApiCrate>,
     /// Source paths the catalog was extracted from, for provenance.
@@ -111,13 +121,28 @@ impl ApiCatalog {
 ///
 /// A malformed member is skipped rather than failing the whole document, so
 /// that a partially generated catalog still serves the items it contains.
+#[allow(dead_code)]
 pub fn parse(text: &str) -> ApiCatalog {
+    parse_with(text, None)
+}
+
+/// Parses the catalog and applies a Chinese translation when one is given.
+///
+/// `translation` is the parsed content of `content/api.zh.json`, which maps
+/// a crate name to its summary and an item name to its documentation. The
+/// two are kept in separate files because the catalog is generated from the
+/// source while the translation is authored, so regenerating the catalog
+/// must not discard the translation.
+pub fn parse_with(text: &str, translation: Option<&Value>) -> ApiCatalog {
     let Ok(value) = json::parse(text) else {
         return ApiCatalog {
             crates: Vec::new(),
             generated_from: Vec::new(),
+            item_names: std::collections::HashSet::new(),
         };
     };
+    let crate_texts = translation.and_then(|value| value.get("crates"));
+    let item_texts = translation.and_then(|value| value.get("items"));
     let generated_from = value
         .get("generated_from")
         .map(Value::as_array)
@@ -125,21 +150,70 @@ pub fn parse(text: &str) -> ApiCatalog {
         .iter()
         .filter_map(|path| path.as_str().map(str::to_string))
         .collect();
-    let crates = value
+    let crates: Vec<ApiCrate> = value
         .get("crates")
         .map(Value::as_array)
         .unwrap_or_default()
         .iter()
-        .filter_map(parse_crate)
+        .filter_map(|krate| parse_crate(krate, crate_texts, item_texts))
+        .collect();
+    let item_names = crates
+        .iter()
+        .flat_map(|krate| krate.items.iter().map(|item| item.name.clone()))
         .collect();
     ApiCatalog {
         crates,
         generated_from,
+        item_names,
     }
 }
 
+/// Returns a translated member of a table, when the key is present.
+fn translated(table: Option<&Value>, key: &str) -> Option<String> {
+    table
+        .and_then(|table| table.get(key))
+        .and_then(Value::as_str)
+        .filter(|text| !text.is_empty())
+        .map(str::to_string)
+}
+
+/// Returns the Chinese documentation of an item.
+///
+/// An associated item is looked up as `Type::name` first, then as `name`.
+/// Several types have an associated `new`, so the qualified key is the one
+/// that disambiguates them; the bare key is kept as a fallback for a
+/// translation that is the same for every owner.
+fn item_translation(item_texts: Option<&Value>, owner: Option<&str>, name: &str) -> Option<String> {
+    if let Some(owner) = owner {
+        if let Some(text) = translated(item_texts, &format!("{owner}::{name}")) {
+            return Some(text);
+        }
+    }
+    translated(item_texts, name)
+}
+
+/// Returns the name of the type an item is associated with.
+///
+/// The catalog lists an item in source order, so the type an associated
+/// function belongs to is the last type declaration before it.
+fn owner_of(items: &[Value], index: usize) -> Option<String> {
+    let mut owner = None;
+    for item in items.iter().take(index + 1) {
+        if let Some(kind) = item.get("kind").and_then(Value::as_str) {
+            if matches!(kind, "struct" | "enum" | "trait" | "type") {
+                owner = item.get("name").and_then(Value::as_str).map(str::to_string);
+            }
+        }
+    }
+    owner
+}
+
 /// Parses one crate.
-fn parse_crate(value: &Value) -> Option<ApiCrate> {
+fn parse_crate(
+    value: &Value,
+    crate_texts: Option<&Value>,
+    item_texts: Option<&Value>,
+) -> Option<ApiCrate> {
     let name = value.get("name")?.as_str()?.to_string();
     let layer = value
         .get("layer")
@@ -151,23 +225,26 @@ fn parse_crate(value: &Value) -> Option<ApiCrate> {
         .and_then(Value::as_str)
         .unwrap_or_default()
         .to_string();
-    let items = value
-        .get("items")
-        .map(Value::as_array)
-        .unwrap_or_default()
+    let raw_items = value.get("items").map(Value::as_array).unwrap_or_default();
+    let items = raw_items
         .iter()
-        .filter_map(parse_item)
+        .enumerate()
+        .filter_map(|(index, item)| {
+            parse_item(item, item_texts, owner_of(raw_items, index).as_deref())
+        })
         .collect();
+    let summary_zh = translated(crate_texts, &name);
     Some(ApiCrate {
         name,
         layer,
         summary,
+        summary_zh,
         items,
     })
 }
 
 /// Parses one item.
-fn parse_item(value: &Value) -> Option<ApiItem> {
+fn parse_item(value: &Value, item_texts: Option<&Value>, owner: Option<&str>) -> Option<ApiItem> {
     let name = value.get("name")?.as_str()?.to_string();
     let kind = value.get("kind")?.as_str()?.to_string();
     let signature = value
@@ -184,11 +261,13 @@ fn parse_item(value: &Value) -> Option<ApiItem> {
         .get("associated")
         .and_then(Value::as_bool)
         .unwrap_or(false);
+    let doc_zh = item_translation(item_texts, owner, &name);
     Some(ApiItem {
         kind,
         name,
         signature,
         doc,
+        doc_zh,
         associated,
     })
 }

@@ -174,6 +174,46 @@ fn serves_the_concept_and_crate_graphs() {
 }
 
 #[test]
+fn interface_documentation_is_translated() {
+    let service = Service::start();
+    wait_ready(&service);
+
+    let item = service.get("/api/api/items/propagate_minutes");
+    let body = body(&item);
+    // The Chinese documentation is served and is rendered to HTML.
+    assert!(body.contains("传播"), "the Chinese doc should be served");
+    assert!(body.contains("<p>"), "the doc should be rendered as HTML");
+    // A doc comment link to another item becomes an internal route.
+    assert!(
+        body.contains("data-api=") && body.contains("#/api/"),
+        "the doc link should be resolved: {body}"
+    );
+    // The English documentation is still present, so the language can switch
+    // without another request.
+    assert!(
+        body.contains("Returns the state of the satellite"),
+        "the English doc should still be present"
+    );
+}
+
+#[test]
+fn crate_summaries_are_translated() {
+    let service = Service::start();
+    wait_ready(&service);
+    let response = service.get("/api/api/crates/apsis-sgp4");
+    let body = body(&response);
+    // The Chinese summary and its plain form are both served.
+    assert!(
+        body.contains("传播器"),
+        "the Chinese summary should be served"
+    );
+    assert!(
+        body.contains("\"plain\""),
+        "the plain form should be served"
+    );
+}
+
+#[test]
 fn serves_the_interface_catalog() {
     let service = Service::start();
     wait_ready(&service);

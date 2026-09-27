@@ -275,10 +275,20 @@ hr {
   max-width: 34rem;
   display: flex;
   gap: 0.5rem;
+  align-items: stretch;
 }
 
 .search-box input {
   flex: 1 1 auto;
+  /* Without this the input keeps its intrinsic width as its minimum and
+     squeezes the button until the label wraps. */
+  min-width: 0;
+}
+
+/* A button label is a single line; a narrow flex item must not break it. */
+button {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .content {
@@ -861,6 +871,26 @@ tbody tr:hover {
 
 .api-doc .table-wrap {
   margin: 0.5rem 0;
+}
+
+/* A crate summary on the crate page */
+
+.crate-summary {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  max-width: 60rem;
+  margin-bottom: 0.5rem;
+}
+
+.crate-summary p {
+  margin: 0.5rem 0;
+}
+
+/* A link to another interface item, rendered from a doc comment. */
+.api-doc a.api-link,
+.crate-summary a.api-link {
+  color: var(--accent);
+  border-bottom: 1px dotted var(--accent-strong);
 }
 
 /* The interface items a tool calls */

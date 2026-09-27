@@ -138,6 +138,7 @@ or later. The Rust build does not run it and does not depend on Python.
 | `content/graph/concepts.json` | The concept graph |
 | `content/flows/*.json` | The algorithm flow graphs |
 | `content/api.json` | The generated interface catalog; do not edit by hand |
+| `content/api.zh.json` | Chinese translations of the crate summaries and item doc comments |
 
 A document header declares `id`, `title`, `chapter`, `summary`, `tags`, and
 `prerequisites`. A cross reference is written `[[id]]` or `[[id|label]]` and

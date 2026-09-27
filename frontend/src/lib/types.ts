@@ -106,14 +106,34 @@ export interface Graph {
   edges: GraphEdge[];
 }
 
+/**
+ * A documentation text in both languages.
+ *
+ * The `plain` members carry the text with the Markdown markup removed, and
+ * the `html` members carry it rendered. A language without a translation
+ * falls back to English.
+ */
+export interface ApiText {
+  zh: string;
+  en: string;
+  plain: Bilingual;
+  html: Bilingual;
+}
+
 /** A crate of the interface catalog. */
 export interface ApiCrateSummary {
   name: string;
   layer: string;
-  summary: string;
-  /** The module documentation, with the Markdown markup removed. */
-  summary_plain: string;
+  summary: BilingualSummary;
   items: number;
+}
+
+/** A crate summary in both languages, with the plain and rendered forms. */
+export interface BilingualSummary {
+  zh: string;
+  en: string;
+  plain: Bilingual;
+  html: Bilingual;
 }
 
 /** One interface item. */
@@ -121,10 +141,8 @@ export interface ApiItem {
   kind: string;
   name: string;
   signature: string;
-  /** The documentation comment as it is written in the source. */
-  doc: string;
-  /** The documentation comment rendered as HTML by the backend. */
-  doc_html: string;
+  /** The documentation comment in both languages. */
+  doc: ApiText;
   associated: boolean;
 }
 
@@ -141,8 +159,7 @@ export interface ApiIndex {
 export interface ApiCrate {
   name: string;
   layer: string;
-  summary: string;
-  summary_plain: string;
+  summary: BilingualSummary;
   items: ApiItem[];
 }
 

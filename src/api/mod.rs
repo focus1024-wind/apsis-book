@@ -221,6 +221,7 @@ impl Router {
     /// Returns the interface catalog summary.
     fn api_index(&self) -> Response {
         let catalog = &self.state.api;
+        let item_names = &catalog.item_names;
         let crates: Vec<Value> = catalog
             .crates
             .iter()
@@ -228,8 +229,7 @@ impl Router {
                 json_object! {
                     "name" => krate.name.clone(),
                     "layer" => krate.layer.clone(),
-                    "summary" => krate.summary.clone(),
-                    "summary_plain" => crate::docs::markdown::to_plain_text(&krate.summary),
+                    "summary" => crate_texts(krate, item_names),
                     "items" => krate.items.len(),
                 }
             })
@@ -261,9 +261,11 @@ impl Router {
     fn api_crate(&self, path: &str) -> Response {
         let name = path.trim_start_matches("/api/api/crates/");
         match self.state.api.krate(name) {
-            Some(krate) => {
-                Response::json(json::to_string(&crate_json(krate))).with_cache_control("no-cache")
-            }
+            Some(krate) => Response::json(json::to_string(&crate_json(
+                krate,
+                &self.state.api.item_names,
+            )))
+            .with_cache_control("no-cache"),
             None => not_found("crate"),
         }
     }
@@ -279,9 +281,7 @@ impl Router {
                     "kind" => item.kind.clone(),
                     "name" => item.name.clone(),
                     "signature" => item.signature.clone(),
-                    "doc" => item.doc.clone(),
-                    "doc_html" => crate::docs::markdown::render(&item.doc),
-                    "doc_plain" => crate::docs::markdown::to_plain_text(&item.doc),
+                    "doc" => doc_texts(item, &self.state.api.item_names),
                     "associated" => item.associated,
                 };
                 Response::json(json::to_string(&body)).with_cache_control("no-cache")
@@ -437,6 +437,53 @@ fn document_index(state: &AppState) -> Value {
     }
 }
 
+/// Encodes a documentation text and its rendering in both languages.
+///
+/// The documentation comment is rendered to HTML here, by the same renderer
+/// the concept documents use, so a comment that contains a list, a table,
+/// or a code block is drawn as one. The two `plain` members carry the text
+/// with the markup removed, which the index uses for a one line summary.
+fn doc_texts(item: &crate::docs::ApiItem, items: &std::collections::HashSet<String>) -> Value {
+    let zh = item.doc_zh.as_deref().unwrap_or(&item.doc);
+    json_object! {
+        "zh" => zh.to_string(),
+        "en" => item.doc.clone(),
+        "html" => json_object! {
+            "zh" => crate::docs::markdown::render_with(zh, Some(items)),
+            "en" => crate::docs::markdown::render_with(&item.doc, Some(items)),
+        },
+        "plain" => json_object! {
+            "zh" => crate::docs::markdown::to_plain_text(zh),
+            "en" => crate::docs::markdown::to_plain_text(&item.doc),
+        },
+    }
+}
+
+/// Encodes a crate summary in both languages, with the plain text.
+fn crate_texts(krate: &crate::docs::ApiCrate, items: &std::collections::HashSet<String>) -> Value {
+    let zh = krate.summary_zh.as_deref().unwrap_or(&krate.summary);
+    json_object! {
+        "zh" => zh.to_string(),
+        "en" => krate.summary.clone(),
+        "plain" => json_object! {
+            "zh" => crate_summary_plain(zh),
+            "en" => crate_summary_plain(&krate.summary),
+        },
+        "html" => json_object! {
+            "zh" => crate::docs::markdown::render_with(zh, Some(items)),
+            "en" => crate::docs::markdown::render_with(&krate.summary, Some(items)),
+        },
+    }
+}
+
+/// Returns the plain text of a crate summary.
+///
+/// The Markdown renderer is applied first so that a summary that opens with
+/// a list or a heading is reduced to its prose.
+fn crate_summary_plain(summary: &str) -> String {
+    crate::docs::markdown::to_plain_text(summary)
+}
+
 /// Encodes a document title or summary in both languages.
 ///
 /// The two names select the field of a document; an unknown name yields an
@@ -529,7 +576,10 @@ fn graph_json(graph: &Graph) -> Value {
 }
 
 /// Encodes a crate of the interface catalog as JSON.
-fn crate_json(krate: &crate::docs::ApiCrate) -> Value {
+fn crate_json(
+    krate: &crate::docs::ApiCrate,
+    item_names: &std::collections::HashSet<String>,
+) -> Value {
     let items: Vec<Value> = krate
         .items
         .iter()
@@ -538,8 +588,7 @@ fn crate_json(krate: &crate::docs::ApiCrate) -> Value {
                 "kind" => item.kind.clone(),
                 "name" => item.name.clone(),
                 "signature" => item.signature.clone(),
-                "doc" => item.doc.clone(),
-                "doc_html" => crate::docs::markdown::render(&item.doc),
+                "doc" => doc_texts(item, item_names),
                 "associated" => item.associated,
             }
         })
@@ -547,8 +596,7 @@ fn crate_json(krate: &crate::docs::ApiCrate) -> Value {
     json_object! {
         "name" => krate.name.clone(),
         "layer" => krate.layer.clone(),
-        "summary" => krate.summary.clone(),
-        "summary_plain" => crate::docs::markdown::to_plain_text(&krate.summary),
+        "summary" => crate_texts(krate, item_names),
         "items" => items,
     }
 }

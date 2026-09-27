@@ -155,6 +155,26 @@ description would drift silently.
 The script reports the crates it read in `generated_from`, which the service
 returns in `/api/api`, so the provenance of what is displayed is checkable.
 
+The translation is a separate file, `content/api.zh.json`, keyed by crate
+name and by item name. It is separate from the catalog because the catalog
+is generated and the translation is authored: regenerating the catalog must
+not discard the translation. An associated item is keyed by the type that
+declares it, as `Type::name`, because several types have an associated
+`new`; the bare name is the fallback.
+
+A doc comment refers to another item with a Rust path, written as
+`[Epoch](crate::Epoch)` or as a shortcut `[`Epoch::mjd`]`. The renderer turns
+such a reference into a link to the interface page of that item. The name is
+resolved by walking the path from the right and taking the first segment that
+is a known item, so a link to a variant or a method points at the enum or the
+trait that declares it. A reference whose segments are all unknown stays a
+code span, which is what keeps a label such as `[`0, 1`]` from becoming a
+link to nothing.
+
+The documentation comment is rendered to HTML by the backend, with the same
+renderer the concept documents use, so a comment that contains a list, a
+table, or a code block is drawn as one.
+
 ## Frontend and embedding
 
 The frontend is Svelte and TypeScript, built by Vite. The build output is a

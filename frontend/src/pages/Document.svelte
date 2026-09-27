@@ -45,6 +45,20 @@
     return document.forms.some((entry) => entry.language === other) ? other : null;
   });
 
+  /**
+   * Scrolls to a section of the document.
+   *
+   * The application routes on the fragment, so a plain `#anchor` link would
+   * be read as a route and would leave the page. The fragment is left alone
+   * and the element is scrolled to directly instead.
+   */
+  function scrollToSection(anchor: string) {
+    const element = window.document.getElementById(anchor);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
   /** Handles a click inside the body. */
   function onClick(event: MouseEvent) {
     const target = event.target as HTMLElement | null;
@@ -57,13 +71,9 @@
       return;
     }
     const href = anchor.getAttribute('href');
-    if (href && href.startsWith('#')) {
+    if (href && href.startsWith('#') && !href.startsWith('#/')) {
       event.preventDefault();
-      const anchorId = href.slice(1);
-      const element = window.document.getElementById(anchorId);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      scrollToSection(href.slice(1));
     }
   }
 
@@ -136,9 +146,13 @@
         <ul style="list-style: none; padding-left: 0;">
           {#each form.headings as heading}
             <li style="margin: 0.2rem 0;">
-              <a href={`#${heading.anchor}`} style="color: var(--text-muted); font-size: 0.85rem;">
-                {heading.text}
-              </a>
+              <a
+                href={`#${heading.anchor}`}
+                style="color: var(--text-muted); font-size: 0.85rem;"
+                onclick={(event) => {
+                  event.preventDefault();
+                  scrollToSection(heading.anchor);
+                }}>{heading.text}</a>
             </li>
           {/each}
         </ul>

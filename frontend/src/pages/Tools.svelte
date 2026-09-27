@@ -28,26 +28,37 @@
   let error = $state<{ parameter: string | null; message: string } | null>(null);
   let running = $state(false);
 
-  /** Selects a tool and fills the form with its defaults. */
-  function select(next: Tool | null) {
-    tool = next;
-    result = null;
-    error = null;
-    values = {};
-    if (!next) return;
+  /**
+   * Returns the form values a tool declares as its defaults.
+   *
+   * Building a fresh object each time means the form state is replaced
+   * rather than mutated inside an effect, which is what keeps the effect
+   * from writing the state it also reads.
+   */
+  function defaultsFor(next: Tool | null): Record<string, string> {
+    const fresh: Record<string, string> = {};
+    if (!next) return fresh;
     for (const param of next.params) {
-      values[param.name] = param.default ?? '';
+      fresh[param.name] = param.default ?? '';
     }
+    return fresh;
   }
 
+  // The effect depends only on the registry and the route, and it assigns
+  // the three pieces of form state as a unit. It must not read `values`,
+  // because reading state that the same effect writes makes the effect
+  // schedule itself again and the update depth is exceeded.
   $effect(() => {
-    if (!registry) return;
-    if (!id) {
-      select(null);
-      return;
-    }
-    const found = registry.tools.find((candidate) => candidate.id === id) ?? null;
-    select(found);
+    const currentRegistry = registry;
+    const currentId = id;
+    if (!currentRegistry) return;
+    const found = currentId
+      ? (currentRegistry.tools.find((candidate) => candidate.id === currentId) ?? null)
+      : null;
+    tool = found;
+    result = null;
+    error = null;
+    values = defaultsFor(found);
   });
 
   /** Runs the selected tool. */
@@ -85,11 +96,7 @@
 
   /** Resets the form to the declared defaults. */
   function reset() {
-    if (!tool) return;
-    values = {};
-    for (const param of tool.params) {
-      values[param.name] = param.default ?? '';
-    }
+    values = defaultsFor(tool);
     result = null;
     error = null;
   }

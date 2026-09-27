@@ -19,6 +19,11 @@
 //! - inline emphasis `*text*` and strong emphasis `**text**`
 //! - inline code spans delimited by backticks
 //! - links written as `[text](url)`
+//!
+//! A link whose target is a Rust path, such as `[Epoch](crate::Epoch)`,
+//! names an item of the library rather than a web address. Such a link is
+//! rendered as a link to the interface page of the item, so that a doc
+//! comment can cross reference another item the way `rustdoc` does.
 //! - concept cross references written as `[[id]]` or `[[id|label]]`, which
 //!   render as a link with a `data-concept` attribute so the frontend can
 //!   route them without a page load
@@ -28,6 +33,15 @@
 
 /// Renders a Markdown document to HTML.
 pub fn render(markdown: &str) -> String {
+    render_with(markdown, None)
+}
+
+/// Renders a Markdown document, resolving a link to a library item.
+///
+/// `items` is the set of item names the interface catalog contains. A
+/// shortcut link whose name is not in the set is left as a code span, so a
+/// doc comment can write `[`0, 1`]` without producing a link to nothing.
+pub fn render_with(markdown: &str, items: Option<&std::collections::HashSet<String>>) -> String {
     let lines: Vec<&str> = markdown.lines().collect();
     let mut output = String::with_capacity(markdown.len() + markdown.len() / 2);
     let mut index = 0;
@@ -60,7 +74,7 @@ pub fn render(markdown: &str) -> String {
             output.push_str(&format!(
                 "<h{level} id=\"{}\">{}<a class=\"anchor\" href=\"#{id}\" aria-hidden=\"true\">#</a></h{level}>\n",
                 escape(&id),
-                inline(text),
+                inline_items(text, items),
             ));
             index += 1;
             continue;
@@ -74,7 +88,7 @@ pub fn render(markdown: &str) -> String {
 
         if trimmed.starts_with('|') {
             let (block, next) = collect_table(&lines, index);
-            output.push_str(&render_table(&block));
+            output.push_str(&render_table(&block, items));
             index = next;
             continue;
         }
@@ -87,7 +101,7 @@ pub fn render(markdown: &str) -> String {
                 .map(|line| line.trim_start().trim_start_matches('>').trim_start())
                 .collect();
             output.push_str("<blockquote>\n");
-            output.push_str(&render(&inner.join("\n")));
+            output.push_str(&render_with(&inner.join("\n"), items));
             output.push_str("</blockquote>\n");
             index = next;
             continue;
@@ -96,7 +110,7 @@ pub fn render(markdown: &str) -> String {
         if is_unordered_item(trimmed) {
             let (block, next) =
                 collect_while(&lines, index, |line| is_unordered_item(line.trim_end()));
-            output.push_str(&render_list(&block, false));
+            output.push_str(&render_list(&block, false, items));
             index = next;
             continue;
         }
@@ -104,7 +118,7 @@ pub fn render(markdown: &str) -> String {
         if is_ordered_item(trimmed) {
             let (block, next) =
                 collect_while(&lines, index, |line| is_ordered_item(line.trim_end()));
-            output.push_str(&render_list(&block, true));
+            output.push_str(&render_list(&block, true, items));
             index = next;
             continue;
         }
@@ -126,7 +140,7 @@ pub fn render(markdown: &str) -> String {
             .map(|line| line.trim())
             .collect::<Vec<_>>()
             .join(" ");
-        output.push_str(&format!("<p>{}</p>\n", inline(&text)));
+        output.push_str(&format!("<p>{}</p>\n", inline_items(&text, items)));
         index = next;
     }
 
@@ -223,7 +237,7 @@ fn render_code_block(language: &str, code: &str) -> String {
 /// The first row is the header, the second row is the delimiter that marks
 /// the table, and the remaining rows are the body. A cell whose content ends
 /// with `^` is aligned to the right, which is used for numeric columns.
-fn render_table(block: &[&str]) -> String {
+fn render_table(block: &[&str], items: Option<&std::collections::HashSet<String>>) -> String {
     if block.len() < 2 {
         return String::new();
     }
@@ -241,7 +255,7 @@ fn render_table(block: &[&str]) -> String {
             output.push_str(" class=\"numeric\"");
         }
         output.push('>');
-        output.push_str(&inline(cell.trim().trim_end_matches('^')));
+        output.push_str(&inline_items(cell.trim().trim_end_matches('^'), items));
         output.push_str("</th>");
     }
     output.push_str("</tr>\n</thead>\n<tbody>\n");
@@ -254,7 +268,7 @@ fn render_table(block: &[&str]) -> String {
                 output.push_str(" class=\"numeric\"");
             }
             output.push('>');
-            output.push_str(&inline(cell.trim().trim_end_matches('^')));
+            output.push_str(&inline_items(cell.trim().trim_end_matches('^'), items));
             output.push_str("</td>");
         }
         output.push_str("</tr>\n");
@@ -270,7 +284,11 @@ fn split_row(row: &str) -> Vec<String> {
 }
 
 /// Renders a list.
-fn render_list(block: &[&str], ordered: bool) -> String {
+fn render_list(
+    block: &[&str],
+    ordered: bool,
+    items: Option<&std::collections::HashSet<String>>,
+) -> String {
     let tag = if ordered { "ol" } else { "ul" };
     let mut output = format!("<{tag}>\n");
     for line in block {
@@ -281,7 +299,7 @@ fn render_list(block: &[&str], ordered: bool) -> String {
         } else {
             trimmed[2..].to_string()
         };
-        output.push_str(&format!("<li>{}</li>\n", inline(&content)));
+        output.push_str(&format!("<li>{}</li>\n", inline_items(&content, items)));
     }
     output.push_str(&format!("</{tag}>\n"));
     output
@@ -292,7 +310,13 @@ fn render_list(block: &[&str], ordered: bool) -> String {
 /// The scan is single pass. A backtick span ends at the next backtick, a
 /// link ends at its closing parenthesis, and a cross reference ends at its
 /// closing bracket; anything unmatched is left as literal text.
+#[allow(dead_code)]
 fn inline(text: &str) -> String {
+    inline_items(text, None)
+}
+
+/// Renders inline markup, resolving a shortcut link against `items`.
+fn inline_items(text: &str, items: Option<&std::collections::HashSet<String>>) -> String {
     let characters: Vec<char> = text.chars().collect();
     let mut output = String::with_capacity(text.len());
     let mut index = 0;
@@ -314,19 +338,48 @@ fn inline(text: &str) -> String {
         if character == '[' && characters.get(index + 1) == Some(&'[') {
             if let Some(end) = find_pair(&characters, index + 2) {
                 let inner: String = characters[index + 2..end].iter().collect();
-                output.push_str(&render_concept_link(&inner));
+                output.push_str(&render_concept_link(&inner, items));
                 index = end + 2;
                 continue;
             }
         }
 
+        // A shortcut link, `[`Name`]`, is how a doc comment refers to
+        // another item without repeating the path. It is rendered as a link
+        // to the item page when the inner text names a plausible item.
+        if character == '[' && characters.get(index + 1) == Some(&'`') {
+            if let Some((label, end)) = parse_shortcut_link(&characters, index) {
+                if let Some(item) = shortcut_item(&label, items) {
+                    output.push_str(&format!(
+                        "<a class=\"api-link\" data-api=\"{}\" href=\"#/api/{}\"><code>{}</code></a>",
+                        escape_attr(item),
+                        escape_attr(item),
+                        escape(&label),
+                    ));
+                    index = end;
+                    continue;
+                }
+            }
+        }
+
         if character == '[' {
             if let Some((label, url, end)) = parse_link(&characters, index) {
-                output.push_str(&format!(
-                    "<a href=\"{}\">{}</a>",
-                    escape_attr(&url),
-                    inline(&label),
-                ));
+                match rust_path_target(&url, items) {
+                    // A link to a library item becomes a link to the item
+                    // page, which is where the reader can see the signature
+                    // and the rest of the documentation.
+                    Some(item) => output.push_str(&format!(
+                        "<a class=\"api-link\" data-api=\"{}\" href=\"#/api/{}\">{}</a>",
+                        escape_attr(&item),
+                        escape_attr(&item),
+                        inline_items(&label, items),
+                    )),
+                    None => output.push_str(&format!(
+                        "<a href=\"{}\">{}</a>",
+                        escape_attr(&url),
+                        inline_items(&label, items),
+                    )),
+                }
                 index = end;
                 continue;
             }
@@ -336,14 +389,17 @@ fn inline(text: &str) -> String {
             if characters.get(index + 1) == Some(&'*') {
                 if let Some(end) = find_double(&characters, index + 2) {
                     let strong: String = characters[index + 2..end].iter().collect();
-                    output.push_str(&format!("<strong>{}</strong>", inline(&strong)));
+                    output.push_str(&format!(
+                        "<strong>{}</strong>",
+                        inline_items(&strong, items)
+                    ));
                     index = end + 2;
                     continue;
                 }
             } else if let Some(end) = find(&characters, index + 1, '*') {
                 if end > index + 1 {
                     let emphasis: String = characters[index + 1..end].iter().collect();
-                    output.push_str(&format!("<em>{}</em>", inline(&emphasis)));
+                    output.push_str(&format!("<em>{}</em>", inline_items(&emphasis, items)));
                     index = end + 1;
                     continue;
                 }
@@ -380,6 +436,108 @@ fn find_double(characters: &[char], start: usize) -> Option<usize> {
         .find(|index| characters[*index] == '*' && characters[*index + 1] == '*')
 }
 
+/// Parses a shortcut link, `[`text`]`, starting at `start`.
+///
+/// Returns the text between the backticks and the index just past the
+/// closing bracket.
+fn parse_shortcut_link(characters: &[char], start: usize) -> Option<(String, usize)> {
+    if characters.get(start) != Some(&'[') || characters.get(start + 1) != Some(&'`') {
+        return None;
+    }
+    let tick = find(characters, start + 2, '`')?;
+    if characters.get(tick + 1) != Some(&']') {
+        return None;
+    }
+    let label: String = characters[start + 2..tick].iter().collect();
+    Some((label, tick + 2))
+}
+
+/// Returns the item name a shortcut link refers to.
+///
+/// A shortcut link names an item, optionally with a module path or a
+/// method, such as `Epoch::mjd` or `apsis_time::Epoch`. The item page
+/// routes on the item name, so the last segment is used. A label that is
+/// not a plausible item name, such as `0, 1` or `-pi/2, pi/2`, is not a
+/// link and returns `None`.
+fn shortcut_item<'a>(
+    label: &'a str,
+    items: Option<&std::collections::HashSet<String>>,
+) -> Option<&'a str> {
+    let name = label.rsplit("::").next()?.trim();
+    let is_name = !name.is_empty()
+        && name
+            .chars()
+            .all(|character| character.is_alphanumeric() || character == '_');
+    if !is_name {
+        return None;
+    }
+    // When the catalog is available the name must be an item of the
+    // library, which is what keeps a label such as `0, 1` or a phrase from
+    // becoming a link. Without it, a name that starts with an upper case
+    // letter is taken as an item, which is the correct guess for a doc
+    // comment that names another item.
+    match items {
+        Some(items) => items.contains(name).then_some(name),
+        None => name
+            .chars()
+            .next()
+            .is_some_and(char::is_uppercase)
+            .then_some(name),
+    }
+}
+
+/// Returns the item name of a Rust path written as a link target.
+///
+/// A doc comment links to a library item with a Rust path, such as
+/// `crate::Epoch`, `core::result::Result`, or `f64::rem_euclid`. The name
+/// the interface page routes on is the last segment of the path, with any
+/// generic arguments removed. A target that is a web address or a fragment
+/// is not a Rust path and returns `None`, which leaves the link as written.
+///
+/// A path may end in a variant or a method rather than the item itself,
+/// such as `crate::PropagationErrorKind::Decayed`. The resolver walks the
+/// path from the right and returns the first segment that is a known item,
+/// so such a link points at the enum or the trait that declares it.
+fn rust_path_target(
+    url: &str,
+    items: Option<&std::collections::HashSet<String>>,
+) -> Option<String> {
+    if url.is_empty() || url.contains('/') || url.starts_with('#') {
+        return None;
+    }
+    let segments: Vec<&str> = url
+        .split("::")
+        .map(|segment| segment.split(['<', '(']).next().unwrap_or("").trim())
+        .filter(|segment| !segment.is_empty())
+        .collect();
+    if segments.is_empty() {
+        return None;
+    }
+    let is_rust_path =
+        segments.len() > 1 || segments[0].chars().next().is_some_and(char::is_uppercase);
+    if !is_rust_path {
+        return None;
+    }
+    let is_name = |segment: &str| {
+        !segment.is_empty()
+            && segment
+                .chars()
+                .all(|character| character.is_alphanumeric() || character == '_')
+    };
+    match items {
+        Some(items) => segments
+            .iter()
+            .rev()
+            .find(|segment| is_name(segment) && items.contains(**segment))
+            .map(|segment| (*segment).to_string()),
+        None => segments
+            .iter()
+            .rev()
+            .find(|segment| is_name(segment))
+            .map(|segment| (*segment).to_string()),
+    }
+}
+
 /// Parses a `[label](url)` link starting at `start`, returning the label,
 /// the URL, and the index just past the link.
 fn parse_link(characters: &[char], start: usize) -> Option<(String, String, usize)> {
@@ -401,7 +559,7 @@ fn parse_link(characters: &[char], start: usize) -> Option<(String, String, usiz
 /// The argument is either `id` or `id|label`. An identifier that is not a
 /// plausible identifier is rendered as literal text, so a stray `[[` in the
 /// prose cannot produce a broken link.
-fn render_concept_link(inner: &str) -> String {
+fn render_concept_link(inner: &str, items: Option<&std::collections::HashSet<String>>) -> String {
     let (id, label) = match inner.split_once('|') {
         Some((id, label)) => (id.trim(), label.trim()),
         None => (inner.trim(), inner.trim()),
@@ -417,7 +575,7 @@ fn render_concept_link(inner: &str) -> String {
         "<a class=\"concept-link\" data-concept=\"{}\" href=\"#/concept/{}\">{}</a>",
         escape_attr(id),
         escape_attr(id),
-        inline(label),
+        inline_items(label, items),
     )
 }
 
@@ -567,6 +725,58 @@ mod tests {
         assert!(html.contains("<code>a &lt; b</code>"));
         assert!(html.contains("&lt;script&gt;"));
         assert!(!html.contains("<script>"));
+    }
+
+    #[test]
+    fn a_rust_path_link_points_at_the_interface_page() {
+        let html = render("Returns [`Epoch`](crate::Epoch) and [more](https://example.com).\n");
+        assert!(html.contains("data-api=\"Epoch\""), "{html}");
+        assert!(html.contains("href=\"#/api/Epoch\""), "{html}");
+        // A web address is left as it is.
+        assert!(html.contains("href=\"https://example.com\""), "{html}");
+    }
+
+    #[test]
+    fn a_path_to_a_variant_resolves_to_the_declaring_item() {
+        let known: std::collections::HashSet<String> = ["PropagationErrorKind"]
+            .iter()
+            .map(|n| n.to_string())
+            .collect();
+        let html = render_with(
+            "Returns [`Decayed`](crate::PropagationErrorKind::Decayed).\n",
+            Some(&known),
+        );
+        assert!(html.contains("data-api=\"PropagationErrorKind\""), "{html}");
+        // A path whose segments are all unknown is left as written.
+        let html = render_with("[`Nope`](crate::Unknown::Missing).\n", Some(&known));
+        assert!(!html.contains("data-api"), "{html}");
+    }
+
+    /// The names of two items, for the shortcut link test.
+    fn items() -> std::collections::HashSet<String> {
+        ["mjd", "Epoch"]
+            .iter()
+            .map(|name| name.to_string())
+            .collect()
+    }
+
+    #[test]
+    fn a_shortcut_link_points_at_the_interface_page() {
+        let known = items();
+        let html = render_with(
+            "See [`Epoch::mjd`] and [`apsis_time::Epoch`].\n",
+            Some(&known),
+        );
+        assert!(html.contains("data-api=\"mjd\""), "{html}");
+        assert!(html.contains("href=\"#/api/mjd\""), "{html}");
+        assert!(html.contains("data-api=\"Epoch\""), "{html}");
+        // A label that is not an item name stays as a code span.
+        let html = render_with("The range is [`0, 1`].\n", Some(&known));
+        assert!(!html.contains("data-api"), "{html}");
+        assert!(html.contains("<code>0, 1</code>"), "{html}");
+        // A name that is not in the catalog also stays as a code span.
+        let html = render_with("See [`NotAnItem`].\n", Some(&known));
+        assert!(!html.contains("data-api"), "{html}");
     }
 
     #[test]

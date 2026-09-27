@@ -28,7 +28,7 @@
     <div class="scalars">
       {#each result.scalars as scalar}
         <div class="scalar">
-          <span class="label">{scalar.label}</span>
+          <span class="label">{pick(scalar.label, lang)}</span>
           <span class="value" style={scalar.monospace ? '' : 'font-family: var(--sans)'}>
             {scalar.value}{#if scalar.unit}<span class="unit">{scalar.unit}</span>{/if}
           </span>
@@ -48,7 +48,7 @@
           <tr>
             {#each result.table.columns as column}
               <th class={column.numeric ? 'numeric' : ''}>
-                {column.label}{#if column.unit}<span class="unit"> [{column.unit}]</span>{/if}
+                {pick(column.label, lang)}{#if column.unit}<span class="unit"> [{column.unit}]</span>{/if}
               </th>
             {/each}
           </tr>
@@ -71,7 +71,7 @@
   {#if result.notes.length > 0}
     <div class="notice muted">
       {#each result.notes as note}
-        <p>{note}</p>
+        <p>{pick(note, lang)}</p>
       {/each}
     </div>
   {/if}

@@ -15,7 +15,7 @@
   import type { ApiIndex, ApiCrate, ApiItem } from '../lib/types';
   import { getJson } from '../lib/api';
   import { navigate } from '../lib/router';
-  import { language, tr } from '../lib/i18n';
+  import { language, pick, tr } from '../lib/i18n';
   import Signature from '../lib/Signature.svelte';
 
   interface Props {
@@ -102,6 +102,24 @@
   }
 
   /**
+   * Handles a click inside a rendered doc comment.
+   *
+   * A doc comment that links to another item is rendered as an internal
+   * link, which the router handles; a link to a web address is left to the
+   * browser.
+   */
+  function onDocClick(event: MouseEvent) {
+    const target = event.target as HTMLElement | null;
+    const anchor = target?.closest('a');
+    if (!anchor) return;
+    const item = anchor.getAttribute('data-api');
+    if (item) {
+      event.preventDefault();
+      navigate(`/api/${item}`);
+    }
+  }
+
+  /**
    * Returns the first sentence of a crate summary.
    *
    * A crate summary is the module documentation, which is several
@@ -131,7 +149,9 @@
     <span class="badge" style="margin-left: 0.5rem">{crate.layer}</span>
   </p>
   <h2 style="margin-top: 0.5rem">{crate.name}</h2>
-  <p style="color: var(--text-muted)">{crate.summary}</p>
+  <!-- The HTML is rendered by the backend from the module documentation,
+       and every text node is escaped there. -->
+  <div class="doc-body crate-summary">{@html pick(crate.summary.html, lang)}</div>
 
   {#each groups as group}
     <h3 id={`kind-${group.kind}`}>
@@ -154,10 +174,15 @@
         <div style="margin: 0.5rem 0">
           <Signature signature={candidate.signature} name={candidate.name} />
         </div>
-        {#if candidate.doc}
+        {#if candidate.doc.en}
           <!-- The HTML is rendered by the backend from the doc comment, and
                every text node is escaped there. -->
-          <div class="doc-body api-doc">{@html candidate.doc_html}</div>
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+          <div class="doc-body api-doc" role="document" onclick={onDocClick}>
+            {@html pick(candidate.doc.html, lang)}
+          </div>
         {/if}
       </article>
     {/each}
@@ -178,10 +203,15 @@
     <div style="margin: 0.75rem 0">
       <Signature signature={item.signature} name={item.name} />
     </div>
-    {#if item.doc}
+    {#if item.doc.en}
       <!-- The HTML is rendered by the backend from the doc comment, and
            every text node is escaped there. -->
-      <div class="doc-body api-doc">{@html item.doc_html}</div>
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+      <div class="doc-body api-doc" role="document" onclick={onDocClick}>
+        {@html pick(item.doc.html, lang)}
+      </div>
     {:else}
       <p class="empty">{tr('api.noDoc', lang)}</p>
     {/if}
@@ -228,7 +258,7 @@
           <span class="badge">{candidate.layer}</span>
           <span class="badge">{candidate.items}</span>
         </header>
-        <p>{firstSentence(candidate.summary_plain)}</p>
+        <p>{firstSentence(pick(candidate.summary.plain, lang))}</p>
       </a>
     {/each}
   </div>
