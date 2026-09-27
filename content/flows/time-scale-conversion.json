@@ -3,30 +3,184 @@
   "title": "Time scale conversion",
   "summary": "How an instant enters the model, is stored on one uniform scale, and is read back on any supported scale.",
   "nodes": [
-    {"id": "input", "label": "Calendar fields or an MJD, with a scale", "kind": "data", "group": "input", "summary": "The caller states which scale the number is on. A calendar date is also accepted."},
-    {"id": "valid", "label": "Fields a valid date?", "kind": "decision", "group": "validate", "summary": "The month and day must exist in that year, including the leap year rule."},
-    {"id": "invalid", "label": "Rejected", "kind": "terminal", "group": "error", "summary": "The fields do not form a valid calendar date, or the request is outside the leap second table."},
-    {"id": "to_mjd", "label": "Convert to a day number", "kind": "step", "group": "convert", "summary": "A calendar date becomes a Modified Julian Date on the stated scale.", "api": "mjd_from_ymd"},
-    {"id": "scale", "label": "Which scale?", "kind": "decision", "group": "convert", "summary": "TAI, TT, and GPS convert by a constant offset; UTC converts through the leap second table."},
-    {"id": "constant", "label": "Apply the constant offset", "kind": "step", "group": "convert", "summary": "TT minus TAI is 32.184 seconds and TAI minus GPS is 19 seconds.", "api": "Epoch"},
-    {"id": "leap", "label": "Look up the leap second offset", "kind": "step", "group": "convert", "summary": "Search the embedded table for the interval that contains the instant.", "api": "Epoch"},
-    {"id": "covered", "label": "Covered by the table?", "kind": "decision", "group": "convert", "summary": "The table starts at the beginning of 1972."},
-    {"id": "tai", "label": "Epoch on the TAI scale", "kind": "data", "group": "store", "summary": "The instant is stored as a Modified Julian Date on TAI, so the difference between two instants is exact elapsed time."},
-    {"id": "read", "label": "Read back on the requested scale", "kind": "step", "group": "convert", "summary": "The inverse of the entry conversion, producing an MJD and a calendar value.", "api": "Epoch"},
-    {"id": "output", "label": "MJD and calendar on every scale", "kind": "terminal", "group": "output", "summary": "The result reports UTC, TAI, TT, and GPS together with the offset at that instant."}
+    {
+      "id": "input",
+      "label": "Calendar fields or an MJD, with a scale",
+      "kind": "data",
+      "group": "input",
+      "summary": "The caller states which scale the number is on. A calendar date is also accepted.",
+      "label_zh": "日历字段或 MJD，附尺度",
+      "summary_zh": "调用方说明该数值所在尺度。也接受日历日期。"
+    },
+    {
+      "id": "valid",
+      "label": "Fields a valid date?",
+      "kind": "decision",
+      "group": "validate",
+      "summary": "The month and day must exist in that year, including the leap year rule.",
+      "label_zh": "字段是有效日期？",
+      "summary_zh": "月与日必须在该年中存在，包括闰年规则。"
+    },
+    {
+      "id": "invalid",
+      "label": "Rejected",
+      "kind": "terminal",
+      "group": "error",
+      "summary": "The fields do not form a valid calendar date, or the request is outside the leap second table.",
+      "label_zh": "已拒绝",
+      "summary_zh": "字段不构成有效日历日期，或请求超出闰秒表范围。"
+    },
+    {
+      "id": "to_mjd",
+      "label": "Convert to a day number",
+      "kind": "step",
+      "group": "convert",
+      "summary": "A calendar date becomes a Modified Julian Date on the stated scale.",
+      "api": "mjd_from_ymd",
+      "label_zh": "转换为日编号",
+      "summary_zh": "日历日期变为指定尺度上的约化儒略日。"
+    },
+    {
+      "id": "scale",
+      "label": "Which scale?",
+      "kind": "decision",
+      "group": "convert",
+      "summary": "TAI, TT, and GPS convert by a constant offset; UTC converts through the leap second table.",
+      "label_zh": "哪个尺度？",
+      "summary_zh": "TAI、TT 与 GPS 按常数偏移转换；UTC 通过闰秒表转换。"
+    },
+    {
+      "id": "constant",
+      "label": "Apply the constant offset",
+      "kind": "step",
+      "group": "convert",
+      "summary": "TT minus TAI is 32.184 seconds and TAI minus GPS is 19 seconds.",
+      "api": "Epoch",
+      "label_zh": "施加常数偏移",
+      "summary_zh": "TT 减 TAI 为 32.184 秒，TAI 减 GPS 为 19 秒。"
+    },
+    {
+      "id": "leap",
+      "label": "Look up the leap second offset",
+      "kind": "step",
+      "group": "convert",
+      "summary": "Search the embedded table for the interval that contains the instant.",
+      "api": "Epoch",
+      "label_zh": "查找闰秒偏移",
+      "summary_zh": "在内嵌表中查找包含该时刻的区间。"
+    },
+    {
+      "id": "covered",
+      "label": "Covered by the table?",
+      "kind": "decision",
+      "group": "convert",
+      "summary": "The table starts at the beginning of 1972.",
+      "label_zh": "表覆盖该时刻？",
+      "summary_zh": "表起始于 1972 年初。"
+    },
+    {
+      "id": "tai",
+      "label": "Epoch on the TAI scale",
+      "kind": "data",
+      "group": "store",
+      "summary": "The instant is stored as a Modified Julian Date on TAI, so the difference between two instants is exact elapsed time.",
+      "label_zh": "TAI 尺度上的 Epoch",
+      "summary_zh": "时刻以 TAI 上的约化儒略日存储，因此两个时刻之差恰为经过时间。"
+    },
+    {
+      "id": "read",
+      "label": "Read back on the requested scale",
+      "kind": "step",
+      "group": "convert",
+      "summary": "The inverse of the entry conversion, producing an MJD and a calendar value.",
+      "api": "Epoch",
+      "label_zh": "按要求尺度读回",
+      "summary_zh": "入口转换的逆变换，产生 MJD 与日历值。"
+    },
+    {
+      "id": "output",
+      "label": "MJD and calendar on every scale",
+      "kind": "terminal",
+      "group": "output",
+      "summary": "The result reports UTC, TAI, TT, and GPS together with the offset at that instant.",
+      "label_zh": "各尺度上的 MJD 与日历",
+      "summary_zh": "结果同时报告 UTC、TAI、TT 与 GPS，以及该时刻的偏移。"
+    }
   ],
   "edges": [
-    {"source": "input", "target": "valid", "kind": "flow", "label": null},
-    {"source": "valid", "target": "invalid", "kind": "branch", "label": "no"},
-    {"source": "valid", "target": "to_mjd", "kind": "branch", "label": "yes"},
-    {"source": "to_mjd", "target": "scale", "kind": "flow", "label": null},
-    {"source": "scale", "target": "constant", "kind": "branch", "label": "TAI, TT, or GPS"},
-    {"source": "scale", "target": "leap", "kind": "branch", "label": "UTC"},
-    {"source": "leap", "target": "covered", "kind": "flow", "label": null},
-    {"source": "covered", "target": "invalid", "kind": "branch", "label": "no"},
-    {"source": "covered", "target": "tai", "kind": "branch", "label": "yes"},
-    {"source": "constant", "target": "tai", "kind": "flow", "label": null},
-    {"source": "tai", "target": "read", "kind": "flow", "label": null},
-    {"source": "read", "target": "output", "kind": "flow", "label": null}
-  ]
+    {
+      "source": "input",
+      "target": "valid",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "valid",
+      "target": "invalid",
+      "kind": "branch",
+      "label": "no"
+    },
+    {
+      "source": "valid",
+      "target": "to_mjd",
+      "kind": "branch",
+      "label": "yes"
+    },
+    {
+      "source": "to_mjd",
+      "target": "scale",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "scale",
+      "target": "constant",
+      "kind": "branch",
+      "label": "TAI, TT, or GPS"
+    },
+    {
+      "source": "scale",
+      "target": "leap",
+      "kind": "branch",
+      "label": "UTC"
+    },
+    {
+      "source": "leap",
+      "target": "covered",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "covered",
+      "target": "invalid",
+      "kind": "branch",
+      "label": "no"
+    },
+    {
+      "source": "covered",
+      "target": "tai",
+      "kind": "branch",
+      "label": "yes"
+    },
+    {
+      "source": "constant",
+      "target": "tai",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "tai",
+      "target": "read",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "read",
+      "target": "output",
+      "kind": "flow",
+      "label": null
+    }
+  ],
+  "title_zh": "时间尺度转换",
+  "summary_zh": "时刻如何进入模型、以单一均匀尺度存储，并以任意支持的尺度读回。"
 }

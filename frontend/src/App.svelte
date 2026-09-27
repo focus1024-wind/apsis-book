@@ -18,6 +18,7 @@
   } from './lib/types';
   import { getJson, queryString } from './lib/api';
   import { currentRoute, onRouteChange, navigate } from './lib/router';
+  import { language, pick, setLanguage, tr, type Language } from './lib/i18n';
   import Home from './pages/Home.svelte';
   import Docs from './pages/Docs.svelte';
   import DocumentPage from './pages/Document.svelte';
@@ -28,6 +29,8 @@
   import ToolsPage from './pages/Tools.svelte';
 
   let route = $state(currentRoute());
+  /** The current language, read so that the shell re-renders on a switch. */
+  let lang = $derived($language);
 
   let health = $state<Health | null>(null);
   let index = $state<DocumentIndex | null>(null);
@@ -123,14 +126,23 @@
 
   /** The page title, used for the document title element. */
   const title = $derived.by(() => {
-    if (route.name === 'docs' && document) return `${document.title} · ApsisRS`;
-    if (route.name === 'api') return 'Interface · ApsisRS';
-    if (route.name === 'graph') return 'Knowledge graph · ApsisRS';
-    if (route.name === 'flows') return 'Algorithm flows · ApsisRS';
-    if (route.name === 'tools') return 'Online tools · ApsisRS';
-    if (route.name === 'search') return 'Search · ApsisRS';
-    return 'ApsisRS web service';
+    if (route.name === 'docs' && document) {
+      const form = document.forms.find((entry) => entry.language === lang) ?? document.forms[0];
+      if (form) return `${form.title} · ApsisRS`;
+    }
+    if (route.name === 'api') return `${tr('nav.api', lang)} · ApsisRS`;
+    if (route.name === 'graph') return `${tr('nav.graph', lang)} · ApsisRS`;
+    if (route.name === 'flows') return `${tr('nav.flows', lang)} · ApsisRS`;
+    if (route.name === 'tools') return `${tr('nav.tools', lang)} · ApsisRS`;
+    if (route.name === 'search') return `${tr('search.title', lang)} · ApsisRS`;
+    return 'ApsisRS';
   });
+
+  /** Switches the interface language. */
+  function toggleLanguage() {
+    const next: Language = lang === 'zh' ? 'en' : 'zh';
+    setLanguage(next);
+  }
 
   $effect(() => {
     window.document.title = title;
@@ -145,31 +157,34 @@
   <aside class="sidebar">
     <div class="sidebar-brand">
       <a href="#/">APSIS</a>
-      <p>ApsisRS computational kernels</p>
+      <p>{tr('app.subtitle', lang)}</p>
     </div>
 
     <nav>
       <div class="sidebar-section">
-        <h2>Explore</h2>
-        <a class="item" class:active={route.name === ''} href="#/">Overview</a>
-        <a class="item" class:active={route.name === 'docs'} href="#/docs">Concepts</a>
-        <a class="item" class:active={route.name === 'graph'} href="#/graph">Knowledge graph</a>
-        <a class="item" class:active={route.name === 'flows'} href="#/flows">Algorithm flows</a>
-        <a class="item" class:active={route.name === 'api'} href="#/api">Interface</a>
-        <a class="item" class:active={route.name === 'tools'} href="#/tools">Online tools</a>
+        <h2>{tr('nav.explore', lang)}</h2>
+        <a class="item" class:active={route.name === ''} href="#/">{tr('nav.overview', lang)}</a>
+        <a class="item" class:active={route.name === 'docs'} href="#/docs">{tr('nav.docs', lang)}</a>
+        <a class="item" class:active={route.name === 'graph'} href="#/graph"
+          >{tr('nav.graph', lang)}</a>
+        <a class="item" class:active={route.name === 'flows'} href="#/flows"
+          >{tr('nav.flows', lang)}</a>
+        <a class="item" class:active={route.name === 'api'} href="#/api">{tr('nav.api', lang)}</a>
+        <a class="item" class:active={route.name === 'tools'} href="#/tools"
+          >{tr('nav.tools', lang)}</a>
       </div>
 
       {#if index}
         <div class="sidebar-section">
-          <h2>Documents</h2>
+          <h2>{tr('nav.documents', lang)}</h2>
           {#each index.chapters as chapter}
             <div class="sidebar-chapter">
-              <div class="sidebar-chapter-title">{chapter.title}</div>
+              <div class="sidebar-chapter-title">{pick(chapter.title, lang)}</div>
               {#each chapter.documents as entry}
                 <a
                   class="item"
                   class:active={route.name === 'docs' && route.id === entry.id}
-                  href={`#/docs/${entry.id}`}>{entry.title}</a>
+                  href={`#/docs/${entry.id}`}>{pick(entry.title, lang)}</a>
               {/each}
             </div>
           {/each}
@@ -183,17 +198,23 @@
       <form class="search-box" onsubmit={submitSearch}>
         <input
           type="search"
-          placeholder="Search the documentation"
+          placeholder={tr('search.placeholder', lang)}
           value={searchQuery}
-          aria-label="Search the documentation"
+          aria-label={tr('search.placeholder', lang)}
         />
-        <button type="submit">Search</button>
+        <button type="submit">{tr('search.button', lang)}</button>
       </form>
       {#if health}
-        <span class="badge">{health.documents} docs</span>
-        <span class="badge">{health.tools} tools</span>
+        <span class="badge">{health.documents} {tr('nav.documents', lang)}</span>
+        <span class="badge">{health.tools} {tr('tool.plural', lang)}</span>
         <span class="badge">v{health.version}</span>
       {/if}
+      <button
+        class="ghost"
+        type="button"
+        title={tr('docs.otherLanguageTitle', lang)}
+        onclick={toggleLanguage}
+      >{tr('docs.otherLanguage', lang)}</button>
     </header>
 
     <main class="content" class:wide={route.name === 'graph' || route.name === 'flows'} class:narrow={route.name === 'docs' && route.id !== null}>
@@ -221,8 +242,8 @@
         <ToolsPage registry={tools} id={route.id} />
       {:else}
         <div class="notice error">
-          <p>There is no page at <code>{route.name}</code>.</p>
-          <p><a href="#/">Go to the overview</a></p>
+          <p>{tr('common.notFound', lang)} <code>{route.name}</code>。</p>
+          <p><a href="#/">{tr('common.goHome', lang)}</a></p>
         </div>
       {/if}
     </main>

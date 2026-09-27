@@ -6,6 +6,7 @@
    * that matched.
    */
   import type { SearchResponse } from '../lib/types';
+  import { language, tr } from '../lib/i18n';
 
   interface Props {
     response: SearchResponse | null;
@@ -14,25 +15,29 @@
   }
 
   let { response, query, loading }: Props = $props();
+
+  /** The current language, read so that the text re-renders on a switch. */
+  let lang = $derived($language);
 </script>
 
 <div class="page-header">
-  <h1>Search</h1>
+  <h1>{tr('search.title', lang)}</h1>
   <p>
     {#if query}
-      Results for <strong>{query}</strong>{#if response} — {response.count} of {response.indexed} documents{/if}.
+      {tr('search.results', lang)} <strong>{query}</strong>{#if response} — {response.count}
+        {tr('search.of', lang)} {response.indexed} {tr('search.documents', lang)}{/if}。
     {:else}
-      Enter a term in the search box above.
+      {tr('search.enter', lang)}
     {/if}
   </p>
 </div>
 
 {#if loading}
-  <p class="empty"><span class="spinner"></span> Searching…</p>
+  <p class="empty"><span class="spinner"></span> {tr('search.searching', lang)}</p>
 {:else if !query}
-  <p class="empty">The index covers the titles and bodies of every concept document.</p>
+  <p class="empty">{tr('search.hint', lang)}</p>
 {:else if !response || response.hits.length === 0}
-  <p class="empty">No document contains that term.</p>
+  <p class="empty">{tr('search.none', lang)}</p>
 {:else}
   <div class="grid cards">
     {#each response.hits as hit}
@@ -40,7 +45,8 @@
         <h3><a href={`#/docs/${hit.id}`}>{hit.title}</a></h3>
         <p style="color: var(--text-muted); margin: 0.4rem 0;">{hit.summary}</p>
         <span class="badge">{hit.chapter}</span>
-        <span class="badge">score {hit.score.toFixed(2)}</span>
+        <span class="badge">{hit.language}</span>
+        <span class="badge">{tr('search.score', lang)} {hit.score.toFixed(2)}</span>
       </article>
     {/each}
   </div>

@@ -174,6 +174,47 @@ When nothing is embedded the service serves a built-in page that explains the
 build step and lists the JSON routes, so a fresh checkout with no frontend
 build still answers something useful.
 
+## Language
+
+The interface is bilingual and the backend does not know which language the
+reader chose, because the choice is made in the browser and can change without
+a request. Every user facing string is therefore carried in both languages.
+
+Three mechanisms carry a translation:
+
+- A [`Text`] value holds a Chinese and an English string and is encoded as
+  `{"zh": ..., "en": ...}`. The tool registry uses it for every label, the
+  graph data uses it for every node and edge caption, and the chapter list
+  uses it for every chapter title.
+- A document is written once in English and translated as a second file whose
+  name carries the `.zh.md` suffix. The reader's language selects the form;
+  a document without a translation is shown in English, with a note in the
+  page that says so.
+- A tool result label is written in English in the handler and translated by
+  lookup in `src/tools/labels.rs`. A label that is absent from the table is a
+  symbol, such as `position.x` or `BSTAR`, and is shown as it is in both
+  languages, which is what a reader expects for a name.
+
+The default language is Chinese. The choice is stored in `localStorage` and
+reflected in the `lang` attribute of the document element.
+
+Two things stay in English in both languages. Units are written with the
+symbols the standards use, and interface items keep the names they have in
+the library source, because a translated identifier would not match the code
+it documents.
+
+## Command line
+
+The listener is bound from `--host` and `--port`, or from the combined
+`--address`. The host may be a literal, an IPv6 literal, or a name the
+operating system resolves; the name is resolved once, before the listener is
+bound, so that a resolution failure is reported as a configuration error
+rather than as a bind failure.
+
+`--address` cannot be combined with `--host` or `--port`. Accepting both
+would require an order of application that is not defined by the command
+line, and the resulting behaviour would be surprising.
+
 ## Testing
 
 Unit tests live beside the code they test and cover the parser, the codec,

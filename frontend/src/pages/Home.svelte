@@ -8,6 +8,7 @@
    */
   import type { Health, DocumentIndex } from '../lib/types';
   import { navigate } from '../lib/router';
+  import { language, tr } from '../lib/i18n';
 
   interface Props {
     health: Health | null;
@@ -16,82 +17,55 @@
 
   let { health, index }: Props = $props();
 
-  /** The number of documents, or a dash when the listing is absent. */
+  /** The current language, read so that the text re-renders on a switch. */
+  let lang = $derived($language);
+
+  /** The number of documents, or zero when the listing is absent. */
   const documentCount = $derived(index?.document_count ?? 0);
+
+  /** The sections, with the route each one opens. */
+  const sections = $derived([
+    { title: tr('home.docs', lang), body: tr('home.docs.body', lang), action: tr('home.docs.action', lang), route: '/docs' },
+    { title: tr('home.graph', lang), body: tr('home.graph.body', lang), action: tr('home.graph.action', lang), route: '/graph' },
+    { title: tr('home.api', lang), body: tr('home.api.body', lang), action: tr('home.api.action', lang), route: '/api' },
+    { title: tr('home.tools', lang), body: tr('home.tools.body', lang), action: tr('home.tools.action', lang), route: '/tools' },
+  ]);
+
+  /** The metric tiles shown above the sections. */
+  const metrics = $derived([
+    { value: String(documentCount), label: tr('home.metric.documents', lang) },
+    { value: String(health?.graph_nodes ?? 0), label: tr('home.metric.graph', lang) },
+    { value: String(health?.api_crates ?? 0), label: tr('home.metric.crates', lang) },
+    { value: String(health?.api_items ?? 0), label: tr('home.metric.items', lang) },
+    { value: String(health?.tools ?? 0), label: tr('home.metric.tools', lang) },
+    { value: health?.version ?? '—', label: tr('home.metric.version', lang) },
+  ]);
 </script>
 
 <div class="page-header">
   <h1>APSIS</h1>
-  <p>
-    The web service for the ApsisRS computational kernels. It explains the concepts the
-    kernels implement, shows the interface of the library as it is written in its source,
-    and runs the kernels on parameters you supply.
-  </p>
+  <p>{tr('home.intro', lang)}</p>
 </div>
 
 {#if health}
   <div class="grid metrics">
-    <div class="metric">
-      <div class="value">{documentCount}</div>
-      <div class="label">concept documents</div>
-    </div>
-    <div class="metric">
-      <div class="value">{health.graph_nodes}</div>
-      <div class="label">graph nodes</div>
-    </div>
-    <div class="metric">
-      <div class="value">{health.api_crates}</div>
-      <div class="label">crates documented</div>
-    </div>
-    <div class="metric">
-      <div class="value">{health.api_items}</div>
-      <div class="label">public items</div>
-    </div>
-    <div class="metric">
-      <div class="value">{health.tools}</div>
-      <div class="label">online tools</div>
-    </div>
-    <div class="metric">
-      <div class="value">{health.version}</div>
-      <div class="label">service version</div>
-    </div>
+    {#each metrics as metric}
+      <div class="metric">
+        <div class="value">{metric.value}</div>
+        <div class="label">{metric.label}</div>
+      </div>
+    {/each}
   </div>
 {/if}
 
 <div class="grid cards" style="margin-top: 1.5rem;">
-  <article class="card">
-    <h3>Concepts</h3>
-    <p style="color: var(--text-muted)">
-      What the kernels compute: the time scales, the reference frames, the element formats,
-      and the propagation models, with the units and the applicable range of each.
-    </p>
-    <button class="secondary" type="button" onclick={() => navigate('/docs')}>Open the documentation</button>
-  </article>
-
-  <article class="card">
-    <h3>Knowledge graph</h3>
-    <p style="color: var(--text-muted)">
-      The concepts as a graph, with the relationships between them, and the crate structure
-      of the library. Every node opens the document that explains it.
-    </p>
-    <button class="secondary" type="button" onclick={() => navigate('/graph')}>Open the graph</button>
-  </article>
-
-  <article class="card">
-    <h3>Interface</h3>
-    <p style="color: var(--text-muted)">
-      The public interface of the ApsisRS orbit layer, extracted from the source doc
-      comments, with the signature, the units, and the error cases of each item.
-    </p>
-    <button class="secondary" type="button" onclick={() => navigate('/api')}>Open the interface</button>
-  </article>
-
-  <article class="card">
-    <h3>Online tools</h3>
-    <p style="color: var(--text-muted)">
-      Run the kernels on your own input: parse a two-line element set, propagate an orbit,
-      convert a time scale, convert coordinates, and more.
-    </p>
-    <button class="secondary" type="button" onclick={() => navigate('/tools')}>Open the tools</button>
-  </article>
+  {#each sections as section}
+    <article class="card">
+      <h3>{section.title}</h3>
+      <p style="color: var(--text-muted)">{section.body}</p>
+      <button class="secondary" type="button" onclick={() => navigate(section.route)}>
+        {section.action}
+      </button>
+    </article>
+  {/each}
 </div>

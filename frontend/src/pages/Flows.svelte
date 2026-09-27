@@ -8,14 +8,21 @@
   import type { Graph, GraphNode } from '../lib/types';
   import { getJson } from '../lib/api';
   import { groupColor } from '../lib/format';
+  import { language, pick, tr } from '../lib/i18n';
   import GraphView from '../lib/GraphView.svelte';
 
   /** The flow identifiers, in display order. */
-  const FLOWS = [
-    { id: 'sgp4-propagation', label: 'SGP4 propagation' },
-    { id: 'tle-parsing', label: 'Two-line element parsing' },
-    { id: 'time-scale-conversion', label: 'Time scale conversion' },
-    { id: 'frame-rotation', label: 'Frame rotation and geodetic conversion' },
+  const FLOWS: { id: string; label: { zh: string; en: string } }[] = [
+    { id: 'sgp4-propagation', label: { zh: 'SGP4 传播', en: 'SGP4 propagation' } },
+    { id: 'tle-parsing', label: { zh: '两行元素解析', en: 'Two-line element parsing' } },
+    {
+      id: 'time-scale-conversion',
+      label: { zh: '时间尺度转换', en: 'Time scale conversion' },
+    },
+    {
+      id: 'frame-rotation',
+      label: { zh: '参考系旋转与大地坐标转换', en: 'Frame rotation and geodetic conversion' },
+    },
   ];
 
   interface Props {
@@ -23,6 +30,9 @@
   }
 
   let { id }: Props = $props();
+
+  /** The current language, read so that the text re-renders on a switch. */
+  let lang = $derived($language);
 
   let flows = $state<Record<string, Graph>>({});
   let loading = $state(false);
@@ -35,7 +45,7 @@
 
   /** The selected node. */
   const selectedNode = $derived(
-    graph && selected ? graph.nodes.find((node) => node.id === selected) ?? null : null,
+    graph && selected ? (graph.nodes.find((node) => node.id === selected) ?? null) : null,
   );
 
   /** Loads the flow graphs that have not been fetched yet. */
@@ -69,31 +79,27 @@
 </script>
 
 <div class="page-header">
-  <h1>Algorithm flows</h1>
-  <p>
-    The steps of the algorithms the kernels implement. Each step names the interface item
-    that performs it; click a step to see its description and double click to open the
-    interface documentation.
-  </p>
+  <h1>{tr('flows.title', lang)}</h1>
+  <p>{tr('flows.intro', lang)}</p>
 </div>
 
 <div class="graph-controls">
   {#each FLOWS as flow}
     <a
       href={`#/flows/${flow.id}`}
-      class={active === flow.id ? 'badge' : 'badge'}
+      class="badge"
       style={active === flow.id ? 'border-color: var(--accent); color: var(--accent);' : ''}
-    >{flow.label}</a>
+      >{pick(flow.label, lang)}</a>
   {/each}
   {#if loading && !graph}
-    <span class="badge"><span class="spinner"></span> loading</span>
+    <span class="badge"><span class="spinner"></span> {tr('common.loading', lang)}</span>
   {/if}
 </div>
 
 {#if !graph}
-  <p class="empty">Loading the flow…</p>
+  <p class="empty">{tr('flows.loading', lang)}</p>
 {:else}
-  <p style="color: var(--text-muted);">{graph.summary}</p>
+  <p style="color: var(--text-muted);">{pick(graph.summary, lang)}</p>
   <GraphView {graph} {selected} onselect={select} onopen={open} />
 
   <div class="legend">
@@ -105,12 +111,13 @@
   {#if selectedNode}
     <section class="card" style="margin-top: 1rem;">
       <header style="display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap;">
-        <h3 style="margin: 0;">{selectedNode.label}</h3>
+        <h3 style="margin: 0;">{pick(selectedNode.label, lang)}</h3>
         <span class="badge">{selectedNode.kind}</span>
       </header>
-      <p style="color: var(--text-muted);">{selectedNode.summary}</p>
+      <p style="color: var(--text-muted);">{pick(selectedNode.summary, lang)}</p>
       {#if selectedNode.api}
-        <a href={`#/api/${selectedNode.api}`}>Interface: <code>{selectedNode.api}</code></a>
+        <a href={`#/api/${selectedNode.api}`}>{tr('graph.interface', lang)}<code
+            >{selectedNode.api}</code></a>
       {/if}
     </section>
   {/if}

@@ -18,7 +18,7 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use crate::docs::ApiCatalog;
+use crate::docs::{ApiCatalog, Language};
 use crate::embedded;
 use crate::graph::Graph;
 use crate::http::{Handler, Method, Request, Response, Status};
@@ -140,6 +140,7 @@ impl Router {
                     "id" => hit.id.clone(),
                     "title" => hit.title.clone(),
                     "summary" => hit.summary.clone(),
+                    "language" => hit.language.tag(),
                     "chapter" => hit.chapter.clone(),
                     "score" => hit.score,
                 }
@@ -155,6 +156,11 @@ impl Router {
     }
 
     /// Returns one document with its rendered HTML.
+    ///
+    /// Both language forms are returned when both are embedded, so the
+    /// reader can switch the language without another request. A language
+    /// without a translation is omitted and the frontend falls back to the
+    /// English form.
     fn document(&self, path: &str) -> Response {
         let id = path.trim_start_matches("/api/docs/");
         if id.is_empty() || id.contains('/') {
@@ -162,17 +168,32 @@ impl Router {
         }
         match self.state.document(id) {
             Some(document) => {
+                let mut forms = Vec::new();
+                for language in [Language::Chinese, Language::English] {
+                    if !document.has(language) {
+                        continue;
+                    }
+                    let variant = document.variant(language);
+                    forms.push(json_object! {
+                        "language" => language.tag(),
+                        "title" => variant.title.clone(),
+                        "summary" => variant.summary.clone(),
+                        "html" => variant.html.clone(),
+                        "markdown" => variant.markdown.clone(),
+                        "headings" => variant
+                            .headings
+                            .iter()
+                            .map(|(anchor, text)| json_object! { "anchor" => anchor.clone(), "text" => text.clone() })
+                            .collect::<Vec<Value>>(),
+                    });
+                }
                 let body = json_object! {
                     "id" => document.id.clone(),
-                    "title" => document.title.clone(),
                     "chapter" => document.chapter.clone(),
-                    "summary" => document.summary.clone(),
                     "tags" => document.tags.iter().map(|tag| Value::from(tag.as_str())).collect::<Vec<Value>>(),
                     "prerequisites" => document.prerequisites.iter().map(|id| Value::from(id.as_str())).collect::<Vec<Value>>(),
-                    "references" => document.references.iter().map(|id| Value::from(id.as_str())).collect::<Vec<Value>>(),
-                    "headings" => document.headings.iter().map(|(anchor, text)| json_object! { "anchor" => anchor.clone(), "text" => text.clone() }).collect::<Vec<Value>>(),
-                    "html" => document.html.clone(),
-                    "markdown" => document.markdown.clone(),
+                    "references" => document.references().iter().map(|id| Value::from(id.as_str())).collect::<Vec<Value>>(),
+                    "forms" => forms,
                 };
                 Response::json(json::to_string(&body)).with_cache_control("no-cache")
             }
@@ -392,16 +413,16 @@ fn document_index(state: &AppState) -> Value {
                 .map(|document| {
                     json_object! {
                         "id" => document.id.clone(),
-                        "title" => document.title.clone(),
-                        "summary" => document.summary.clone(),
+                        "title" => bilingual("title", document),
+                        "summary" => bilingual("summary", document),
                         "tags" => document.tags.iter().map(|tag| Value::from(tag.as_str())).collect::<Vec<Value>>(),
                     }
                 })
                 .collect();
             json_object! {
                 "id" => chapter.id.clone(),
-                "title" => chapter.title.clone(),
-                "summary" => chapter.summary.clone(),
+                "title" => optional_bilingual(&chapter.title_zh, &chapter.title),
+                "summary" => optional_bilingual(&chapter.summary_zh, &chapter.summary),
                 "documents" => documents,
             }
         })
@@ -413,18 +434,62 @@ fn document_index(state: &AppState) -> Value {
     }
 }
 
+/// Encodes a document title or summary in both languages.
+///
+/// The two names select the field of a document; an unknown name yields an
+/// empty pair rather than a panic.
+fn bilingual(field: &str, document: &crate::docs::Document) -> Value {
+    let (zh, en) = match field {
+        "title" => (
+            document.title(Language::Chinese),
+            document.title(Language::English),
+        ),
+        "summary" => (
+            document.summary(Language::Chinese),
+            document.summary(Language::English),
+        ),
+        _ => ("", ""),
+    };
+    json_object! { "zh" => zh.to_string(), "en" => en.to_string() }
+}
+
+/// Pairs an optional translation with the form it translates.
+///
+/// A field without a translation is written with the same text in both
+/// members, which keeps the payload uniform and lets the frontend read one
+/// shape.
+fn optional_bilingual(translation: &Option<String>, fallback: &str) -> Value {
+    match translation {
+        Some(zh) => json_object! { "zh" => zh.clone(), "en" => fallback.to_string() },
+        None => json_object! { "zh" => fallback.to_string(), "en" => fallback.to_string() },
+    }
+}
+
 /// Encodes a graph as JSON.
+///
+/// A display label and a summary are carried in both languages when the
+/// authored data has a translation. A node whose label is a name, such as a
+/// crate, carries only the one form because it is written the same way in
+/// both languages.
 fn graph_json(graph: &Graph) -> Value {
     let nodes: Vec<Value> = graph
         .nodes
         .iter()
         .map(|node| {
+            let label = match &node.label_zh {
+                Some(zh) => json_object! { "zh" => zh.clone(), "en" => node.label.clone() },
+                None => json_object! { "zh" => node.label.clone(), "en" => node.label.clone() },
+            };
+            let summary = match &node.summary_zh {
+                Some(zh) => json_object! { "zh" => zh.clone(), "en" => node.summary.clone() },
+                None => json_object! { "zh" => node.summary.clone(), "en" => node.summary.clone() },
+            };
             json_object! {
                 "id" => node.id.clone(),
-                "label" => node.label.clone(),
+                "label" => label,
                 "kind" => node.kind.name(),
                 "group" => node.group.clone(),
-                "summary" => node.summary.clone(),
+                "summary" => summary,
                 "document" => node.document.clone().map(Value::from).unwrap_or(Value::Null),
                 "api" => node.api.clone().map(Value::from).unwrap_or(Value::Null),
             }
@@ -442,10 +507,18 @@ fn graph_json(graph: &Graph) -> Value {
             }
         })
         .collect();
+    let title = match &graph.title_zh {
+        Some(zh) => json_object! { "zh" => zh.clone(), "en" => graph.title.clone() },
+        None => json_object! { "zh" => graph.title.clone(), "en" => graph.title.clone() },
+    };
+    let summary = match &graph.summary_zh {
+        Some(zh) => json_object! { "zh" => zh.clone(), "en" => graph.summary.clone() },
+        None => json_object! { "zh" => graph.summary.clone(), "en" => graph.summary.clone() },
+    };
     json_object! {
         "id" => graph.id.clone(),
-        "title" => graph.title.clone(),
-        "summary" => graph.summary.clone(),
+        "title" => title,
+        "summary" => summary,
         "groups" => graph.groups().into_iter().map(Value::from).collect::<Vec<Value>>(),
         "nodes" => nodes,
         "edges" => edges,
@@ -588,14 +661,40 @@ mod tests {
             .unwrap()
             .to_string();
         let document = parse(&get(&router, &format!("/api/docs/{first}")));
+        let forms = document.get("forms").unwrap().as_array();
+        assert!(!forms.is_empty());
         assert!(
-            document
+            forms[0]
                 .get("html")
                 .unwrap()
                 .as_str()
                 .unwrap()
                 .contains('<')
         );
+    }
+
+    #[test]
+    fn documents_carry_both_languages() {
+        let router = router();
+        let document = parse(&get(&router, "/api/docs/sgp4"));
+        let forms = document.get("forms").unwrap().as_array();
+        assert_eq!(forms.len(), 2, "the sample document has a translation");
+        let languages: Vec<&str> = forms
+            .iter()
+            .map(|form| form.get("language").unwrap().as_str().unwrap())
+            .collect();
+        assert!(languages.contains(&"zh"));
+        assert!(languages.contains(&"en"));
+    }
+
+    #[test]
+    fn document_listing_carries_bilingual_titles() {
+        let router = router();
+        let index = parse(&get(&router, "/api/docs"));
+        let chapters = index.get("chapters").unwrap().as_array();
+        let title = chapters[0].get("title").unwrap();
+        assert!(title.get("zh").unwrap().as_str().is_some());
+        assert!(title.get("en").unwrap().as_str().is_some());
     }
 
     #[test]

@@ -3,7 +3,16 @@
  *
  * They mirror the JSON the Rust layer encodes. The service is the authority
  * on these shapes; a change there is a change here.
+ *
+ * A user facing string is a {@link Bilingual}, which carries both languages
+ * so that the reader can switch without another request.
  */
+
+/** A string carried in both languages. */
+export interface Bilingual {
+  zh: string;
+  en: string;
+}
 
 /** Service health. */
 export interface Health {
@@ -19,18 +28,24 @@ export interface Health {
   frontend_embedded: boolean;
 }
 
-/** One document, with its rendered HTML. */
+/** One language form of a document. */
+export interface DocumentForm {
+  language: 'zh' | 'en';
+  title: string;
+  summary: string;
+  html: string;
+  markdown: string;
+  headings: { anchor: string; text: string }[];
+}
+
+/** One document, with a rendered form per embedded language. */
 export interface Document {
   id: string;
-  title: string;
   chapter: string;
-  summary: string;
   tags: string[];
   prerequisites: string[];
   references: string[];
-  headings: { anchor: string; text: string }[];
-  html: string;
-  markdown: string;
+  forms: DocumentForm[];
 }
 
 /** The document listing, grouped by chapter. */
@@ -38,15 +53,16 @@ export interface DocumentIndex {
   document_count: number;
   chapters: {
     id: string;
-    title: string;
-    summary: string;
-    documents: { id: string; title: string; summary: string; tags: string[] }[];
+    title: Bilingual;
+    summary: Bilingual;
+    documents: { id: string; title: Bilingual; summary: Bilingual; tags: string[] }[];
   }[];
 }
 
 /** One search result. */
 export interface SearchHit {
   id: string;
+  language: 'zh' | 'en';
   title: string;
   summary: string;
   chapter: string;
@@ -64,10 +80,10 @@ export interface SearchResponse {
 /** A graph node. */
 export interface GraphNode {
   id: string;
-  label: string;
+  label: Bilingual;
   kind: string;
   group: string;
-  summary: string;
+  summary: Bilingual;
   document: string | null;
   api: string | null;
 }
@@ -83,8 +99,8 @@ export interface GraphEdge {
 /** A graph. */
 export interface Graph {
   id: string;
-  title: string;
-  summary: string;
+  title: Bilingual;
+  summary: Bilingual;
   groups: string[];
   nodes: GraphNode[];
   edges: GraphEdge[];
@@ -129,14 +145,14 @@ export interface ParamConstraints {
   unit?: string;
   min?: number | null;
   max?: number | null;
-  options?: { value: string; label: string }[];
+  options?: { value: string; label: Bilingual }[];
 }
 
 /** One tool parameter. */
 export interface ToolParam {
   name: string;
-  label: string;
-  help: string;
+  label: Bilingual;
+  help: Bilingual;
   kind: 'number' | 'integer' | 'text' | 'multiline' | 'select';
   required: boolean;
   default: string | null;
@@ -146,23 +162,23 @@ export interface ToolParam {
 /** One tool. */
 export interface Tool {
   id: string;
-  name: string;
-  summary: string;
-  description: string;
-  category: string;
+  name: Bilingual;
+  summary: Bilingual;
+  description: Bilingual;
+  category: Bilingual;
   params: ToolParam[];
   api_items: string[];
 }
 
 /** The tool registry. */
 export interface ToolRegistry {
-  categories: string[];
+  categories: Bilingual[];
   tools: Tool[];
 }
 
 /** A labelled scalar in a tool result. */
 export interface ResultScalar {
-  label: string;
+  label: Bilingual;
   value: string;
   unit: string;
   monospace: boolean;
@@ -170,13 +186,13 @@ export interface ResultScalar {
 
 /** A result table. */
 export interface ResultTable {
-  columns: { key: string; label: string; unit: string; numeric: boolean }[];
+  columns: { key: string; label: Bilingual; unit: string; numeric: boolean }[];
   rows: (string | number | null)[][];
 }
 
 /** A numeric series. */
 export interface ResultSeries {
-  name: string;
+  name: Bilingual;
   unit: string;
   values: number[];
 }
@@ -184,12 +200,12 @@ export interface ResultSeries {
 /** The result of a tool. */
 export interface ToolResult {
   kind: string;
-  title: string;
+  title: Bilingual;
   scalars: ResultScalar[];
   table: ResultTable;
   series: ResultSeries[];
-  notes: string[];
-  axis?: { name: string; unit: string; values: number[] };
+  notes: Bilingual[];
+  axis?: { name: Bilingual; unit: string; values: number[] };
 }
 
 /** The envelope of a tool call. */

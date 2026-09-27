@@ -3,40 +3,43 @@
    * The documentation listing.
    *
    * Documents are grouped by chapter, in the reading order the backend
-   * supplies.
+   * supplies. Titles and summaries are carried in both languages.
    */
   import type { DocumentIndex } from '../lib/types';
   import { navigate } from '../lib/router';
+  import { language, pick, tr } from '../lib/i18n';
 
   interface Props {
     index: DocumentIndex | null;
   }
 
   let { index }: Props = $props();
+
+  /** The current language, read so that the text re-renders on a switch. */
+  let lang = $derived($language);
 </script>
 
 <div class="page-header">
-  <h1>Concepts</h1>
-  <p>
-    A systematic description of the concepts the ApsisRS kernels implement, together with
-    the methods they do not implement and how the alternatives compare.
-  </p>
+  <h1>{tr('docs.title', lang)}</h1>
+  <p>{tr('docs.intro', lang)}</p>
 </div>
 
 {#if !index}
-  <p class="empty">Loading the documentation listing…</p>
+  <p class="empty">{tr('docs.loading', lang)}</p>
 {:else}
   {#each index.chapters as chapter}
     <section style="margin-bottom: 2rem;">
-      <h2 style="margin-top: 1.5rem;">{chapter.title}</h2>
-      {#if chapter.summary}
-        <p style="color: var(--text-muted); margin-top: 0;">{chapter.summary}</p>
+      <h2 style="margin-top: 1.5rem;">{pick(chapter.title, lang)}</h2>
+      {#if pick(chapter.summary, lang)}
+        <p style="color: var(--text-muted); margin-top: 0">{pick(chapter.summary, lang)}</p>
       {/if}
       <div class="grid cards">
         {#each chapter.documents as document}
           <article class="card">
-            <h3><a href={`#/docs/${document.id}`}>{document.title}</a></h3>
-            <p style="color: var(--text-muted); margin: 0.4rem 0 0.6rem;">{document.summary}</p>
+            <h3><a href={`#/docs/${document.id}`}>{pick(document.title, lang)}</a></h3>
+            <p style="color: var(--text-muted); margin: 0.4rem 0 0.6rem">
+              {pick(document.summary, lang)}
+            </p>
             <div>
               {#each document.tags as tag}
                 <span class="tag">{tag}</span>
@@ -46,7 +49,7 @@
               class="ghost"
               type="button"
               style="margin-top: 0.75rem;"
-              onclick={() => navigate(`/docs/${document.id}`)}>Read</button>
+              onclick={() => navigate(`/docs/${document.id}`)}>{tr('docs.read', lang)}</button>
           </article>
         {/each}
       </div>

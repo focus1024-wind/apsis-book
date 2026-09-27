@@ -3,32 +3,202 @@
   "title": "Frame rotation and geodetic conversion",
   "summary": "The two transformations between the representations of a position: the Cartesian rotation about the pole, and the ellipsoidal conversion.",
   "nodes": [
-    {"id": "angle", "label": "Earth Rotation Angle from UT1", "kind": "data", "group": "input", "summary": "A linear function of the days of UT1 since J2000.0, in turns.", "api": "EarthRotationAngle"},
-    {"id": "eci", "label": "Eci", "kind": "data", "group": "frames", "summary": "A Cartesian position in the inertial frame, in meters.", "api": "Eci"},
-    {"id": "ecef", "label": "Ecef", "kind": "data", "group": "frames", "summary": "A Cartesian position in the Earth-fixed frame, in meters.", "api": "Ecef"},
-    {"id": "matrix", "label": "Build the rotation matrix", "kind": "step", "group": "rotate", "summary": "A clockwise turn about the third axis, whose transpose is the inverse.", "api": "rotation_eci_to_ecef"},
-    {"id": "to_ecef", "label": "Rotate inertial to Earth-fixed", "kind": "step", "group": "rotate", "summary": "Apply the rotation to the vector. The length is preserved.", "api": "Eci"},
-    {"id": "to_eci", "label": "Rotate Earth-fixed to inertial", "kind": "step", "group": "rotate", "summary": "Apply the transposed rotation. The length is preserved.", "api": "Ecef"},
-    {"id": "cartesian", "label": "Cartesian to geodetic", "kind": "step", "group": "geodetic", "summary": "Solve for latitude, longitude, and height on an ellipsoid. Iterative, because no elementary closed form exists.", "api": "geodetic_from_cartesian"},
-    {"id": "polar", "label": "On the rotation axis?", "kind": "decision", "group": "geodetic", "summary": "No longitude is defined on the axis."},
-    {"id": "undefined", "label": "No longitude", "kind": "terminal", "group": "error", "summary": "The conversion returns no value rather than an arbitrary longitude."},
-    {"id": "geodetic", "label": "Geodetic", "kind": "terminal", "group": "output", "summary": "Latitude and longitude in radians, height in meters above the WGS 84 ellipsoid.", "api": "Geodetic"},
-    {"id": "forward", "label": "Geodetic to Cartesian", "kind": "step", "group": "geodetic", "summary": "Closed form, using the prime vertical radius of curvature.", "api": "cartesian_from_geodetic"},
-    {"id": "direct", "label": "Geodetic to Ecef", "kind": "terminal", "group": "output", "summary": "The Earth-fixed Cartesian position on the WGS 84 ellipsoid.", "api": "Geodetic"}
+    {
+      "id": "angle",
+      "label": "Earth Rotation Angle from UT1",
+      "kind": "data",
+      "group": "input",
+      "summary": "A linear function of the days of UT1 since J2000.0, in turns.",
+      "api": "EarthRotationAngle",
+      "label_zh": "由 UT1 求地球自转角",
+      "summary_zh": "自 J2000.0 起 UT1 天数的线性函数，单位为圈。"
+    },
+    {
+      "id": "eci",
+      "label": "Eci",
+      "kind": "data",
+      "group": "frames",
+      "summary": "A Cartesian position in the inertial frame, in meters.",
+      "api": "Eci",
+      "summary_zh": "惯性系中的直角坐标位置，单位为米。"
+    },
+    {
+      "id": "ecef",
+      "label": "Ecef",
+      "kind": "data",
+      "group": "frames",
+      "summary": "A Cartesian position in the Earth-fixed frame, in meters.",
+      "api": "Ecef",
+      "summary_zh": "地固系中的直角坐标位置，单位为米。"
+    },
+    {
+      "id": "matrix",
+      "label": "Build the rotation matrix",
+      "kind": "step",
+      "group": "rotate",
+      "summary": "A clockwise turn about the third axis, whose transpose is the inverse.",
+      "api": "rotation_eci_to_ecef",
+      "label_zh": "构造旋转矩阵",
+      "summary_zh": "绕第三轴的顺时针转动，其转置即逆变换。"
+    },
+    {
+      "id": "to_ecef",
+      "label": "Rotate inertial to Earth-fixed",
+      "kind": "step",
+      "group": "rotate",
+      "summary": "Apply the rotation to the vector. The length is preserved.",
+      "api": "Eci",
+      "label_zh": "惯性系旋转到地固系",
+      "summary_zh": "对矢量施加旋转。长度保持不变。"
+    },
+    {
+      "id": "to_eci",
+      "label": "Rotate Earth-fixed to inertial",
+      "kind": "step",
+      "group": "rotate",
+      "summary": "Apply the transposed rotation. The length is preserved.",
+      "api": "Ecef",
+      "label_zh": "地固系旋转到惯性系",
+      "summary_zh": "施加转置后的旋转。长度保持不变。"
+    },
+    {
+      "id": "cartesian",
+      "label": "Cartesian to geodetic",
+      "kind": "step",
+      "group": "geodetic",
+      "summary": "Solve for latitude, longitude, and height on an ellipsoid. Iterative, because no elementary closed form exists.",
+      "api": "geodetic_from_cartesian",
+      "label_zh": "直角坐标转大地坐标",
+      "summary_zh": "在椭球上求解纬度、经度与高。因无初等闭式解而采用迭代。"
+    },
+    {
+      "id": "polar",
+      "label": "On the rotation axis?",
+      "kind": "decision",
+      "group": "geodetic",
+      "summary": "No longitude is defined on the axis.",
+      "label_zh": "位于自转轴上？",
+      "summary_zh": "轴上经度无定义。"
+    },
+    {
+      "id": "undefined",
+      "label": "No longitude",
+      "kind": "terminal",
+      "group": "error",
+      "summary": "The conversion returns no value rather than an arbitrary longitude.",
+      "label_zh": "经度无定义",
+      "summary_zh": "转换返回空值，而不是任意经度。"
+    },
+    {
+      "id": "geodetic",
+      "label": "Geodetic",
+      "kind": "terminal",
+      "group": "output",
+      "summary": "Latitude and longitude in radians, height in meters above the WGS 84 ellipsoid.",
+      "api": "Geodetic",
+      "summary_zh": "纬度与经度单位为弧度，高为 WGS 84 椭球面以上的米数。"
+    },
+    {
+      "id": "forward",
+      "label": "Geodetic to Cartesian",
+      "kind": "step",
+      "group": "geodetic",
+      "summary": "Closed form, using the prime vertical radius of curvature.",
+      "api": "cartesian_from_geodetic",
+      "label_zh": "大地坐标转直角坐标",
+      "summary_zh": "闭式解，使用卯酉圈曲率半径。"
+    },
+    {
+      "id": "direct",
+      "label": "Geodetic to Ecef",
+      "kind": "terminal",
+      "group": "output",
+      "summary": "The Earth-fixed Cartesian position on the WGS 84 ellipsoid.",
+      "api": "Geodetic",
+      "label_zh": "大地坐标转 Ecef",
+      "summary_zh": "WGS 84 椭球上的地固系直角坐标。"
+    }
   ],
   "edges": [
-    {"source": "angle", "target": "matrix", "kind": "flow", "label": null},
-    {"source": "matrix", "target": "to_ecef", "kind": "flow", "label": null},
-    {"source": "matrix", "target": "to_eci", "kind": "flow", "label": null},
-    {"source": "eci", "target": "to_ecef", "kind": "flow", "label": null},
-    {"source": "ecef", "target": "to_eci", "kind": "flow", "label": null},
-    {"source": "to_ecef", "target": "ecef", "kind": "flow", "label": "Earth-fixed"},
-    {"source": "to_eci", "target": "eci", "kind": "flow", "label": "inertial"},
-    {"source": "to_ecef", "target": "cartesian", "kind": "flow", "label": null},
-    {"source": "cartesian", "target": "polar", "kind": "flow", "label": null},
-    {"source": "polar", "target": "undefined", "kind": "branch", "label": "yes"},
-    {"source": "polar", "target": "geodetic", "kind": "branch", "label": "no"},
-    {"source": "geodetic", "target": "forward", "kind": "flow", "label": null},
-    {"source": "forward", "target": "direct", "kind": "flow", "label": null}
-  ]
+    {
+      "source": "angle",
+      "target": "matrix",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "matrix",
+      "target": "to_ecef",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "matrix",
+      "target": "to_eci",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "eci",
+      "target": "to_ecef",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "ecef",
+      "target": "to_eci",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "to_ecef",
+      "target": "ecef",
+      "kind": "flow",
+      "label": "Earth-fixed"
+    },
+    {
+      "source": "to_eci",
+      "target": "eci",
+      "kind": "flow",
+      "label": "inertial"
+    },
+    {
+      "source": "to_ecef",
+      "target": "cartesian",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "cartesian",
+      "target": "polar",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "polar",
+      "target": "undefined",
+      "kind": "branch",
+      "label": "yes"
+    },
+    {
+      "source": "polar",
+      "target": "geodetic",
+      "kind": "branch",
+      "label": "no"
+    },
+    {
+      "source": "geodetic",
+      "target": "forward",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "forward",
+      "target": "direct",
+      "kind": "flow",
+      "label": null
+    }
+  ],
+  "title_zh": "参考系旋转与大地坐标转换",
+  "summary_zh": "位置各表示之间的两种变换：绕极轴的直角坐标旋转，以及椭球坐标转换。"
 }

@@ -74,14 +74,19 @@ impl NodeKind {
 pub struct Node {
     /// Identifier, unique within the graph.
     pub id: String,
-    /// Display label.
+    /// Display label in English.
     pub label: String,
+    /// Display label in Chinese, or `None` when the label is a name that is
+    /// written the same way in both languages.
+    pub label_zh: Option<String>,
     /// Kind, selecting how the node is drawn.
     pub kind: NodeKind,
     /// Chapter or group the node belongs to, used for colouring.
     pub group: String,
-    /// One sentence description.
+    /// One sentence description in English.
     pub summary: String,
+    /// One sentence description in Chinese, when one is authored.
+    pub summary_zh: Option<String>,
     /// Identifier of the document that explains the node, when one exists.
     pub document: Option<String>,
     /// Identifier of the interface item, when the node names one.
@@ -106,10 +111,14 @@ pub struct Edge {
 pub struct Graph {
     /// Identifier of the graph.
     pub id: String,
-    /// Display title.
+    /// Display title in English.
     pub title: String,
-    /// One sentence description.
+    /// Display title in Chinese, when one is authored.
+    pub title_zh: Option<String>,
+    /// One sentence description in English.
     pub summary: String,
+    /// One sentence description in Chinese, when one is authored.
+    pub summary_zh: Option<String>,
     /// Nodes.
     pub nodes: Vec<Node>,
     /// Edges.
@@ -180,7 +189,9 @@ pub fn load_graph() -> GraphSet {
         .unwrap_or_else(|| Graph {
             id: "concepts".to_string(),
             title: "Concepts".to_string(),
+            title_zh: Some("概念图谱".to_string()),
             summary: String::new(),
+            summary_zh: None,
             nodes: Vec::new(),
             edges: Vec::new(),
         });
@@ -211,6 +222,8 @@ pub fn parse_graph(text: &str) -> Option<Graph> {
         .and_then(Value::as_str)
         .unwrap_or_default()
         .to_string();
+    let title_zh = text_field(&value, "title_zh");
+    let summary_zh = text_field(&value, "summary_zh");
 
     let nodes = value
         .get("nodes")
@@ -225,6 +238,7 @@ pub fn parse_graph(text: &str) -> Option<Graph> {
                     .and_then(Value::as_str)
                     .unwrap_or_else(|| node.get("id").and_then(Value::as_str).unwrap_or(""))
                     .to_string(),
+                label_zh: text_field(node, "label_zh"),
                 kind: NodeKind::parse(
                     node.get("kind")
                         .and_then(Value::as_str)
@@ -240,6 +254,7 @@ pub fn parse_graph(text: &str) -> Option<Graph> {
                     .and_then(Value::as_str)
                     .unwrap_or_default()
                     .to_string(),
+                summary_zh: text_field(node, "summary_zh"),
                 document: node
                     .get("document")
                     .and_then(Value::as_str)
@@ -274,10 +289,22 @@ pub fn parse_graph(text: &str) -> Option<Graph> {
     Some(Graph {
         id,
         title,
+        title_zh,
         summary,
+        summary_zh,
         nodes,
         edges,
     })
+}
+
+/// Returns a member of a JSON object as an owned string, when it is a
+/// non-empty string.
+fn text_field(value: &Value, key: &str) -> Option<String> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .filter(|text| !text.is_empty())
+        .map(str::to_string)
 }
 
 /// Builds the crate structure graph from the interface catalog.
@@ -305,9 +332,12 @@ pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
         nodes.push(Node {
             id: krate.name.clone(),
             label: krate.name.clone(),
+            label_zh: None,
             kind: NodeKind::Crate,
             group: krate.layer.clone(),
-            summary: krate.summary.lines().next().unwrap_or_default().to_string(),
+            summary: crate_summary_zh(&krate.name)
+                .unwrap_or_else(|| krate.summary.lines().next().unwrap_or_default().to_string()),
+            summary_zh: None,
             document: None,
             api: None,
         });
@@ -334,9 +364,15 @@ pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
         nodes.push(Node {
             id: layer.to_string(),
             label: layer.to_string(),
+            label_zh: None,
             kind: NodeKind::Layer,
             group: layer.to_string(),
-            summary: format!("The {layer} layer. A layer may use the layers to its left and no layer to its right."),
+            summary: format!(
+                "The {layer} layer. A layer may use the layers to its left and no layer to its right."
+            ),
+            summary_zh: Some(format!(
+                "{layer} 层。每一层可以依赖其左侧的层，不能依赖其右侧的层。"
+            )),
             document: Some("architecture-apsis-rs".to_string()),
             api: None,
         });
@@ -358,11 +394,39 @@ pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
     Graph {
         id: "crates".to_string(),
         title: "apsis-rs crate structure".to_string(),
+        title_zh: Some("apsis-rs crate 结构".to_string()),
         summary: "Workspace crates grouped by layer; edges follow the one way dependency rule."
             .to_string(),
+        summary_zh: Some("按层分组的 workspace crate；边表示单向依赖规则。".to_string()),
         nodes,
         edges,
     }
+}
+
+/// Returns the Chinese summary of a crate, when one is authored.
+///
+/// The crate name is the key, so the table stays beside the graph rather
+/// than in a separate translation file.
+fn crate_summary_zh(name: &str) -> Option<String> {
+    let text = match name {
+        "apsis-core" => "共享基础类型：通用错误、常量与单位标记 trait。",
+        "apsis-units" => "物理量强类型 newtype：长度、时间、频率、角度、温度。",
+        "apsis-math" => "无依赖线性代数：三维矢量、三阶矩阵、四元数。",
+        "apsis-macros" => "支撑 workspace 的宏。",
+        "apsis-time" => "时间尺度、历元与日历转换。",
+        "apsis-leap" => "用于 UTC 转换的内嵌闰秒表。",
+        "apsis-coord" => "在类型中携带参考系的位置表示。",
+        "apsis-geodesy" => "参考椭球与大地坐标计算。",
+        "apsis-frames" => "参考系定义与地固系旋转。",
+        "apsis-tle" => "两行元素集解析。",
+        "apsis-sgp4" => "SGP4 与 SDP4 解析轨道传播器。",
+        "apsis-kepler" => "开普勒轨道元素与二体问题。",
+        "apsis-ephemeris" => "星历采样与插值。",
+        "apsis-maneuver" => "脉冲与有限推力轨道机动模型。",
+        "apsis-orbit" => "轨道层统一入口：元素、传播与机动。",
+        _ => return None,
+    };
+    Some(text.to_string())
 }
 
 #[cfg(test)]

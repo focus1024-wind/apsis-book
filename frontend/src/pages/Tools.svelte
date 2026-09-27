@@ -9,6 +9,7 @@
    */
   import type { Tool, ToolRegistry, ToolResult, ToolRunResponse } from '../lib/types';
   import { postJson, ApiError } from '../lib/api';
+  import { language, pick, tr } from '../lib/i18n';
   import ResultView from '../lib/ResultView.svelte';
 
   interface Props {
@@ -17,6 +18,9 @@
   }
 
   let { registry, id }: Props = $props();
+
+  /** The current language, read so that the text re-renders on a switch. */
+  let lang = $derived($language);
 
   let tool = $state<Tool | null>(null);
   let values = $state<Record<string, string>>({});
@@ -66,15 +70,13 @@
       } else if (response.error) {
         error = response.error;
       } else {
-        error = { parameter: null, message: 'the tool did not return a result' };
+        error = { parameter: null, message: tr('tools.noResult', lang) };
       }
     } catch (caught) {
       error = {
         parameter: null,
         message:
-          caught instanceof ApiError
-            ? caught.message
-            : 'the request could not be completed',
+          caught instanceof ApiError ? caught.message : tr('tools.requestFailed', lang),
       };
     } finally {
       running = false;
@@ -103,19 +105,16 @@
 </script>
 
 <div class="page-header">
-  <h1>Online tools</h1>
-  <p>
-    Run the ApsisRS kernels on your own input. Every tool calls the same library the
-    documentation describes, and every result reports the units of each quantity.
-  </p>
+  <h1>{tr('tools.title', lang)}</h1>
+  <p>{tr('tools.intro', lang)}</p>
 </div>
 
 {#if !registry}
-  <p class="empty">Loading the tool registry…</p>
+  <p class="empty">{tr('tools.loading', lang)}</p>
 {:else}
   {#each categories as group}
     <section style="margin-bottom: 1.25rem;">
-      <h3 style="margin-bottom: 0.5rem;">{group.category}</h3>
+      <h3 style="margin-bottom: 0.5rem;">{pick(group.category, lang)}</h3>
       <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
         {#each group.tools as candidate}
           <a
@@ -125,7 +124,7 @@
               ? 'border-color: var(--accent); color: var(--accent); padding: 0.3rem 0.7rem;'
               : 'padding: 0.3rem 0.7rem;'}
           >
-            {candidate.name}
+            {pick(candidate.name, lang)}
           </a>
         {/each}
       </div>
@@ -134,15 +133,15 @@
 
   {#if !tool}
     <div class="notice muted">
-      <p>Select a tool above to open its form.</p>
+      <p>{tr('tools.select', lang)}</p>
     </div>
   {:else}
     <section class="card" style="margin-top: 1.5rem;">
       <header style="display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap;">
-        <h2 style="margin: 0; border: none;">{tool.name}</h2>
-        <span class="badge">{tool.category}</span>
+        <h2 style="margin: 0; border: none;">{pick(tool.name, lang)}</h2>
+        <span class="badge">{pick(tool.category, lang)}</span>
       </header>
-      <p style="color: var(--text-muted);">{tool.description}</p>
+      <p style="color: var(--text-muted);">{pick(tool.description, lang)}</p>
 
       <form
         onsubmit={(event) => {
@@ -157,12 +156,13 @@
               class="field {param.kind === 'multiline' ? 'wide' : ''} {invalid ? 'invalid' : ''}"
             >
               <label for={`field-${param.name}`}>
-                {param.label}{#if param.required}<span style="color: var(--negative);"> *</span>{/if}
+                {pick(param.label, lang)}{#if param.required}<span style="color: var(--negative);"
+                    > *</span>{/if}
               </label>
               {#if param.kind === 'select'}
                 <select id={`field-${param.name}`} bind:value={values[param.name]}>
                   {#each param.constraints.options ?? [] as option}
-                    <option value={option.value}>{option.label}</option>
+                    <option value={option.value}>{pick(option.label, lang)}</option>
                   {/each}
                 </select>
               {:else if param.kind === 'multiline'}
@@ -179,9 +179,9 @@
               {:else}
                 <input id={`field-${param.name}`} type="text" bind:value={values[param.name]} />
               {/if}
-              <span class="help">{param.help}</span>
+              <span class="help">{pick(param.help, lang)}</span>
               {#if param.constraints.unit}
-                <span class="unit">unit: {param.constraints.unit}</span>
+                <span class="unit">{tr('tools.unit', lang)}: {param.constraints.unit}</span>
               {/if}
             </div>
           {/each}
@@ -190,15 +190,15 @@
         <div style="display: flex; gap: 0.6rem; margin-top: 1rem;">
           <button type="submit" disabled={running}>
             {#if running}<span class="spinner"></span>{/if}
-            {running ? 'Running…' : 'Run'}
+            {running ? tr('tools.running', lang) : tr('tools.run', lang)}
           </button>
-          <button class="ghost" type="button" onclick={reset}>Reset</button>
+          <button class="ghost" type="button" onclick={reset}>{tr('tools.reset', lang)}</button>
         </div>
       </form>
 
       {#if tool.api_items.length > 0}
         <p style="color: var(--text-faint); font-size: 0.82rem; margin-top: 0.75rem;">
-          Calls:
+          {tr('tools.calls', lang)}
           {#each tool.api_items as name}
             <a href={`#/api/${name}`} style="font-family: var(--mono);">{name}</a>
           {/each}

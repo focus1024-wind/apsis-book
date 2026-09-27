@@ -3,31 +3,41 @@
     {
       "id": "overview",
       "title": "Overview",
+      "title_zh": "总览",
       "summary": "What the ApsisRS kernels cover and how the layers are organized.",
+      "summary_zh": "ApsisRS 计算内核的覆盖范围与分层组织方式。",
       "documents": ["overview", "architecture-apsis-rs", "standards-and-provenance"]
     },
     {
       "id": "time",
       "title": "Time",
+      "title_zh": "时间",
       "summary": "Time scales, leap seconds, and calendar conversions.",
+      "summary_zh": "时间尺度、闰秒与日历转换。",
       "documents": ["time-scales", "leap-seconds", "calendar-and-mjd"]
     },
     {
       "id": "geometry",
       "title": "Frames and geodesy",
+      "title_zh": "坐标系与大地测量",
       "summary": "Reference frames, the Earth Rotation Angle, and the WGS 84 ellipsoid.",
+      "summary_zh": "参考系、地球自转角与 WGS 84 椭球。",
       "documents": ["reference-frames", "earth-rotation-angle", "geodesy-wgs84"]
     },
     {
       "id": "elements",
       "title": "Element sets",
+      "title_zh": "元素集",
       "summary": "The two-line element format and the Keplerian elements.",
+      "summary_zh": "两行元素格式与开普勒轨道元素。",
       "documents": ["tle-format", "keplerian-elements"]
     },
     {
       "id": "propagation",
       "title": "Propagation",
+      "title_zh": "轨道传播",
       "summary": "Analytical and numerical orbit propagation, and how they compare.",
+      "summary_zh": "解析与数值轨道传播，以及它们的对比。",
       "documents": ["sgp4", "perturbations", "propagator-comparison", "ephemeris-interpolation"]
     }
   ]

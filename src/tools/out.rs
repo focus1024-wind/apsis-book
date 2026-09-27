@@ -6,8 +6,10 @@
 //! place means a tool describes what it computed rather than how it is
 //! drawn, and the frontend needs one renderer for every tool.
 
+use crate::i18n::Text;
 use crate::json::Value;
 use crate::json_object;
+use crate::tools::labels;
 
 /// A named scalar with a unit, rendered as a definition pair.
 #[derive(Debug, Clone)]
@@ -165,7 +167,7 @@ pub fn table_response(
     scalars: Vec<Scalar>,
     table: &Table,
     series: Vec<Series>,
-    notes: Vec<String>,
+    notes: Vec<Text>,
 ) -> Value {
     let columns: Vec<Value> = table
         .columns
@@ -173,7 +175,7 @@ pub fn table_response(
         .map(|column| {
             json_object! {
                 "key" => column.key.clone(),
-                "label" => column.label.clone(),
+                "label" => labels::label(&column.label).json(),
                 "unit" => column.unit.clone(),
                 "numeric" => column.numeric,
             }
@@ -189,18 +191,37 @@ pub fn table_response(
 
     json_object! {
         "kind" => kind,
-        "title" => title,
+        "title" => labels::label(title).json(),
         "scalars" => scalar_values,
         "table" => json_object! { "columns" => columns, "rows" => rows },
         "series" => series_values,
-        "notes" => notes.into_iter().map(Value::from).collect::<Vec<Value>>(),
+        "notes" => notes.iter().map(Text::json).collect::<Vec<Value>>(),
     }
+}
+
+/// Returns a note written as a literal in the label table.
+///
+/// The note text is both the lookup key and the English form, so a note
+/// that is a fixed sentence is written once.
+pub fn note(english: &str) -> Text {
+    labels::label(english)
+}
+
+/// Pairs an English note with its Chinese form.
+///
+/// Used for a note that carries a value, such as a gravity model name, where
+/// the two languages differ in more than a table lookup can express.
+pub fn note_pair(english: impl Into<String>, chinese: impl Into<String>) -> Text {
+    Text::new(
+        Box::leak(chinese.into().into_boxed_str()),
+        Box::leak(english.into().into_boxed_str()),
+    )
 }
 
 /// Encodes a scalar.
 fn scalar_json(scalar: &Scalar) -> Value {
     json_object! {
-        "label" => scalar.label.clone(),
+        "label" => labels::label(&scalar.label).json(),
         "value" => scalar.value.clone(),
         "unit" => scalar.unit.clone(),
         "monospace" => scalar.monospace,

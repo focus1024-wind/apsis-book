@@ -2,14 +2,15 @@
   /**
    * The knowledge graph page.
    *
-   * The concept graph and the crate structure graph are shown side by side
-   * as two selectable views. Selecting a node shows its summary and the
-   * links to its document and its interface item.
+   * The concept graph and the crate structure graph are shown as two
+   * selectable views. Selecting a node shows its summary and the links to
+   * its document and its interface item.
    */
   import type { Graph, GraphNode, ApiIndex } from '../lib/types';
   import { getJson } from '../lib/api';
   import { navigate } from '../lib/router';
   import { groupColor } from '../lib/format';
+  import { language, pick, tr } from '../lib/i18n';
   import GraphView from '../lib/GraphView.svelte';
 
   interface Props {
@@ -18,6 +19,9 @@
   }
 
   let { concepts, api }: Props = $props();
+
+  /** The current language, read so that the text re-renders on a switch. */
+  let lang = $derived($language);
 
   let view = $state<'concepts' | 'crates'>('concepts');
   let crateGraph = $state<Graph | null>(null);
@@ -29,7 +33,7 @@
 
   /** The selected node, when the view supplies one. */
   const selectedNode = $derived(
-    graph && selected ? graph.nodes.find((node) => node.id === selected) ?? null : null,
+    graph && selected ? (graph.nodes.find((node) => node.id === selected) ?? null) : null,
   );
 
   /** Loads the crate structure graph the first time it is shown. */
@@ -61,29 +65,28 @@
 </script>
 
 <div class="page-header">
-  <h1>Knowledge graph</h1>
-  <p>
-    The concepts and the relationships between them. Drag to pan, scroll to zoom, click a
-    node to see its description, and double click to open the document that explains it.
-  </p>
+  <h1>{tr('graph.title', lang)}</h1>
+  <p>{tr('graph.intro', lang)}</p>
 </div>
 
 <div class="graph-controls">
   <button
     class={view === 'concepts' ? '' : 'ghost'}
     type="button"
-    onclick={() => { view = 'concepts'; selected = null; }}>Concepts</button>
-  <button
-    class={view === 'crates' ? '' : 'ghost'}
-    type="button"
-    onclick={showCrates}>Crate structure</button>
+    onclick={() => {
+      view = 'concepts';
+      selected = null;
+    }}>{tr('graph.concepts', lang)}</button>
+  <button class={view === 'crates' ? '' : 'ghost'} type="button" onclick={showCrates}>
+    {tr('graph.crates', lang)}
+  </button>
   {#if loadingCrates && !crateGraph}
-    <span class="badge"><span class="spinner"></span> loading</span>
+    <span class="badge"><span class="spinner"></span> {tr('common.loading', lang)}</span>
   {/if}
 </div>
 
 {#if !graph}
-  <p class="empty">Loading the graph…</p>
+  <p class="empty">{tr('graph.loading', lang)}</p>
 {:else}
   <GraphView {graph} {selected} onselect={select} onopen={open} />
 
@@ -96,20 +99,24 @@
   {#if selectedNode}
     <section class="card" style="margin-top: 1rem;">
       <header style="display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap;">
-        <h3 style="margin: 0;">{selectedNode.label}</h3>
+        <h3 style="margin: 0;">{pick(selectedNode.label, lang)}</h3>
         <span class="badge">{selectedNode.kind}</span>
-        <span class="badge" style={`color:${groupColor(selectedNode.group)}`}>{selectedNode.group}</span>
+        <span class="badge" style={`color:${groupColor(selectedNode.group)}`}
+          >{selectedNode.group}</span>
       </header>
-      <p style="color: var(--text-muted);">{selectedNode.summary}</p>
+      <p style="color: var(--text-muted);">{pick(selectedNode.summary, lang)}</p>
       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
         {#if selectedNode.document}
-          <button class="secondary" type="button" onclick={() => navigate(`/docs/${selectedNode.document}`)}>
-            Open the document
+          <button
+            class="secondary"
+            type="button"
+            onclick={() => navigate(`/docs/${selectedNode.document}`)}>
+            {tr('graph.openDocument', lang)}
           </button>
         {/if}
         {#if selectedNode.api}
           <button class="ghost" type="button" onclick={() => navigate(`/api/${selectedNode.api}`)}>
-            Interface: {selectedNode.api}
+            {tr('graph.interface', lang)}{selectedNode.api}
           </button>
         {/if}
       </div>
@@ -119,7 +126,7 @@
 
 {#if api && view === 'crates'}
   <div class="notice muted">
-    The crate graph is generated from the extracted interface catalog, so it describes the
-    layer set this build enables: {api.crates.map((crate) => crate.name).join(', ')}.
+    {tr('graph.crateNote', lang)}
+    {api.crates.map((crate) => crate.name).join(', ')}。
   </div>
 {/if}

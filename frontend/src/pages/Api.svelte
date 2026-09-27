@@ -9,6 +9,7 @@
    */
   import type { ApiIndex, ApiCrate, ApiItem } from '../lib/types';
   import { getJson } from '../lib/api';
+  import { language, tr } from '../lib/i18n';
   import Signature from '../lib/Signature.svelte';
 
   interface Props {
@@ -17,6 +18,9 @@
   }
 
   let { index, id }: Props = $props();
+
+  /** The current language, read so that the text re-renders on a switch. */
+  let lang = $derived($language);
 
   let selectedCrate = $state<string | null>(null);
   let crate = $state<ApiCrate | null>(null);
@@ -154,7 +158,7 @@
   {#if item}
     <section class="card" style="margin-top: 1.5rem;">
       <p class="breadcrumb">
-        <a href="#/api">Interface</a> /
+        <a href="#/api">{tr('nav.api', lang)}</a> /
         <a href={`#/api/${item.crate}`}>{item.crate}</a> / {item.name}
       </p>
       <header style="display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap;">
@@ -176,7 +180,7 @@
 
   {#if crate}
     <section style="margin-top: 1.5rem;">
-      <p class="breadcrumb"><a href="#/api">Interface</a> / {crate.name}</p>
+      <p class="breadcrumb"><a href="#/api">{tr('nav.api', lang)}</a> / {crate.name}</p>
       <h2 style="margin-top: 0.5rem;">{crate.name}</h2>
       <p style="color: var(--text-muted);">{crate.summary}</p>
 

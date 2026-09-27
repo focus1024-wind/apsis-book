@@ -9,7 +9,9 @@
       "kind": "concept",
       "group": "overview",
       "summary": "Scope and reading order of the concept set.",
-      "document": "overview"
+      "document": "overview",
+      "label_zh": "概念总览",
+      "summary_zh": "概念集的覆盖范围与阅读顺序。"
     },
     {
       "id": "architecture-apsis-rs",
@@ -17,7 +19,9 @@
       "kind": "concept",
       "group": "overview",
       "summary": "The layer order and the crates in each layer.",
-      "document": "architecture-apsis-rs"
+      "document": "architecture-apsis-rs",
+      "label_zh": "工作区架构",
+      "summary_zh": "分层顺序及每层的 crate。"
     },
     {
       "id": "standards-and-provenance",
@@ -25,7 +29,9 @@
       "kind": "concept",
       "group": "overview",
       "summary": "The public sources each algorithm follows.",
-      "document": "standards-and-provenance"
+      "document": "standards-and-provenance",
+      "label_zh": "标准与来源",
+      "summary_zh": "各算法遵循的公开来源。"
     },
     {
       "id": "time-scales",
@@ -33,7 +39,9 @@
       "kind": "concept",
       "group": "time",
       "summary": "UTC, TAI, TT, and GPS, and the storage convention.",
-      "document": "time-scales"
+      "document": "time-scales",
+      "label_zh": "时间尺度",
+      "summary_zh": "UTC、TAI、TT 与 GPS，以及存储约定。"
     },
     {
       "id": "leap-seconds",
@@ -41,7 +49,9 @@
       "kind": "concept",
       "group": "time",
       "summary": "The step discontinuities in UTC and the embedded table.",
-      "document": "leap-seconds"
+      "document": "leap-seconds",
+      "label_zh": "闰秒",
+      "summary_zh": "UTC 中的阶跃间断与内嵌闰秒表。"
     },
     {
       "id": "calendar-and-mjd",
@@ -49,7 +59,9 @@
       "kind": "concept",
       "group": "time",
       "summary": "Day numbering and the proleptic Gregorian calendar.",
-      "document": "calendar-and-mjd"
+      "document": "calendar-and-mjd",
+      "label_zh": "日历与 MJD",
+      "summary_zh": "日编号与外推格里高利历。"
     },
     {
       "id": "reference-frames",
@@ -57,7 +69,9 @@
       "kind": "concept",
       "group": "geometry",
       "summary": "Inertial, Earth-fixed, and geodetic frames.",
-      "document": "reference-frames"
+      "document": "reference-frames",
+      "label_zh": "参考系",
+      "summary_zh": "惯性系、地固系与大地坐标。"
     },
     {
       "id": "earth-rotation-angle",
@@ -65,7 +79,9 @@
       "kind": "concept",
       "group": "geometry",
       "summary": "The angle that relates the two Cartesian frames.",
-      "document": "earth-rotation-angle"
+      "document": "earth-rotation-angle",
+      "label_zh": "地球自转角",
+      "summary_zh": "联系两个直角坐标系的夹角。"
     },
     {
       "id": "geodesy-wgs84",
@@ -73,7 +89,9 @@
       "kind": "concept",
       "group": "geometry",
       "summary": "Latitude, longitude, height, and the Cartesian conversion.",
-      "document": "geodesy-wgs84"
+      "document": "geodesy-wgs84",
+      "label_zh": "WGS 84 与大地坐标",
+      "summary_zh": "纬度、经度、高与直角坐标转换。"
     },
     {
       "id": "tle-format",
@@ -81,7 +99,9 @@
       "kind": "data",
       "group": "elements",
       "summary": "The fixed width element record and its checksum.",
-      "document": "tle-format"
+      "document": "tle-format",
+      "label_zh": "两行元素格式",
+      "summary_zh": "定宽元素记录及其校验和。"
     },
     {
       "id": "keplerian-elements",
@@ -89,7 +109,9 @@
       "kind": "concept",
       "group": "elements",
       "summary": "The six classical elements and the two-body solution.",
-      "document": "keplerian-elements"
+      "document": "keplerian-elements",
+      "label_zh": "开普勒轨道元素",
+      "summary_zh": "六个经典元素与二体解。"
     },
     {
       "id": "sgp4",
@@ -97,7 +119,9 @@
       "kind": "concept",
       "group": "propagation",
       "summary": "The analytical propagator the element sets are fitted to.",
-      "document": "sgp4"
+      "document": "sgp4",
+      "label_zh": "SGP4 与 SDP4",
+      "summary_zh": "元素集所拟合的解析传播器。"
     },
     {
       "id": "perturbations",
@@ -105,7 +129,9 @@
       "kind": "concept",
       "group": "propagation",
       "summary": "The forces that make an orbit deviate from an ellipse.",
-      "document": "perturbations"
+      "document": "perturbations",
+      "label_zh": "轨道摄动",
+      "summary_zh": "使轨道偏离椭圆的各种力。"
     },
     {
       "id": "propagator-comparison",
@@ -113,7 +139,9 @@
       "kind": "concept",
       "group": "propagation",
       "summary": "The propagation methods compared by accuracy and cost.",
-      "document": "propagator-comparison"
+      "document": "propagator-comparison",
+      "label_zh": "传播器选择",
+      "summary_zh": "各传播方法按精度与开销对比。"
     },
     {
       "id": "ephemeris-interpolation",
@@ -121,7 +149,9 @@
       "kind": "concept",
       "group": "propagation",
       "summary": "Sampling a track once and querying it by interpolation.",
-      "document": "ephemeris-interpolation"
+      "document": "ephemeris-interpolation",
+      "label_zh": "星历插值",
+      "summary_zh": "采样一次并按插值查询。"
     },
     {
       "id": "method-hpop",
@@ -129,7 +159,8 @@
       "kind": "concept",
       "group": "methods",
       "summary": "Numerical integration of a high order force model. Not implemented in apsis-rs.",
-      "document": "propagator-comparison"
+      "document": "propagator-comparison",
+      "summary_zh": "高阶力模型的数值积分。apsis-rs 未实现。"
     },
     {
       "id": "method-numerical",
@@ -137,7 +168,9 @@
       "kind": "concept",
       "group": "methods",
       "summary": "Integrating the equations of motion from a force model. Not implemented in apsis-rs.",
-      "document": "propagator-comparison"
+      "document": "propagator-comparison",
+      "label_zh": "数值积分",
+      "summary_zh": "由力模型积分运动方程。apsis-rs 未实现。"
     },
     {
       "id": "method-two-body",
@@ -145,7 +178,9 @@
       "kind": "concept",
       "group": "methods",
       "summary": "The closed form Keplerian solution. Implemented as apsis-kepler.",
-      "document": "keplerian-elements"
+      "document": "keplerian-elements",
+      "label_zh": "二体传播",
+      "summary_zh": "开普勒闭式解。实现为 apsis-kepler。"
     },
     {
       "id": "crate-apsis-time",
@@ -154,7 +189,8 @@
       "group": "time",
       "summary": "Time scales, epochs, and calendar conversions.",
       "document": "time-scales",
-      "api": "Epoch"
+      "api": "Epoch",
+      "summary_zh": "时间尺度、历元与日历转换。"
     },
     {
       "id": "crate-apsis-coord",
@@ -163,7 +199,8 @@
       "group": "geometry",
       "summary": "Positions that carry their reference frame in the type.",
       "document": "reference-frames",
-      "api": "Eci"
+      "api": "Eci",
+      "summary_zh": "在类型中携带参考系的位置表示。"
     },
     {
       "id": "crate-apsis-sgp4",
@@ -172,7 +209,8 @@
       "group": "propagation",
       "summary": "The SGP4 and SDP4 analytical orbit propagator.",
       "document": "sgp4",
-      "api": "Satellite"
+      "api": "Satellite",
+      "summary_zh": "SGP4 与 SDP4 解析轨道传播器。"
     }
   ],
   "edges": [
@@ -362,5 +400,7 @@
       "kind": "cites",
       "label": "IERS 2010"
     }
-  ]
+  ],
+  "title_zh": "概念图谱",
+  "summary_zh": "ApsisRS 内核的概念及其相互关系。每个节点可打开解释该概念的文档。"
 }

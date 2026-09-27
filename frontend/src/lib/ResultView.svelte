@@ -8,6 +8,7 @@
    */
   import type { ToolResult } from '../lib/types';
   import { formatCell } from '../lib/format';
+  import { language, pick } from '../lib/i18n';
   import Chart from './Chart.svelte';
 
   interface Props {
@@ -15,10 +16,13 @@
   }
 
   let { result }: Props = $props();
+
+  /** The current language, read so that the title re-renders on a switch. */
+  let lang = $derived($language);
 </script>
 
 <section class="card">
-  <h3>{result.title}</h3>
+  <h3>{pick(result.title, lang)}</h3>
 
   {#if result.scalars.length > 0}
     <div class="scalars">

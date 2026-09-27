@@ -145,8 +145,12 @@ fn parse_tle(params: &Params<'_>) -> Result<Value, ToolError> {
         &table,
         Vec::new(),
         vec![
-            "Angles are reported in the units the element set uses, which are degrees for the orientation angles.".to_string(),
-            "The semi-major axis estimate follows from the mean motion and Kepler's third law with the WGS 72 gravitational parameter; it ignores the perturbations the propagator models.".to_string(),
+            out::note(
+                "Angles are reported in the units the element set uses, which are degrees for the orientation angles.",
+            ),
+            out::note(
+                "The semi-major axis estimate follows from the mean motion and Kepler's third law with the WGS 72 gravitational parameter; it ignores the perturbations the propagator models.",
+            ),
         ],
     ))
 }
@@ -223,8 +227,19 @@ fn sgp4_propagate(params: &Params<'_>) -> Result<Value, ToolError> {
         &table,
         Vec::new(),
         vec![
-            "The frame is the True Equator Mean Equinox frame, which is the frame the model defines.".to_string(),
-            format!("The gravity model used is {}.", gravity_model_name(params.choice("model")?)),
+            out::note(
+                "The frame is the True Equator Mean Equinox frame, which is the frame the model defines.",
+            ),
+            out::note_pair(
+                format!(
+                    "The gravity model used is {}.",
+                    gravity_model_name(params.choice("model")?)
+                ),
+                format!(
+                    "所用引力模型为 {}。",
+                    gravity_model_name_zh(params.choice("model")?)
+                ),
+            ),
         ],
     ))
 }
@@ -315,9 +330,12 @@ fn sgp4_track(params: &Params<'_>) -> Result<Value, ToolError> {
         &table,
         series,
         vec![
-            "Each sample is one propagation of the mean elements; the table is not interpolated.".to_string(),
-            "The track is given in the True Equator Mean Equinox frame, so a ground projection needs the Earth rotation in addition.".to_string(),
-            format!("Sample times are minutes from the element epoch, starting at {}.", out::fmt(start, 3)),
+            out::note("Each sample is one propagation of the mean elements; the table is not interpolated."),
+            out::note("The track is given in the True Equator Mean Equinox frame, so a ground projection needs the Earth rotation in addition."),
+            out::note_pair(
+                format!("Sample times are minutes from the element epoch, starting at {}.", out::fmt(start, 3)),
+                format!("采样时间为距元素历元的分钟数，起始于 {}。", out::fmt(start, 3)),
+            ),
         ],
     ))
     .map(|value| {
@@ -445,10 +463,18 @@ fn orbit_osculating(params: &Params<'_>) -> Result<Value, ToolError> {
         &table,
         Vec::new(),
         vec![
-            "The mean elements are the ones written in the element set and are the inputs of the propagator.".to_string(),
-            "The osculating elements describe the two-body orbit that matches the instantaneous state; they are an output of the propagation, not an input.".to_string(),
-            "The mean semi-major axis follows from the mean motion with Kepler's third law, which is an approximation the propagator refines.".to_string(),
-            "The row labelled true_anomaly compares the mean anomaly of the element set with the true anomaly of the osculating elements; the two are different angles and the comparison shows the difference between them.".to_string(),
+            out::note(
+                "The mean elements are the ones written in the element set and are the inputs of the propagator.",
+            ),
+            out::note(
+                "The osculating elements describe the two-body orbit that matches the instantaneous state; they are an output of the propagation, not an input.",
+            ),
+            out::note(
+                "The mean semi-major axis follows from the mean motion with Kepler's third law, which is an approximation the propagator refines.",
+            ),
+            out::note(
+                "The row labelled true_anomaly compares the mean anomaly of the element set with the true anomaly of the osculating elements; the two are different angles and the comparison shows the difference between them.",
+            ),
         ],
     ))
 }
@@ -550,8 +576,19 @@ fn kepler_state(params: &Params<'_>) -> Result<Value, ToolError> {
         &table,
         Vec::new(),
         vec![
-            "The conversion is the two-body solution; it does not include the perturbations that SGP4 models.".to_string(),
-            format!("The gravitational parameter is {}.", gravity_model_name(params.choice("model")?)),
+            out::note(
+                "The conversion is the two-body solution; it does not include the perturbations that SGP4 models.",
+            ),
+            out::note_pair(
+                format!(
+                    "The gravitational parameter is {}.",
+                    gravity_model_name(params.choice("model")?)
+                ),
+                format!(
+                    "引力参数取 {}。",
+                    gravity_model_name_zh(params.choice("model")?)
+                ),
+            ),
         ],
     ))
 }
@@ -608,6 +645,8 @@ fn time_convert(params: &Params<'_>) -> Result<Value, ToolError> {
         let offset = epoch.tai_mjd() - mjd.unwrap_or(f64::NAN);
         if target == scale {
             if let Some(mjd) = mjd {
+                // The label names the scale the input was given on, so it
+                // is built rather than looked up.
                 scalars.push(Scalar::with_unit(
                     format!("Input on {}", target.name()),
                     out::fmt(mjd, 9),
@@ -637,12 +676,16 @@ fn time_convert(params: &Params<'_>) -> Result<Value, ToolError> {
     }
 
     let mut notes = vec![
-        "The instant is stored as a Modified Julian Date on the TAI scale, so the difference between two instants is exact elapsed time.".to_string(),
-        "UTC is not a uniform scale; the offset column is the difference between TAI and the scale at that instant.".to_string(),
+        out::note(
+            "The instant is stored as a Modified Julian Date on the TAI scale, so the difference between two instants is exact elapsed time.",
+        ),
+        out::note(
+            "UTC is not a uniform scale; the offset column is the difference between TAI and the scale at that instant.",
+        ),
     ];
     if utc.is_none() {
         notes.push(
-            "This instant precedes the start of the leap second table, so it has no UTC representation.".to_string(),
+            out::note("This instant precedes the start of the leap second table, so it has no UTC representation."),
         );
     }
 
@@ -726,8 +769,12 @@ fn geodetic_ecef(params: &Params<'_>) -> Result<Value, ToolError> {
         &table,
         Vec::new(),
         vec![
-            "The ellipsoid is WGS 84; its semi-major axis and inverse flattening are the defining parameters.".to_string(),
-            "Latitude is geodetic, measured from the ellipsoid normal, not geocentric; the difference is largest at mid latitudes.".to_string(),
+            out::note(
+                "The ellipsoid is WGS 84; its semi-major axis and inverse flattening are the defining parameters.",
+            ),
+            out::note(
+                "Latitude is geodetic, measured from the ellipsoid normal, not geocentric; the difference is largest at mid latitudes.",
+            ),
         ],
     ))
 }
@@ -801,8 +848,12 @@ fn frame_transform(params: &Params<'_>) -> Result<Value, ToolError> {
         &table,
         Vec::new(),
         vec![
-            "The rotation is about the third axis by the Earth Rotation Angle and preserves the length of the vector.".to_string(),
-            "Passing an Earth-fixed position through the inertial frame and back returns the Earth-fixed position; the angle is not reduced to one turn.".to_string(),
+            out::note(
+                "The rotation is about the third axis by the Earth Rotation Angle and preserves the length of the vector.",
+            ),
+            out::note(
+                "Passing an Earth-fixed position through the inertial frame and back returns the Earth-fixed position; the angle is not reduced to one turn.",
+            ),
         ],
     ))
 }
@@ -893,12 +944,22 @@ fn hohmann_transfer(params: &Params<'_>) -> Result<Value, ToolError> {
         &table,
         Vec::new(),
         vec![
-            "The burns are along the direction of motion; a positive value raises the orbit and a negative value lowers it.".to_string(),
-            "The transfer is the cheapest two impulse transfer between two coplanar circular orbits in the impulsive model.".to_string(),
-            "The coast between the burns is half the period of the transfer ellipse.".to_string(),
-            format!(
-                "The gravitational parameter is {}.",
-                gravity_model_name(params.choice("model")?)
+            out::note(
+                "The burns are along the direction of motion; a positive value raises the orbit and a negative value lowers it.",
+            ),
+            out::note(
+                "The transfer is the cheapest two impulse transfer between two coplanar circular orbits in the impulsive model.",
+            ),
+            out::note("The coast between the burns is half the period of the transfer ellipse."),
+            out::note_pair(
+                format!(
+                    "The gravitational parameter is {}.",
+                    gravity_model_name(params.choice("model")?)
+                ),
+                format!(
+                    "引力参数取 {}。",
+                    gravity_model_name_zh(params.choice("model")?)
+                ),
             ),
         ],
     ))
@@ -914,6 +975,14 @@ fn gravity_model(value: &str) -> GravityModel {
 
 /// Returns the display name of a gravity model select value.
 fn gravity_model_name(value: &str) -> &'static str {
+    match value {
+        "wgs84" => "WGS 84",
+        _ => "WGS 72",
+    }
+}
+
+/// Returns the Chinese display name of a gravity model select value.
+fn gravity_model_name_zh(value: &str) -> &'static str {
     match value {
         "wgs84" => "WGS 84",
         _ => "WGS 72",
@@ -1007,6 +1076,28 @@ mod tests {
         run(id, &params)
     }
 
+    /// Returns the English text of a label, which is a bilingual object.
+    fn label_english(value: &Value) -> &str {
+        value.get("en").and_then(Value::as_str).unwrap_or("")
+    }
+
+    /// Returns the numeric value of the scalar with an English label.
+    fn scalar_number(value: &Value, label: &str) -> f64 {
+        value
+            .get("scalars")
+            .unwrap()
+            .as_array()
+            .iter()
+            .find(|scalar| scalar.get("label").map(label_english) == Some(label))
+            .unwrap()
+            .get("value")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .parse()
+            .unwrap()
+    }
+
     const TLE: &str = "1 25544U 98067A   08264.51782528 -.00002182  00000-0 -11606-4 0  2927\n2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72125391563537";
 
     #[test]
@@ -1031,17 +1122,7 @@ mod tests {
             json_object! { "tle" => TLE, "minutes" => 0.0 },
         )
         .unwrap();
-        let scalars = value.get("scalars").unwrap().as_array();
-        let radius = scalars
-            .iter()
-            .find(|scalar| scalar.get("label").unwrap().as_str() == Some("Radius"))
-            .unwrap()
-            .get("value")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .parse::<f64>()
-            .unwrap();
+        let radius = scalar_number(&value, "Radius");
         assert!((6_600.0..7_200.0).contains(&radius));
     }
 
@@ -1122,17 +1203,7 @@ mod tests {
             json_object! { "latitude" => 0.0, "longitude" => 0.0, "height" => 0.0 },
         )
         .unwrap();
-        let scalars = value.get("scalars").unwrap().as_array();
-        let x = scalars
-            .iter()
-            .find(|scalar| scalar.get("label").unwrap().as_str() == Some("X"))
-            .unwrap()
-            .get("value")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .parse::<f64>()
-            .unwrap();
+        let x = scalar_number(&value, "X");
         assert!((x - 6_378_137.0).abs() < 1e-3);
     }
 
@@ -1143,17 +1214,7 @@ mod tests {
             json_object! { "x" => 6871000.0, "y" => 1234000.0, "z" => 500000.0, "earth_rotation" => 0.3 },
         )
         .unwrap();
-        let scalars = value.get("scalars").unwrap().as_array();
-        let change = scalars
-            .iter()
-            .find(|scalar| scalar.get("label").unwrap().as_str() == Some("Radius change"))
-            .unwrap()
-            .get("value")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .parse::<f64>()
-            .unwrap();
+        let change = scalar_number(&value, "Radius change");
         assert!(change.abs() < 1e-6);
     }
 

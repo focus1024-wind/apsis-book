@@ -13,6 +13,7 @@
    */
   import type { Graph, GraphNode } from '../lib/types';
   import { groupColor, truncate } from '../lib/format';
+  import { language, pick, tr } from '../lib/i18n';
 
   interface Props {
     graph: Graph;
@@ -22,6 +23,9 @@
   }
 
   let { graph, selected = null, onselect, onopen }: Props = $props();
+
+  /** The current language, read so that the labels re-render on a switch. */
+  let lang = $derived($language);
 
   /** Position of a node in layout space. */
   interface Placement {
@@ -127,9 +131,7 @@
   });
 
   /** The transform of the layout viewport. */
-  const transform = $derived(
-    `translate(${offsetX} ${offsetY}) scale(${span})`,
-  );
+  const transform = $derived(`translate(${offsetX} ${offsetY}) scale(${span})`);
 
   /** Handles a pointer press on the canvas, starting a pan. */
   function onPointerDown(event: PointerEvent) {
@@ -170,21 +172,13 @@
     offsetX = 0;
     offsetY = 0;
   }
-
-  /** Fits the graph into the viewport by scaling down when it is large. */
-  function fit() {
-    span = 1;
-    offsetX = 0;
-    offsetY = 0;
-  }
 </script>
 
 <div class="graph-controls">
-  <button class="ghost" type="button" onclick={reset}>Reset view</button>
-  <button class="ghost" type="button" onclick={fit}>Fit</button>
-  <span class="badge">{graph.nodes.length} nodes</span>
-  <span class="badge">{graph.edges.length} edges</span>
-  <span class="badge">zoom {span.toFixed(2)}×</span>
+  <button class="ghost" type="button" onclick={reset}>{tr('graph.reset', lang)}</button>
+  <span class="badge">{graph.nodes.length} {tr('graph.nodes', lang)}</span>
+  <span class="badge">{graph.edges.length} {tr('graph.edges', lang)}</span>
+  <span class="badge">{tr('graph.zoom', lang)} {span.toFixed(2)}×</span>
 </div>
 
 <svg
@@ -192,7 +186,7 @@
   viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
   preserveAspectRatio="xMidYMid meet"
   role="img"
-  aria-label={graph.title}
+  aria-label={pick(graph.title, lang)}
   onpointerdown={onPointerDown}
   onpointermove={onPointerMove}
   onpointerup={onPointerUp}
@@ -252,7 +246,7 @@
           class="node"
           role="button"
           tabindex="0"
-          aria-label={item.label}
+          aria-label={pick(item.label, lang)}
           onmouseenter={() => (hovered = item.id)}
           onmouseleave={() => (hovered = null)}
           onclick={() => onselect?.(item)}
@@ -318,7 +312,7 @@
             font-size="12"
             font-family="var(--mono)"
           >
-            {truncate(item.label, 26)}
+            {truncate(pick(item.label, lang), 26)}
           </text>
         </g>
       {/if}

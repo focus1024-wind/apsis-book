@@ -7,14 +7,18 @@
    * which keeps it testable and free of hidden animation state.
    */
   import type { ResultSeries } from '../lib/types';
+  import { language, pick, tr } from '../lib/i18n';
 
   interface Props {
     series: ResultSeries[];
-    axis?: { name: string; unit: string; values: number[] } | null;
+    axis?: { name: { zh: string; en: string }; unit: string; values: number[] } | null;
     height?: number;
   }
 
   let { series, axis = null, height = 220 }: Props = $props();
+
+  /** The current language, read so that the labels re-render on a switch. */
+  let lang = $derived($language);
 
   const WIDTH = 720;
   const PADDING = { left: 68, right: 18, top: 16, bottom: 34 };
@@ -23,7 +27,7 @@
   const palette = ['var(--accent)', 'var(--positive)', 'var(--warning)', 'var(--negative)'];
 
   interface Prepared {
-    name: string;
+    name: { zh: string; en: string };
     unit: string;
     color: string;
     points: { x: number; y: number }[];
@@ -122,7 +126,7 @@
 </script>
 
 {#if prepared.length === 0}
-  <p class="empty">No series to plot.</p>
+  <p class="empty">{tr('result.noSeries', lang)}</p>
 {:else}
   <svg class="chart" viewBox={`0 0 ${WIDTH} ${height}`} preserveAspectRatio="none" role="img">
     {#each yTicks as tick}
@@ -170,13 +174,13 @@
         text-anchor="end"
         fill="var(--text-faint)"
         font-size="10"
-        font-family="var(--mono)">{axis.name} [{axis.unit}]</text>
+        font-family="var(--mono)">{pick(axis.name, lang)} [{axis.unit}]</text>
     {/if}
   </svg>
 
   <div class="legend">
     {#each prepared as item}
-      <span><i style={`background:${item.color}`}></i>{item.name} [{item.unit}]</span>
+      <span><i style={`background:${item.color}`}></i>{pick(item.name, lang)} [{item.unit}]</span>
     {/each}
   </div>
 {/if}

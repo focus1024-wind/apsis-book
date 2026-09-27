@@ -3,33 +3,215 @@
   "title": "SGP4 propagation",
   "summary": "From a parsed element set to a state vector: element preparation, branch selection, and the propagation itself.",
   "nodes": [
-    {"id": "start", "label": "TwoLineElement and GravityModel", "kind": "data", "group": "input", "summary": "Mean elements as parsed from the element set, plus the gravity model they were fitted against.", "api": "TwoLineElement"},
-    {"id": "prepare", "label": "Prepare mean elements", "kind": "step", "group": "prepare", "summary": "Convert degrees to radians and revolutions per day to radians per minute, and recover the un-Kozai mean motion.", "api": "Satellite"},
-    {"id": "valid", "label": "Elements propagatable?", "kind": "decision", "group": "prepare", "summary": "The eccentricity must be below one, the mean motion positive, and the recovered semi-major axis physical.", "api": "validate"},
-    {"id": "invalid", "label": "InvalidElements", "kind": "terminal", "group": "error", "summary": "The elements do not describe a satellite the model can propagate.", "api": "PropagationErrorKind"},
-    {"id": "branch", "label": "Period at or above 225 minutes?", "kind": "decision", "group": "branch", "summary": "Selects the deep space branch. The period follows from the mean motion.", "api": "is_deep_space"},
-    {"id": "sgp4", "label": "SGP4 secular terms", "kind": "step", "group": "propagate", "summary": "Apply the secular rates from the oblateness, and the drag decay of the semi-major axis and the eccentricity.", "api": "Satellite"},
-    {"id": "sdp4", "label": "SDP4 deep space terms", "kind": "step", "group": "propagate", "summary": "Add the resonance with the Earth's gravity field and the long period luni-solar perturbations.", "api": "Satellite"},
-    {"id": "anomaly", "label": "Solve Kepler's equation", "kind": "step", "group": "propagate", "summary": "Recover the eccentric anomaly from the mean anomaly by iteration, then the true anomaly and the radius.", "api": "eccentric_from_mean"},
-    {"id": "position", "label": "Perifocal position", "kind": "step", "group": "propagate", "summary": "Evaluate the position and velocity in the orbital plane.", "api": "Satellite"},
-    {"id": "rotate", "label": "Rotate to TEME", "kind": "step", "group": "propagate", "summary": "Apply the argument of perigee, the inclination, and the right ascension of the ascending node.", "api": "State"},
-    {"id": "decayed", "label": "Radius physical?", "kind": "decision", "group": "propagate", "summary": "A radius below the surface means the drag term has brought the satellite down.", "api": "PropagationErrorKind"},
-    {"id": "decayed_end", "label": "Decayed", "kind": "terminal", "group": "error", "summary": "The satellite has decayed.", "api": "PropagationErrorKind"},
-    {"id": "state", "label": "State", "kind": "terminal", "group": "output", "summary": "Position in kilometers and velocity in kilometers per second in the True Equator Mean Equinox frame.", "api": "State"}
+    {
+      "id": "start",
+      "label": "TwoLineElement and GravityModel",
+      "kind": "data",
+      "group": "input",
+      "summary": "Mean elements as parsed from the element set, plus the gravity model they were fitted against.",
+      "api": "TwoLineElement",
+      "label_zh": "TwoLineElement 与 GravityModel",
+      "summary_zh": "按元素集解析得到的平均元素，以及其所拟合的引力模型。"
+    },
+    {
+      "id": "prepare",
+      "label": "Prepare mean elements",
+      "kind": "step",
+      "group": "prepare",
+      "summary": "Convert degrees to radians and revolutions per day to radians per minute, and recover the un-Kozai mean motion.",
+      "api": "Satellite",
+      "label_zh": "准备平均元素",
+      "summary_zh": "度转弧度、圈每天转弧度每分钟，并恢复去 Kozai 平均运动。"
+    },
+    {
+      "id": "valid",
+      "label": "Elements propagatable?",
+      "kind": "decision",
+      "group": "prepare",
+      "summary": "The eccentricity must be below one, the mean motion positive, and the recovered semi-major axis physical.",
+      "api": "validate",
+      "label_zh": "元素可传播？",
+      "summary_zh": "偏心率须小于一，平均运动须为正，且恢复出的半长轴须物理合理。"
+    },
+    {
+      "id": "invalid",
+      "label": "InvalidElements",
+      "kind": "terminal",
+      "group": "error",
+      "summary": "The elements do not describe a satellite the model can propagate.",
+      "api": "PropagationErrorKind",
+      "summary_zh": "元素不描述该模型可传播的卫星。"
+    },
+    {
+      "id": "branch",
+      "label": "Period at or above 225 minutes?",
+      "kind": "decision",
+      "group": "branch",
+      "summary": "Selects the deep space branch. The period follows from the mean motion.",
+      "api": "is_deep_space",
+      "label_zh": "周期大于等于 225 分钟？",
+      "summary_zh": "选择深空分支。周期由平均运动给出。"
+    },
+    {
+      "id": "sgp4",
+      "label": "SGP4 secular terms",
+      "kind": "step",
+      "group": "propagate",
+      "summary": "Apply the secular rates from the oblateness, and the drag decay of the semi-major axis and the eccentricity.",
+      "api": "Satellite",
+      "label_zh": "SGP4 长期项",
+      "summary_zh": "施加扁率带来的长期变化率，以及阻力导致的半长轴与偏心率衰减。"
+    },
+    {
+      "id": "sdp4",
+      "label": "SDP4 deep space terms",
+      "kind": "step",
+      "group": "propagate",
+      "summary": "Add the resonance with the Earth's gravity field and the long period luni-solar perturbations.",
+      "api": "Satellite",
+      "label_zh": "SDP4 深空项",
+      "summary_zh": "加入与地球引力场的共振以及日月长周期摄动。"
+    },
+    {
+      "id": "anomaly",
+      "label": "Solve Kepler's equation",
+      "kind": "step",
+      "group": "propagate",
+      "summary": "Recover the eccentric anomaly from the mean anomaly by iteration, then the true anomaly and the radius.",
+      "api": "eccentric_from_mean",
+      "label_zh": "求解开普勒方程",
+      "summary_zh": "由平近点角迭代求出偏近点角，再求真近点角与半径。"
+    },
+    {
+      "id": "position",
+      "label": "Perifocal position",
+      "kind": "step",
+      "group": "propagate",
+      "summary": "Evaluate the position and velocity in the orbital plane.",
+      "api": "Satellite",
+      "label_zh": "近焦点系位置",
+      "summary_zh": "在轨道面内求位置与速度。"
+    },
+    {
+      "id": "rotate",
+      "label": "Rotate to TEME",
+      "kind": "step",
+      "group": "propagate",
+      "summary": "Apply the argument of perigee, the inclination, and the right ascension of the ascending node.",
+      "api": "State",
+      "label_zh": "旋转到 TEME",
+      "summary_zh": "按近地点幅角、倾角与升交点赤经依次旋转。"
+    },
+    {
+      "id": "decayed",
+      "label": "Radius physical?",
+      "kind": "decision",
+      "group": "propagate",
+      "summary": "A radius below the surface means the drag term has brought the satellite down.",
+      "api": "PropagationErrorKind",
+      "label_zh": "半径合理？",
+      "summary_zh": "半径低于地表意味着阻力项已把卫星带入大气。"
+    },
+    {
+      "id": "decayed_end",
+      "label": "Decayed",
+      "kind": "terminal",
+      "group": "error",
+      "summary": "The satellite has decayed.",
+      "api": "PropagationErrorKind",
+      "label_zh": "已再入",
+      "summary_zh": "卫星已再入。"
+    },
+    {
+      "id": "state",
+      "label": "State",
+      "kind": "terminal",
+      "group": "output",
+      "summary": "Position in kilometers and velocity in kilometers per second in the True Equator Mean Equinox frame.",
+      "api": "State",
+      "summary_zh": "真赤道平春分点坐标系中的位置（千米）与速度（千米每秒）。"
+    }
   ],
   "edges": [
-    {"source": "start", "target": "prepare", "kind": "flow", "label": null},
-    {"source": "prepare", "target": "valid", "kind": "flow", "label": null},
-    {"source": "valid", "target": "invalid", "kind": "branch", "label": "no"},
-    {"source": "valid", "target": "branch", "kind": "branch", "label": "yes"},
-    {"source": "branch", "target": "sgp4", "kind": "branch", "label": "no"},
-    {"source": "branch", "target": "sdp4", "kind": "branch", "label": "yes"},
-    {"source": "sgp4", "target": "anomaly", "kind": "flow", "label": null},
-    {"source": "sdp4", "target": "anomaly", "kind": "flow", "label": null},
-    {"source": "anomaly", "target": "position", "kind": "flow", "label": null},
-    {"source": "position", "target": "rotate", "kind": "flow", "label": null},
-    {"source": "rotate", "target": "decayed", "kind": "flow", "label": null},
-    {"source": "decayed", "target": "decayed_end", "kind": "branch", "label": "below the surface"},
-    {"source": "decayed", "target": "state", "kind": "branch", "label": "valid"}
-  ]
+    {
+      "source": "start",
+      "target": "prepare",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "prepare",
+      "target": "valid",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "valid",
+      "target": "invalid",
+      "kind": "branch",
+      "label": "no"
+    },
+    {
+      "source": "valid",
+      "target": "branch",
+      "kind": "branch",
+      "label": "yes"
+    },
+    {
+      "source": "branch",
+      "target": "sgp4",
+      "kind": "branch",
+      "label": "no"
+    },
+    {
+      "source": "branch",
+      "target": "sdp4",
+      "kind": "branch",
+      "label": "yes"
+    },
+    {
+      "source": "sgp4",
+      "target": "anomaly",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "sdp4",
+      "target": "anomaly",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "anomaly",
+      "target": "position",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "position",
+      "target": "rotate",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "rotate",
+      "target": "decayed",
+      "kind": "flow",
+      "label": null
+    },
+    {
+      "source": "decayed",
+      "target": "decayed_end",
+      "kind": "branch",
+      "label": "below the surface"
+    },
+    {
+      "source": "decayed",
+      "target": "state",
+      "kind": "branch",
+      "label": "valid"
+    }
+  ],
+  "title_zh": "SGP4 传播",
+  "summary_zh": "从解析后的元素集到状态矢量：元素准备、分支选择与传播本身。"
 }

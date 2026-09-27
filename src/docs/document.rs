@@ -18,19 +18,44 @@ use std::collections::HashMap;
 use crate::docs::markdown;
 use crate::json::{self, Value};
 
-/// A parsed concept document.
+/// The language a document variant is written in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum Language {
+    /// Simplified Chinese, the default of the interface.
+    Chinese,
+    /// English.
+    English,
+}
+
+impl Language {
+    /// Returns the language of a file name suffix.
+    ///
+    /// A file whose stem ends in `.zh` is Chinese; every other file is
+    /// English.
+    pub fn of_file(stem: &str) -> Self {
+        if stem.ends_with(".zh") {
+            Self::Chinese
+        } else {
+            Self::English
+        }
+    }
+
+    /// Returns the short tag used in a payload.
+    pub const fn tag(self) -> &'static str {
+        match self {
+            Self::Chinese => "zh",
+            Self::English => "en",
+        }
+    }
+}
+
+/// One language form of a concept document.
 #[derive(Debug, Clone)]
-pub struct Document {
-    /// Identifier used in routes and cross references.
-    pub id: String,
+pub struct DocumentVariant {
     /// Display title.
     pub title: String,
-    /// Chapter identifier the document belongs to.
-    pub chapter: String,
     /// One sentence summary, shown in listings and search results.
     pub summary: String,
-    /// Free form tags.
-    pub tags: Vec<String>,
     /// Markdown source.
     pub markdown: String,
     /// Rendered HTML.
@@ -39,68 +64,146 @@ pub struct Document {
     pub headings: Vec<(String, String)>,
     /// Concept identifiers referenced by the body.
     pub references: Vec<String>,
+}
+
+/// A parsed concept document, with one form per available language.
+#[derive(Debug, Clone)]
+pub struct Document {
+    /// Identifier used in routes and cross references.
+    pub id: String,
+    /// Chapter identifier the document belongs to.
+    pub chapter: String,
+    /// Free form tags.
+    pub tags: Vec<String>,
     /// Identifier of the document this one builds on, when declared.
     pub prerequisites: Vec<String>,
+    /// The English form. Every document has one, and it is the fallback
+    /// when a translation is absent.
+    pub english: DocumentVariant,
+    /// The Chinese form, when a translation is embedded.
+    pub chinese: Option<DocumentVariant>,
 }
 
 impl Document {
     /// Parses a document from its embedded text.
     ///
-    /// Returns `None` when the mandatory `id` and `title` keys are absent,
-    /// because a document without them cannot be routed to.
-    pub fn parse(text: &str) -> Option<Self> {
-        let (header, body) = split_header(text);
-        let mut id = String::new();
-        let mut title = String::new();
-        let mut chapter = String::from("overview");
-        let mut summary = String::new();
-        let mut tags = Vec::new();
-        let mut prerequisites = Vec::new();
-
-        for line in header.lines() {
-            let Some((key, value)) = line.split_once(':') else {
-                continue;
-            };
-            let key = key.trim().to_ascii_lowercase();
-            let value = value.trim().to_string();
-            match key.as_str() {
-                "id" => id = value,
-                "title" => title = value,
-                "chapter" => chapter = value,
-                "summary" => summary = value,
-                "tags" => {
-                    tags = split_list(&value);
-                }
-                "prerequisites" => {
-                    prerequisites = split_list(&value);
-                }
-                _ => {}
-            }
-        }
-
-        if id.is_empty() || title.is_empty() {
+    /// `id` is the identifier the document is addressed by, which comes from
+    /// the file name rather than from the header so that a translation can
+    /// carry the same identifier as the original. `language` selects the
+    /// field the metadata is read into.
+    ///
+    /// Returns `None` when the mandatory `title` key is absent, because a
+    /// document without one cannot be listed.
+    pub fn parse(id: &str, language: Language, text: &str) -> Option<Self> {
+        let variant = DocumentVariant::parse(text)?;
+        if language == Language::Chinese {
+            // A Chinese file on its own is not a document; it is merged with
+            // the English one by the loader.
             return None;
         }
-
-        let html = markdown::render(body);
         Some(Self {
-            id,
-            title,
-            chapter,
-            summary,
-            tags,
-            headings: collect_headings(body),
-            references: collect_references(body),
-            prerequisites,
-            markdown: body.to_string(),
-            html,
+            id: id.to_string(),
+            chapter: chapter_of(text),
+            tags: list_of(text, "tags"),
+            prerequisites: list_of(text, "prerequisites"),
+            english: variant,
+            chinese: None,
         })
     }
 
-    /// Returns the plain text of the body, used to build the search index.
-    pub fn plain_text(&self) -> String {
-        markdown::to_plain_text(&self.markdown)
+    /// Returns the form for a language, falling back to English.
+    pub fn variant(&self, language: Language) -> &DocumentVariant {
+        match language {
+            Language::Chinese => self.chinese.as_ref().unwrap_or(&self.english),
+            Language::English => &self.english,
+        }
     }
+
+    /// Returns `true` when the document carries a translation.
+    pub fn has(&self, language: Language) -> bool {
+        match language {
+            Language::Chinese => self.chinese.is_some(),
+            Language::English => true,
+        }
+    }
+
+    /// Returns the title in the given language, falling back to English.
+    pub fn title(&self, language: Language) -> &str {
+        &self.variant(language).title
+    }
+
+    /// Returns the summary in the given language, falling back to English.
+    pub fn summary(&self, language: Language) -> &str {
+        &self.variant(language).summary
+    }
+
+    /// Returns the plain text of a language form, used for search.
+    pub fn plain_text(&self, language: Language) -> String {
+        markdown::to_plain_text(&self.variant(language).markdown)
+    }
+
+    /// Returns every concept identifier the document references, from
+    /// either language form.
+    pub fn references(&self) -> Vec<String> {
+        let mut references = self.english.references.clone();
+        if let Some(chinese) = &self.chinese {
+            for reference in &chinese.references {
+                if !references.contains(reference) {
+                    references.push(reference.clone());
+                }
+            }
+        }
+        references
+    }
+}
+
+impl DocumentVariant {
+    /// Parses one language form of a document.
+    ///
+    /// Returns `None` when the `title` key is absent, because a form without
+    /// a title cannot be listed.
+    pub fn parse(text: &str) -> Option<Self> {
+        let (header, body) = split_header(text);
+        let title = field_of(header, "title").unwrap_or_default();
+        if title.is_empty() {
+            return None;
+        }
+        Some(Self {
+            title,
+            summary: field_of(header, "summary").unwrap_or_default(),
+            headings: collect_headings(body),
+            references: collect_references(body),
+            markdown: body.to_string(),
+            html: markdown::render(body),
+        })
+    }
+}
+
+/// Returns the value of a metadata key, trimmed.
+fn field_of(header: &str, key: &str) -> Option<String> {
+    for line in header.lines() {
+        let Some((name, value)) = line.split_once(':') else {
+            continue;
+        };
+        if name.trim().eq_ignore_ascii_case(key) {
+            return Some(value.trim().to_string());
+        }
+    }
+    None
+}
+
+/// Returns a metadata list value, or an empty list when it is absent.
+fn list_of(text: &str, key: &str) -> Vec<String> {
+    let (header, _) = split_header(text);
+    field_of(header, key)
+        .map(|value| split_list(&value))
+        .unwrap_or_default()
+}
+
+/// Returns the chapter a document declares, defaulting to `overview`.
+fn chapter_of(text: &str) -> String {
+    let (header, _) = split_header(text);
+    field_of(header, "chapter").unwrap_or_else(|| "overview".to_string())
 }
 
 /// Splits a document into its metadata header and its body.
@@ -209,8 +312,12 @@ pub struct Chapter {
     pub id: String,
     /// Display title.
     pub title: String,
+    /// Display title in Chinese, when the chapter list gives one.
+    pub title_zh: Option<String>,
     /// One sentence description.
     pub summary: String,
+    /// One sentence description in Chinese, when the chapter list gives one.
+    pub summary_zh: Option<String>,
     /// Document identifiers in reading order.
     pub documents: Vec<String>,
 }
@@ -258,7 +365,9 @@ impl Tree {
                 None => chapters.push(Chapter {
                     id: chapter_id.clone(),
                     title: title_case(&chapter_id),
+                    title_zh: None,
                     summary: String::new(),
+                    summary_zh: None,
                     documents: vec![id],
                 }),
             }
@@ -319,9 +428,9 @@ impl Tree {
     pub fn missing_links(&self) -> Vec<(String, String)> {
         let mut missing = Vec::new();
         for document in self.ordered() {
-            for reference in &document.references {
-                if !self.documents.contains_key(reference) {
-                    missing.push((document.id.clone(), reference.clone()));
+            for reference in document.references() {
+                if !self.documents.contains_key(&reference) {
+                    missing.push((document.id.clone(), reference));
                 }
             }
         }
@@ -329,16 +438,26 @@ impl Tree {
     }
 
     /// Builds the search index over the collection.
+    ///
+    /// Each language form is indexed separately, so a query in one language
+    /// ranks the documents that contain it in that language. A document
+    /// without a translation contributes only its English form.
     pub fn search_index(&self) -> SearchIndex {
         let mut entries = Vec::new();
         for document in self.ordered() {
-            entries.push(IndexEntry {
-                id: document.id.clone(),
-                title: document.title.clone(),
-                summary: document.summary.clone(),
-                chapter: document.chapter.clone(),
-                text: document.plain_text().to_lowercase(),
-            });
+            for language in [Language::Chinese, Language::English] {
+                if !document.has(language) {
+                    continue;
+                }
+                entries.push(IndexEntry {
+                    id: document.id.clone(),
+                    language,
+                    title: document.title(language).to_string(),
+                    summary: document.summary(language).to_string(),
+                    chapter: document.chapter.clone(),
+                    text: document.plain_text(language).to_lowercase(),
+                });
+            }
         }
         SearchIndex::build(entries)
     }
@@ -388,7 +507,15 @@ fn load_chapters() -> Vec<Chapter> {
             Some(Chapter {
                 id,
                 title,
+                title_zh: chapter
+                    .get("title_zh")
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
                 summary,
+                summary_zh: chapter
+                    .get("summary_zh")
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
                 documents,
             })
         })
@@ -398,6 +525,7 @@ fn load_chapters() -> Vec<Chapter> {
 /// One document in the search index.
 struct IndexEntry {
     id: String,
+    language: Language,
     title: String,
     summary: String,
     chapter: String,
@@ -419,6 +547,7 @@ pub struct SearchIndex {
 /// A document in the index, with the fields shown in a result.
 struct SearchEntry {
     id: String,
+    language: Language,
     title: String,
     summary: String,
     chapter: String,
@@ -448,6 +577,7 @@ impl SearchIndex {
             }
             search_entries.push(SearchEntry {
                 id: entry.id.clone(),
+                language: entry.language,
                 title: entry.title.clone(),
                 summary: entry.summary.clone(),
                 chapter: entry.chapter.clone(),
@@ -496,6 +626,7 @@ impl SearchIndex {
                 let entry = &self.entries[index];
                 SearchHit {
                     id: entry.id.clone(),
+                    language: entry.language,
                     title: entry.title.clone(),
                     summary: entry.summary.clone(),
                     chapter: entry.chapter.clone(),
@@ -532,6 +663,8 @@ impl SearchIndex {
 pub struct SearchHit {
     /// Identifier of the matching document.
     pub id: String,
+    /// Language form that matched.
+    pub language: Language,
     /// Title of the matching document.
     pub title: String,
     /// Summary of the matching document.
@@ -576,32 +709,75 @@ The model propagates [[tle|mean elements]].
 The BSTAR term.
 ";
 
-    #[test]
-    fn parses_metadata_and_body() {
-        let document = Document::parse(SAMPLE).unwrap();
-        assert_eq!(document.id, "sgp4");
-        assert_eq!(document.title, "SGP4 propagation");
-        assert_eq!(document.tags, vec!["propagation", "tle"]);
-        assert_eq!(document.prerequisites, vec!["tle"]);
-        assert_eq!(document.references, vec!["tle"]);
-        assert_eq!(document.headings.len(), 2);
-        assert_eq!(document.headings[1].0, "drag");
-        assert!(document.html.contains("<h1"));
+    const SAMPLE_ZH: &str = "\
+---
+title: SGP4 传播
+summary: 平均元素的解析传播。
+---
+
+# SGP4
+
+该模型传播 [[tle|平均元素]]。
+
+## 阻力
+
+BSTAR 项。
+";
+
+    /// Parses the English sample under the given identifier.
+    fn sample(id: &str) -> Document {
+        Document::parse(id, Language::English, SAMPLE).expect("the sample must parse")
     }
 
     #[test]
-    fn rejects_a_document_without_identity() {
-        assert!(Document::parse("---\nchapter: x\n---\nbody").is_none());
+    fn parses_metadata_and_body() {
+        let document = sample("sgp4");
+        assert_eq!(document.id, "sgp4");
+        assert_eq!(document.title(Language::English), "SGP4 propagation");
+        assert_eq!(document.tags, vec!["propagation", "tle"]);
+        assert_eq!(document.prerequisites, vec!["tle"]);
+        assert_eq!(document.references(), vec!["tle"]);
+        assert_eq!(document.english.headings.len(), 2);
+        assert_eq!(document.english.headings[1].0, "drag");
+        assert!(document.english.html.contains("<h1"));
+    }
+
+    #[test]
+    fn a_translation_replaces_the_language_form() {
+        let mut document = sample("sgp4");
+        assert!(!document.has(Language::Chinese));
+        // Before the translation the Chinese reader sees the English form.
+        assert_eq!(document.title(Language::Chinese), "SGP4 propagation");
+        document.chinese = Some(DocumentVariant::parse(SAMPLE_ZH).expect("must parse"));
+        assert!(document.has(Language::Chinese));
+        assert_eq!(document.title(Language::Chinese), "SGP4 传播");
+        assert_eq!(document.title(Language::English), "SGP4 propagation");
+        // The references of either form are merged.
+        assert_eq!(document.references(), vec!["tle"]);
+    }
+
+    #[test]
+    fn rejects_a_document_without_a_title() {
+        assert!(Document::parse("x", Language::English, "---\nchapter: x\n---\nbody").is_none());
+        assert!(DocumentVariant::parse("---\nchapter: x\n---\nbody").is_none());
+    }
+
+    #[test]
+    fn language_of_file_uses_the_suffix() {
+        assert_eq!(Language::of_file("sgp4"), Language::English);
+        assert_eq!(Language::of_file("sgp4.zh"), Language::Chinese);
     }
 
     #[test]
     fn tree_orders_documents_by_chapter() {
         let documents = vec![
-            Document::parse(SAMPLE).unwrap(),
+            sample("sgp4"),
             Document::parse(
-                "---\nid: tle\ntitle: Two line elements\nchapter: orbit\n---\n\nElement sets.\n",
+                "tle",
+                Language::English,
+                "---\ntitle: Two line elements\nchapter: orbit\n---\n\nElement sets.\n",
             )
-            .unwrap(),
+            .expect("must parse"),
         ];
         let tree = Tree::new(documents);
         assert_eq!(tree.len(), 2);
@@ -614,12 +790,37 @@ The BSTAR term.
     }
 
     #[test]
+    fn a_translated_document_is_indexed_in_both_languages() {
+        let mut document = sample("sgp4");
+        document.chinese = Some(DocumentVariant::parse(SAMPLE_ZH).expect("must parse"));
+        let tree = Tree::new(vec![document]);
+        let index = tree.search_index();
+        assert_eq!(index.len(), 2);
+        let hits = index.search("平均元素", 5);
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].language, Language::Chinese);
+        // The English body contains "propagates", which the Chinese body
+        // does not.
+        let hits = index.search("propagates", 5);
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].language, Language::English);
+    }
+
+    #[test]
     fn search_ranks_title_matches_first() {
         let documents = vec![
-            Document::parse("---\nid: a\ntitle: Redshift\nsummary: x\n---\n\ntext about orbits\n")
-                .unwrap(),
-            Document::parse("---\nid: b\ntitle: Orbits\nsummary: y\n---\n\ntext about redshift\n")
-                .unwrap(),
+            Document::parse(
+                "a",
+                Language::English,
+                "---\ntitle: Redshift\nsummary: x\n---\n\ntext about orbits\n",
+            )
+            .expect("must parse"),
+            Document::parse(
+                "b",
+                Language::English,
+                "---\ntitle: Orbits\nsummary: y\n---\n\ntext about redshift\n",
+            )
+            .expect("must parse"),
         ];
         let tree = Tree::new(documents);
         let index = tree.search_index();
@@ -629,8 +830,7 @@ The BSTAR term.
 
     #[test]
     fn missing_links_are_reported() {
-        let documents = vec![Document::parse(SAMPLE).unwrap()];
-        let tree = Tree::new(documents);
+        let tree = Tree::new(vec![sample("sgp4")]);
         let missing = tree.missing_links();
         assert_eq!(missing, vec![("sgp4".to_string(), "tle".to_string())]);
     }

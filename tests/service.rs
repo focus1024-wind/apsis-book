@@ -269,6 +269,64 @@ fn unknown_api_resource_is_a_not_found() {
 }
 
 #[test]
+fn documents_are_served_in_both_languages() {
+    let service = Service::start();
+    wait_ready(&service);
+    let response = service.get("/api/docs/sgp4");
+    let body = body(&response);
+    assert!(body.contains("\"language\":\"zh\""), "{body}");
+    assert!(body.contains("\"language\":\"en\""), "{body}");
+    // The Chinese form of the document carries Chinese text.
+    assert!(body.contains("传播"), "the Chinese form should be embedded");
+}
+
+#[test]
+fn document_listing_carries_bilingual_titles() {
+    let service = Service::start();
+    wait_ready(&service);
+    let response = service.get("/api/docs");
+    let body = body(&response);
+    assert!(body.contains("\"zh\""), "{body}");
+    assert!(body.contains("\"en\""), "{body}");
+}
+
+#[test]
+fn tool_registry_carries_bilingual_labels() {
+    let service = Service::start();
+    wait_ready(&service);
+    let response = service.get("/api/tools");
+    let body = body(&response);
+    assert!(
+        body.contains("解析两行元素集"),
+        "the tool name should be Chinese too"
+    );
+    assert!(body.contains("Parse a two-line element set"), "{body}");
+}
+
+#[test]
+fn tool_result_labels_are_bilingual() {
+    let service = Service::start();
+    wait_ready(&service);
+    let tle = "1 25544U 98067A   08264.51782528 -.00002182  00000-0 -11606-4 0  2927\\n2 25544  51.6416 247.4627 0006703 130.5360 325.0288 15.72125391563537";
+    let response = service.post(
+        "/api/tools/sgp4-propagate/run",
+        &format!("{{\"tle\":\"{tle}\"}}"),
+    );
+    let body = body(&response);
+    assert!(body.contains("\"zh\":\"半长轴\""), "{body}");
+    assert!(body.contains("\"en\":\"Semi-major axis\""), "{body}");
+}
+
+#[test]
+fn graph_labels_are_bilingual() {
+    let service = Service::start();
+    wait_ready(&service);
+    let response = service.get("/api/graph");
+    let body = body(&response);
+    assert!(body.contains("概念图谱"), "{body}");
+}
+
+#[test]
 fn head_request_omits_the_body_but_keeps_the_length() {
     let service = Service::start();
     wait_ready(&service);

@@ -6,9 +6,14 @@
    * and emits only the markup it generated, so rendering it here does not
    * introduce an injection path. Internal links are intercepted and handled
    * by the router.
+   *
+   * The document carries a form per embedded language. The form matching
+   * the reader's language is shown, with the English form as the fallback
+   * when a translation is absent.
    */
-  import type { Document } from '../lib/types';
+  import type { Document, DocumentForm } from '../lib/types';
   import { navigate } from '../lib/router';
+  import { language, setLanguage, tr, type Language } from '../lib/i18n';
 
   interface Props {
     document: Document | null;
@@ -16,6 +21,29 @@
   }
 
   let { document, id }: Props = $props();
+
+  /** The current language, read so that the form re-renders on a switch. */
+  let lang = $derived($language);
+
+  /** The form for the reader's language, falling back to English. */
+  const form = $derived.by((): DocumentForm | null => {
+    if (!document) return null;
+    const preferred = document.forms.find((entry) => entry.language === lang);
+    if (preferred) return preferred;
+    return document.forms.find((entry) => entry.language === 'en') ?? document.forms[0] ?? null;
+  });
+
+  /** True when the reader's language has no form of its own. */
+  const translationMissing = $derived(
+    !!document && !!form && form.language !== lang,
+  );
+
+  /** True when a form in the other language is available to switch to. */
+  const otherLanguage = $derived.by((): Language | null => {
+    if (!document || !form) return null;
+    const other: Language = form.language === 'zh' ? 'en' : 'zh';
+    return document.forms.some((entry) => entry.language === other) ? other : null;
+  });
 
   /** Handles a click inside the body. */
   function onClick(event: MouseEvent) {
@@ -38,34 +66,52 @@
       }
     }
   }
+
+  /** Sets the language; the router keeps the reader on the same document. */
+  function switchLanguage(next: Language) {
+    setLanguage(next);
+  }
 </script>
 
 {#if !id}
-  <p class="empty">No document selected.</p>
-{:else if !document}
+  <p class="empty">{tr('docs.noSelection', lang)}</p>
+{:else if !document || !form}
   <div class="notice error">
-    <p>There is no document with the identifier <code>{id}</code>.</p>
-    <p><a href="#/docs">Back to the listing</a></p>
+    <p>{tr('docs.notFound', lang)} <code>{id}</code>。</p>
+    <p><a href="#/docs">{tr('docs.back', lang)}</a></p>
   </div>
 {:else}
   <div class="doc-layout">
     <article class="doc-body">
       <p class="breadcrumb">
-        <a href="#/docs">Concepts</a> / {document.chapter}
+        <a href="#/docs">{tr('docs.breadcrumb', lang)}</a> / {document.chapter}
       </p>
-      <h1>{document.title}</h1>
-      {#if document.summary}
-        <p style="color: var(--text-muted); font-size: 1.05rem;">{document.summary}</p>
+      <h1>{form.title}</h1>
+      {#if form.summary}
+        <p style="color: var(--text-muted); font-size: 1.05rem;">{form.summary}</p>
       {/if}
       <div>
         {#each document.tags as tag}
           <span class="tag">{tag}</span>
         {/each}
+        {#if otherLanguage}
+          <button
+            class="ghost"
+            type="button"
+            style="padding: 0.05rem 0.6rem; font-size: 0.75rem;"
+            onclick={() => switchLanguage(otherLanguage)}>{tr('docs.otherLanguage', lang)}</button>
+        {/if}
       </div>
+
+      {#if translationMissing}
+        <div class="notice muted">
+          <p>{tr('docs.translationMissing', lang)}</p>
+        </div>
+      {/if}
 
       {#if document.prerequisites.length > 0}
         <div class="notice">
-          <strong>Read first:</strong>
+          <strong>{tr('docs.readFirst', lang)}</strong>
           {#each document.prerequisites as prerequisite, index}
             {#if index > 0}, {/if}
             <a href={`#/docs/${prerequisite}`}>{prerequisite}</a>
@@ -80,17 +126,17 @@
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
       <div class="doc-content" role="document" onclick={onClick}>
-        {@html document.html}
+        {@html form.html}
       </div>
     </article>
 
     <aside class="doc-toc">
-      <h2 style="font-size: 0.72rem;">On this page</h2>
-      {#if document.headings.length === 0}
-        <p class="empty">No sections.</p>
+      <h2 style="font-size: 0.72rem;">{tr('docs.onThisPage', lang)}</h2>
+      {#if form.headings.length === 0}
+        <p class="empty">{tr('docs.noSections', lang)}</p>
       {:else}
         <ul style="list-style: none; padding-left: 0;">
-          {#each document.headings as heading}
+          {#each form.headings as heading}
             <li style="margin: 0.2rem 0;">
               <a href={`#${heading.anchor}`} style="color: var(--text-muted); font-size: 0.85rem;">
                 {heading.text}
