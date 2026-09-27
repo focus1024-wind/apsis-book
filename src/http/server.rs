@@ -60,11 +60,12 @@ pub struct Server {
 }
 
 impl Server {
-    /// Binds a server to `address`.
+    /// Binds a server to a socket address.
     ///
-    /// The address accepts anything that resolves to a socket address, such
-    /// as `"127.0.0.1:8080"` or `"0.0.0.0:80"`.
-    pub fn bind(address: &str, config: ServerConfig) -> io::Result<Self> {
+    /// This is the form the command line uses once the host and the port
+    /// have been resolved, so that a name is resolved once rather than left
+    /// to the listener.
+    pub fn bind_address(address: SocketAddr, config: ServerConfig) -> io::Result<Self> {
         let listener = TcpListener::bind(address)?;
         Ok(Self { listener, config })
     }
@@ -198,8 +199,10 @@ mod tests {
 
     #[test]
     fn serves_a_request_over_a_real_socket() {
-        let server = Server::bind(
-            "127.0.0.1:0",
+        let server = Server::bind_address(
+            "127.0.0.1:0"
+                .parse()
+                .expect("the literal address must parse"),
             ServerConfig {
                 workers: 2,
                 ..ServerConfig::default()

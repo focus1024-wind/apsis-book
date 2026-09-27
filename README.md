@@ -56,7 +56,9 @@ Environment variables:
 
 | Variable | Effect |
 |----------|--------|
-| `APSIS_BOOK_ADDRESS` | Bind address, default `127.0.0.1:8080` |
+| `APSIS_BOOK_HOST` | Interface to bind, default `127.0.0.1` |
+| `APSIS_BOOK_PORT` | Port to bind, default `8080` |
+| `APSIS_BOOK_ADDRESS` | Bind address as `HOST:PORT`, overriding the two above |
 | `APSIS_BOOK_WORKERS` | Worker threads, default 4 |
 | `APSIS_BOOK_SKIP_FRONTEND` | Set to `1` to skip the frontend build in a release build |
 | `APSIS_BOOK_FRONTEND_DIR` | Frontend directory, default `frontend` |
@@ -64,8 +66,29 @@ Environment variables:
 Command line options override the environment:
 
 ```sh
-apsis-book --address 0.0.0.0:8080 --workers 8
+# Bind every interface on port 8080.
+apsis-book --host 0.0.0.0 --port 8080
+
+# The combined form is equivalent.
+apsis-book --address 0.0.0.0:8080
 ```
+
+`--host` and `--port` may be given together. `--address` cannot be combined
+with either of them, because the order in which they would apply is not
+defined. A host may be a literal address, an IPv6 literal in brackets, or a
+name the operating system resolves.
+
+### Language
+
+The interface is bilingual and opens in Chinese. The reader switches to
+English with the control in the top bar; the choice is stored in the browser
+and applies to every page.
+
+The backend carries every user facing string in both languages, so the switch
+takes effect without a request. A concept document is written once in English
+as `content/concepts/<id>.md` and translated as
+`content/concepts/<id>.zh.md`. A document without a translation is shown in
+English to every reader, with a note saying so.
 
 ## Running
 
@@ -109,8 +132,9 @@ or later. The Rust build does not run it and does not depend on Python.
 
 | Path | Contents |
 |------|----------|
-| `content/concepts/chapters.json` | Chapter list and the reading order of documents |
+| `content/concepts/chapters.json` | Chapter list and the reading order of documents, with bilingual titles |
 | `content/concepts/*.md` | Concept documents, with a `key: value` metadata header |
+| `content/concepts/*.zh.md` | Chinese translations; the identifier comes from the file name |
 | `content/graph/concepts.json` | The concept graph |
 | `content/flows/*.json` | The algorithm flow graphs |
 | `content/api.json` | The generated interface catalog; do not edit by hand |
