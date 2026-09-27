@@ -2,13 +2,19 @@
   /**
    * The interface documentation.
    *
+   * The page has two views. The index lists the crates with a short
+   * description and lets a reader filter the public items by name. A crate
+   * view lists the items of one crate, grouped by kind, with the signature
+   * and the documentation of each. An item view shows one item on its own so
+   * that a link from a tool or a graph node lands on a readable page.
+   *
    * The catalog is extracted from the source of the library, so what is
    * shown here is the interface as it is written rather than a description
-   * of it. Selecting a crate lists its items; searching filters the item
-   * names across every crate.
+   * of it.
    */
   import type { ApiIndex, ApiCrate, ApiItem } from '../lib/types';
   import { getJson } from '../lib/api';
+  import { navigate } from '../lib/router';
   import { language, tr } from '../lib/i18n';
   import Signature from '../lib/Signature.svelte';
 
@@ -22,45 +28,41 @@
   /** The current language, read so that the text re-renders on a switch. */
   let lang = $derived($language);
 
-  let selectedCrate = $state<string | null>(null);
   let crate = $state<ApiCrate | null>(null);
   let item = $state<(ApiItem & { crate: string; layer: string }) | null>(null);
-  let itemError = $state<string | null>(null);
+  let notFound = $state<string | null>(null);
   let filter = $state('');
   let loading = $state(false);
 
-  /** Selects a route segment: either a crate or an item name. */
+  /** The kind of a member, for the heading of a group. */
+  const KIND_ORDER = ['struct', 'enum', 'trait', 'fn', 'const', 'type'];
+
+  /** Resolves a route segment: either a crate name or an item name. */
   async function resolve(segment: string | null) {
-    selectedCrate = null;
     crate = null;
     item = null;
-    itemError = null;
+    notFound = null;
     if (!segment || !index) return;
 
-    const knownCrate = index.crates.find((candidate) => candidate.name === segment);
-    if (knownCrate) {
+    if (index.crates.some((candidate) => candidate.name === segment)) {
       loading = true;
       try {
         crate = await getJson<ApiCrate>(`/api/api/crates/${segment}`);
-        selectedCrate = segment;
       } finally {
         loading = false;
       }
       return;
     }
 
-    const knownItem = index.items.find((candidate) => candidate.name === segment);
-    if (!knownItem) {
-      itemError = `There is no crate or interface item named ${segment}.`;
+    if (!index.items.some((candidate) => candidate.name === segment)) {
+      notFound = segment;
       return;
     }
     loading = true;
     try {
-      const response = await getJson<ApiItem & { crate: string; layer: string }>(
+      item = await getJson<ApiItem & { crate: string; layer: string }>(
         `/api/api/items/${segment}`,
       );
-      item = response;
-      selectedCrate = response.crate;
     } finally {
       loading = false;
     }
@@ -81,65 +83,136 @@
           candidate.name.toLowerCase().includes(needle) ||
           candidate.crate.toLowerCase().includes(needle),
       )
-      .slice(0, 60);
+      .slice(0, 80);
   });
 
   /** The items of the crate grouped by kind. */
   const groups = $derived.by(() => {
-    if (!crate) return [];
-    const order = ['struct', 'enum', 'trait', 'fn', 'const', 'type'];
-    const result: { kind: string; items: ApiItem[] }[] = [];
-    for (const kind of order) {
-      const items = crate.items.filter((candidate) => candidate.kind === kind);
-      if (items.length > 0) result.push({ kind, items });
-    }
-    return result;
+    const current = crate;
+    if (!current) return [];
+    return KIND_ORDER.map((kind) => ({
+      kind,
+      items: current.items.filter((candidate) => candidate.kind === kind),
+    })).filter((group) => group.items.length > 0);
   });
+
+  /** Opens an item route. */
+  function openItem(name: string) {
+    navigate(`/api/${name}`);
+  }
+
+  /**
+   * Returns the first sentence of a crate summary.
+   *
+   * A crate summary is the module documentation, which is several
+   * paragraphs. The index shows one sentence per crate so that the grid
+   * stays readable; the full text is on the crate page.
+   */
+  function firstSentence(summary: string): string {
+    const text = summary.replace(/\s+/g, ' ').trim();
+    if (text === '') return '';
+    const end = text.search(/[.!?](\s|$)/);
+    if (end === -1) return text.length > 160 ? `${text.slice(0, 157)}...` : text;
+    return text.slice(0, end + 1);
+  }
 </script>
 
 <div class="page-header">
-  <h1>Interface documentation</h1>
-  <p>
-    The public interface of the ApsisRS layers this service builds against, extracted from
-    the source doc comments. Signatures are shown as they are written, with the units and
-    the error cases stated in the documentation of each item.
-  </p>
+  <h1>{tr('api.title', lang)}</h1>
+  <p>{tr('api.intro', lang)}</p>
 </div>
 
 {#if !index}
-  <p class="empty">Loading the interface catalog…</p>
-{:else}
-  <div class="grid cards">
-    {#each index.crates as candidate}
-      <article class="card" style={selectedCrate === candidate.name ? 'border-color: var(--accent-strong);' : ''}>
-        <header style="display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap;">
-          <h3 style="margin: 0;">
-            <a href={`#/api/${candidate.name}`}>{candidate.name}</a>
-          </h3>
-          <span class="badge">{candidate.layer}</span>
-          <span class="badge">{candidate.items} items</span>
+  <p class="empty">{tr('api.loading', lang)}</p>
+{:else if crate}
+  <!-- One crate, with its items grouped by kind. -->
+  <p class="breadcrumb">
+    <a href="#/api">{tr('nav.api', lang)}</a> / {crate.name}
+    <span class="badge" style="margin-left: 0.5rem">{crate.layer}</span>
+  </p>
+  <h2 style="margin-top: 0.5rem">{crate.name}</h2>
+  <p style="color: var(--text-muted)">{crate.summary}</p>
+
+  {#each groups as group}
+    <h3 id={`kind-${group.kind}`}>
+      {group.kind === 'fn' ? 'functions' : `${group.kind}s`}
+      <span class="badge">{group.items.length}</span>
+    </h3>
+    {#each group.items as candidate (candidate.name + candidate.signature)}
+      <article class="api-item">
+        <header>
+          <a class="name" href={`#/api/${candidate.name}`}>{candidate.name}</a>
+          {#if candidate.associated}
+            <span class="badge">{tr('api.associated', lang)}</span>
+          {/if}
+          <button
+            class="ghost"
+            type="button"
+            style="margin-left: auto; padding: 0.05rem 0.5rem; font-size: 0.75rem;"
+            onclick={() => openItem(candidate.name)}>{tr('api.detail', lang)}</button>
         </header>
-        <p style="color: var(--text-muted); font-size: 0.88rem;">{candidate.summary}</p>
+        <div style="margin: 0.5rem 0">
+          <Signature signature={candidate.signature} name={candidate.name} />
+        </div>
+        {#if candidate.doc}
+          <!-- The HTML is rendered by the backend from the doc comment, and
+               every text node is escaped there. -->
+          <div class="doc-body api-doc">{@html candidate.doc_html}</div>
+        {/if}
       </article>
     {/each}
-  </div>
+  {/each}
+{:else if item}
+  <!-- One item on its own. -->
+  <section class="card">
+    <p class="breadcrumb">
+      <a href="#/api">{tr('nav.api', lang)}</a> /
+      <a href={`#/api/${item.crate}`}>{item.crate}</a> / {item.name}
+    </p>
+    <header style="display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap">
+      <span class="kind">{item.kind}</span>
+      <span style="font-family: var(--mono); color: var(--accent); font-size: 1.05rem">
+        {item.name}
+      </span>
+    </header>
+    <div style="margin: 0.75rem 0">
+      <Signature signature={item.signature} name={item.name} />
+    </div>
+    {#if item.doc}
+      <!-- The HTML is rendered by the backend from the doc comment, and
+           every text node is escaped there. -->
+      <div class="doc-body api-doc">{@html item.doc_html}</div>
+    {:else}
+      <p class="empty">{tr('api.noDoc', lang)}</p>
+    {/if}
+  </section>
+{:else}
+  <!-- The index. -->
+  {#if notFound}
+    <div class="notice error">
+      <p>{tr('api.noItem', lang)} <code>{notFound}</code>。</p>
+    </div>
+  {/if}
+  {#if loading}
+    <p class="empty"><span class="spinner"></span> {tr('api.loadingItem', lang)}</p>
+  {/if}
 
-  <section class="card" style="margin-top: 1.5rem;">
-    <h3>Find an item</h3>
+  <section class="card">
+    <h3 style="margin-top: 0">{tr('api.find', lang)}</h3>
     <input
       type="search"
-      placeholder="Filter the {index.item_count} public items by name or crate"
+      placeholder={`${tr('api.filter', lang)} (${index.item_count})`}
       bind:value={filter}
     />
     {#if filter.trim() !== ''}
       {#if filtered.length === 0}
-        <p class="empty">No item matches that filter.</p>
+        <p class="empty">{tr('api.noMatch', lang)}</p>
       {:else}
-        <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem;">
+        <div class="chip-row">
           {#each filtered as candidate}
-            <a class="badge" href={`#/api/${candidate.name}`} style="font-size: 0.78rem;">
+            <a class="chip" href={`#/api/${candidate.name}`}>
               {candidate.name}
-              <span style="color: var(--text-faint);"> · {candidate.crate}</span>
+              <span class="chip-note">{candidate.crate}</span>
             </a>
           {/each}
         </div>
@@ -147,62 +220,16 @@
     {/if}
   </section>
 
-  {#if loading}
-    <p class="empty"><span class="spinner"></span> Loading…</p>
-  {/if}
-
-  {#if itemError}
-    <div class="notice error"><p>{itemError}</p></div>
-  {/if}
-
-  {#if item}
-    <section class="card" style="margin-top: 1.5rem;">
-      <p class="breadcrumb">
-        <a href="#/api">{tr('nav.api', lang)}</a> /
-        <a href={`#/api/${item.crate}`}>{item.crate}</a> / {item.name}
-      </p>
-      <header style="display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap;">
-        <span class="kind">{item.kind}</span>
-        <span class="name" style="font-family: var(--mono); color: var(--accent); font-size: 1.05rem;">
-          {item.name}
-        </span>
-      </header>
-      <div style="margin: 0.75rem 0;">
-        <Signature signature={item.signature} name={item.name} />
-      </div>
-      {#if item.doc}
-        <p class="doc" style="white-space: pre-wrap; color: var(--text-muted);">{item.doc}</p>
-      {:else}
-        <p class="empty">This item has no documentation comment.</p>
-      {/if}
-    </section>
-  {/if}
-
-  {#if crate}
-    <section style="margin-top: 1.5rem;">
-      <p class="breadcrumb"><a href="#/api">{tr('nav.api', lang)}</a> / {crate.name}</p>
-      <h2 style="margin-top: 0.5rem;">{crate.name}</h2>
-      <p style="color: var(--text-muted);">{crate.summary}</p>
-
-      {#each groups as group}
-        <h3>{group.kind === 'fn' ? 'functions' : `${group.kind}s`}</h3>
-        {#each group.items as candidate}
-          <article class="api-item">
-            <header>
-              <span class="name">{candidate.name}</span>
-              {#if candidate.associated}
-                <span class="badge">associated</span>
-              {/if}
-            </header>
-            <div style="margin: 0.5rem 0;">
-              <Signature signature={candidate.signature} name={candidate.name} />
-            </div>
-            {#if candidate.doc}
-              <p class="doc">{candidate.doc}</p>
-            {/if}
-          </article>
-        {/each}
-      {/each}
-    </section>
-  {/if}
+  <div class="crate-grid">
+    {#each index.crates as candidate}
+      <a class="crate-card" href={`#/api/${candidate.name}`}>
+        <header>
+          <span class="name">{candidate.name}</span>
+          <span class="badge">{candidate.layer}</span>
+          <span class="badge">{candidate.items}</span>
+        </header>
+        <p>{firstSentence(candidate.summary_plain)}</p>
+      </a>
+    {/each}
+  </div>
 {/if}

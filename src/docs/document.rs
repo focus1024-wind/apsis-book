@@ -162,21 +162,60 @@ impl DocumentVariant {
     ///
     /// Returns `None` when the `title` key is absent, because a form without
     /// a title cannot be listed.
+    ///
+    /// A leading top level heading is removed when it repeats the title. The
+    /// page already shows the title, from the metadata, in the heading of the
+    /// article, so a body that opens with the same heading would show it
+    /// twice. A document whose first heading is a different string keeps it,
+    /// because then the two headings say different things.
     pub fn parse(text: &str) -> Option<Self> {
         let (header, body) = split_header(text);
         let title = field_of(header, "title").unwrap_or_default();
         if title.is_empty() {
             return None;
         }
+        let body = strip_leading_title(body, &title);
         Some(Self {
             title,
             summary: field_of(header, "summary").unwrap_or_default(),
-            headings: collect_headings(body),
-            references: collect_references(body),
-            markdown: body.to_string(),
-            html: markdown::render(body),
+            headings: collect_headings(&body),
+            references: collect_references(&body),
+            markdown: body.clone(),
+            html: markdown::render(&body),
         })
     }
+}
+
+/// Removes a leading `# heading` when it equals `title`.
+///
+/// Returns the body unchanged when it does not open with such a heading.
+fn strip_leading_title(body: &str, title: &str) -> String {
+    let mut lines = body.lines().peekable();
+    // Skip leading blank lines.
+    while matches!(lines.peek(), Some(line) if line.trim().is_empty()) {
+        lines.next();
+    }
+    let Some(first) = lines.peek() else {
+        return body.to_string();
+    };
+    let trimmed = first.trim_end();
+    let hashes = trimmed
+        .chars()
+        .take_while(|character| *character == '#')
+        .count();
+    if hashes == 1 && trimmed[hashes..].starts_with(' ') {
+        let heading = trimmed[hashes..].trim();
+        if heading == title.trim() {
+            lines.next();
+            // Drop one following blank line so the body does not start with
+            // a gap.
+            if matches!(lines.peek(), Some(line) if line.trim().is_empty()) {
+                lines.next();
+            }
+            return lines.collect::<Vec<&str>>().join("\n");
+        }
+    }
+    body.to_string()
 }
 
 /// Returns the value of a metadata key, trimmed.
@@ -552,6 +591,9 @@ struct SearchEntry {
     summary: String,
     chapter: String,
     title_tokens: Vec<String>,
+    /// The searchable text, lowercased, kept for the substring fallback that
+    /// a query of a single character uses.
+    haystack: String,
 }
 
 impl SearchIndex {
@@ -582,6 +624,8 @@ impl SearchIndex {
                 summary: entry.summary.clone(),
                 chapter: entry.chapter.clone(),
                 title_tokens,
+                haystack: format!("{} {} {}", entry.title, entry.summary, entry.text)
+                    .to_lowercase(),
             });
         }
 
@@ -593,12 +637,21 @@ impl SearchIndex {
 
     /// Searches the index and returns the best matches, ordered by score.
     ///
-    /// At most `limit` results are returned. A query with no usable token
-    /// returns nothing.
+    /// At most `limit` results are returned. A query with no usable token and
+    /// no literal match returns nothing.
+    ///
+    /// A query is handled in two ways. A query that yields tokens is matched
+    /// against the postings. A query that yields no token, such as a single
+    /// character, is matched as a substring, because a one character query
+    /// cannot form a token and would otherwise always return nothing.
     pub fn search(&self, query: &str, limit: usize) -> Vec<SearchHit> {
-        let tokens = tokenise(&query.to_lowercase());
-        if tokens.is_empty() {
+        let needle = query.trim().to_lowercase();
+        if needle.is_empty() {
             return Vec::new();
+        }
+        let tokens = tokenise(&needle);
+        if tokens.is_empty() {
+            return self.search_substring(&needle, limit);
         }
 
         let mut scores: HashMap<usize, f64> = HashMap::new();
@@ -645,6 +698,40 @@ impl SearchIndex {
         hits
     }
 
+    /// Returns the documents whose text contains the query literally.
+    ///
+    /// Used for a query that yields no token. A match in the title scores
+    /// higher than a match in the body, so the ordering stays useful.
+    fn search_substring(&self, needle: &str, limit: usize) -> Vec<SearchHit> {
+        let mut hits: Vec<SearchHit> = self
+            .entries
+            .iter()
+            .enumerate()
+            .filter(|(_, entry)| entry.haystack.contains(needle))
+            .map(|(index, entry)| {
+                let title_match = entry.title.to_lowercase().contains(needle);
+                SearchHit {
+                    id: entry.id.clone(),
+                    language: entry.language,
+                    title: entry.title.clone(),
+                    summary: entry.summary.clone(),
+                    chapter: entry.chapter.clone(),
+                    score: if title_match { 2.0 } else { 1.0 } + (index as f64) * 1e-9,
+                }
+            })
+            .collect();
+        hits.sort_by(|left, right| {
+            right
+                .score
+                .partial_cmp(&left.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| left.id.cmp(&right.id))
+        });
+        hits.dedup_by(|left, right| left.id == right.id);
+        hits.truncate(limit);
+        hits
+    }
+
     /// Returns the number of indexed documents.
     pub fn len(&self) -> usize {
         self.entries.len()
@@ -675,15 +762,68 @@ pub struct SearchHit {
     pub score: f64,
 }
 
-/// Splits text into lowercased alphanumeric tokens.
+/// Splits text into lowercased tokens.
 ///
-/// Identifiers written with underscores, hyphens, or dots are split there as
-/// well, so `mean_motion` and `mean-motion` both match `mean motion`.
+/// Two kinds of token are produced:
+///
+/// - A run of letters and digits becomes one token per word, with identifiers
+///   written with underscores, hyphens, or dots split there as well, so
+///   `mean_motion` and `mean-motion` both match a query for `mean motion`.
+///   A word of one character is dropped, because it would match too much.
+/// - A run of Chinese characters becomes one token per adjacent pair. Chinese
+///   text is not written with spaces, so a word cannot be recovered by
+///   splitting on whitespace; a pair of adjacent characters is the smallest
+///   unit that is specific enough to be a word. Searching 坐标 therefore
+///   matches a paragraph that contains 坐标, which a whole-run token would
+///   not, because the run around it is longer.
 fn tokenise(text: &str) -> Vec<String> {
-    text.split(|character: char| !character.is_alphanumeric())
-        .filter(|token| token.len() >= 2)
-        .map(str::to_string)
-        .collect()
+    let mut tokens = Vec::new();
+    let mut word = String::new();
+    let mut han: Vec<char> = Vec::new();
+
+    // Flushes the pending Latin word.
+    fn flush_word(word: &mut String, tokens: &mut Vec<String>) {
+        if word.chars().count() >= 2 {
+            tokens.push(word.clone());
+        }
+        word.clear();
+    }
+
+    // Flushes the pending run of Chinese characters as adjacent pairs. A
+    // lone character produces no token; a query of one character is handled
+    // by the substring search instead, which is more precise than a token
+    // that would match every occurrence of that character.
+    fn flush_han(han: &mut Vec<char>, tokens: &mut Vec<String>) {
+        for pair in han.windows(2) {
+            tokens.push(pair.iter().collect());
+        }
+        han.clear();
+    }
+
+    for character in text.chars() {
+        if is_han(character) {
+            flush_word(&mut word, &mut tokens);
+            han.push(character);
+        } else if character.is_alphanumeric() {
+            flush_han(&mut han, &mut tokens);
+            word.extend(character.to_lowercase());
+        } else {
+            flush_word(&mut word, &mut tokens);
+            flush_han(&mut han, &mut tokens);
+        }
+    }
+    flush_word(&mut word, &mut tokens);
+    flush_han(&mut han, &mut tokens);
+    tokens
+}
+
+/// Returns `true` when a character is a Chinese ideograph.
+///
+/// The ranges cover the unified ideographs, the extension A block, and the
+/// compatibility ideographs, which is everything the content uses.
+fn is_han(character: char) -> bool {
+    matches!(character as u32,
+        0x3400..=0x4dbf | 0x4e00..=0x9fff | 0xf900..=0xfaff)
 }
 
 #[cfg(test)]
@@ -740,6 +880,33 @@ BSTAR 项。
         assert_eq!(document.english.headings.len(), 2);
         assert_eq!(document.english.headings[1].0, "drag");
         assert!(document.english.html.contains("<h1"));
+    }
+
+    #[test]
+    fn a_repeated_top_level_title_is_dropped_from_the_body() {
+        let document = sample("sgp4");
+        // The sample body opens with `# SGP4`, which differs from the
+        // metadata title `SGP4 propagation`, so it is kept.
+        assert!(document.english.html.contains("<h1"));
+        assert!(
+            document
+                .english
+                .headings
+                .iter()
+                .any(|(_, text)| text == "SGP4")
+        );
+
+        // A body that repeats the metadata title loses the repeated heading.
+        let repeated = "---\ntitle: SGP4 propagation\n---\n\n# SGP4 propagation\n\nBody.\n";
+        let variant = DocumentVariant::parse(repeated).expect("must parse");
+        assert!(!variant.html.contains("<h1"));
+        assert!(
+            !variant
+                .headings
+                .iter()
+                .any(|(_, text)| text == "SGP4 propagation")
+        );
+        assert!(variant.html.contains("Body."));
     }
 
     #[test]
@@ -804,6 +971,47 @@ BSTAR 项。
         let hits = index.search("propagates", 5);
         assert_eq!(hits.len(), 1);
         assert_eq!(hits[0].language, Language::English);
+    }
+
+    #[test]
+    fn tokenise_emits_words_and_han_pairs() {
+        assert_eq!(tokenise("mean_motion"), vec!["mean", "motion"]);
+        assert_eq!(tokenise("轨道传播"), vec!["轨道", "道传", "传播"]);
+        assert_eq!(tokenise("坐标"), vec!["坐标"]);
+        // A lone Chinese character produces no token; the search falls back
+        // to a substring match for it.
+        assert!(tokenise("轨").is_empty());
+        // A single Latin character is dropped.
+        assert!(tokenise("a").is_empty());
+    }
+
+    #[test]
+    fn a_chinese_query_matches_a_word_inside_a_sentence() {
+        let documents = vec![
+            Document::parse(
+                "a",
+                Language::English,
+                "---\ntitle: Orbits\nsummary: s\n---\n\n本条论述轨道坐标的转换。\n",
+            )
+            .expect("must parse"),
+            Document::parse(
+                "b",
+                Language::English,
+                "---\ntitle: Time\nsummary: s\n---\n\n这里讨论时间尺度。\n",
+            )
+            .expect("must parse"),
+        ];
+        let tree = Tree::new(documents);
+        let index = tree.search_index();
+        // A two character query matches the pair inside the sentence.
+        let hits = index.search("坐标", 5);
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].id, "a");
+        // A one character query has no token and falls back to a substring
+        // match.
+        let hits = index.search("轨", 5);
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].id, "a");
     }
 
     #[test]

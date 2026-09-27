@@ -199,6 +199,9 @@ const STRINGS: Record<string, Text> = {
   'api.noMatch': { zh: '没有匹配的项。', en: 'No item matches that filter.' },
   'api.associated': { zh: '关联项', en: 'associated' },
   'api.noDoc': { zh: '该项没有文档注释。', en: 'This item has no documentation comment.' },
+  'api.detail': { zh: '详情', en: 'Detail' },
+  'api.noItem': { zh: '不存在接口项', en: 'There is no interface item named' },
+  'api.crates': { zh: 'crate', en: 'Crates' },
   'api.loadingItem': { zh: '正在加载…', en: 'Loading…' },
 
   'tools.title': { zh: '在线工具', en: 'Online tools' },

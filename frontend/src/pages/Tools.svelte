@@ -94,12 +94,17 @@
     error = null;
   }
 
-  /** The tools grouped by category. */
+  /** The tools grouped by category, in the order the registry lists them. */
   const categories = $derived.by(() => {
     if (!registry) return [];
+    // A category is matched by its English form, which the backend uses as
+    // the stable key of the group. Comparing the objects by identity would
+    // never match, because the listing carries a copy per tool.
     return registry.categories.map((category) => ({
       category,
-      tools: registry.tools.filter((candidate) => candidate.category === category),
+      tools: registry.tools.filter(
+        (candidate) => candidate.category.en === category.en,
+      ),
     }));
   });
 </script>
@@ -197,12 +202,12 @@
       </form>
 
       {#if tool.api_items.length > 0}
-        <p style="color: var(--text-faint); font-size: 0.82rem; margin-top: 0.75rem;">
-          {tr('tools.calls', lang)}
+        <div class="calls">
+          <span class="calls-label">{tr('tools.calls', lang)}</span>
           {#each tool.api_items as name}
-            <a href={`#/api/${name}`} style="font-family: var(--mono);">{name}</a>
+            <a class="chip" href={`#/api/${name}`}>{name}</a>
           {/each}
-        </p>
+        </div>
       {/if}
     </section>
 

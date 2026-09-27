@@ -52,8 +52,8 @@
   --radius-small: 5px;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --max-width: 1440px;
   --sidebar-width: 19rem;
+  --toc-width: 15rem;
 }
 
 * {
@@ -282,15 +282,22 @@ hr {
 }
 
 .content {
-  padding: 1.75rem 2rem 4rem;
-  max-width: var(--max-width);
+  padding: 1.75rem 2.5rem 4rem;
   width: 100%;
+  flex: 1 1 auto;
 }
 
-.content.narrow {
-  max-width: 58rem;
+/* A document is a measure of text plus the table of contents beside it, so
+   the reading column keeps a comfortable line length while the table of
+   contents sits at its right. The width is capped so that the pair stays
+    centred on a very wide screen rather than drifting apart. */
+.content.doc {
+  max-width: calc(62rem + var(--toc-width) + 2.5rem);
+  margin: 0 auto;
 }
 
+/* The graph and the crate grid use the whole width; a wide screen shows
+   more of them rather than more margin. */
 .content.wide {
   max-width: none;
 }
@@ -496,10 +503,52 @@ button.ghost:hover:not(:disabled) {
   padding: 1rem 0;
 }
 
+/* Search results */
+
+.result-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.result {
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.result:last-child {
+  border-bottom: none;
+}
+
+.result:hover {
+  background: var(--surface-raised);
+}
+
+.result-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.result-summary {
+  margin: 0.35rem 0 0.55rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.result-meta {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
 /* Documentation */
 
 .doc-body {
-  max-width: 54rem;
+  min-width: 0;
 }
 
 .doc-body h1,
@@ -550,21 +599,29 @@ button.ghost:hover:not(:disabled) {
   border-bottom: 1px dotted var(--accent-strong);
 }
 
+.doc-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--toc-width);
+  gap: 2.5rem;
+  align-items: start;
+}
+
+/* A document with no headings gets the full width rather than an empty
+   column at its right. */
+.doc-layout.no-toc {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 46rem;
+}
+
 .doc-toc {
   position: sticky;
   top: 4.5rem;
-  align-self: flex-start;
-  width: 15rem;
-  flex: 0 0 15rem;
+  align-self: start;
   font-size: 0.85rem;
   max-height: calc(100vh - 6rem);
   overflow-y: auto;
-}
-
-.doc-layout {
-  display: flex;
-  gap: 2.5rem;
-  align-items: flex-start;
+  padding-left: 1rem;
+  border-left: 1px solid var(--border);
 }
 
 /* Tables */
@@ -585,9 +642,15 @@ table {
 th,
 td {
   text-align: left;
-  padding: 0.45rem 0.7rem;
+  padding: 0.5rem 0.8rem;
   border-bottom: 1px solid var(--border);
   vertical-align: top;
+}
+
+/* A table cell that holds an identifier is kept on one line so that the
+   column does not break a name across two lines. */
+td:first-child {
+  white-space: nowrap;
 }
 
 th {
@@ -759,6 +822,140 @@ tbody tr:hover {
   font-size: 0.85rem;
   margin: 0.5rem 0 0;
   white-space: pre-wrap;
+}
+
+/* A doc comment rendered as Markdown. The block spacing is tightened
+   because the comment is a fragment rather than a document. */
+.api-doc {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.api-doc p {
+  margin: 0.4rem 0;
+}
+
+.api-doc ul,
+.api-doc ol {
+  margin: 0.4rem 0;
+  padding-left: 1.2rem;
+}
+
+.api-doc h1,
+.api-doc h2,
+.api-doc h3,
+.api-doc h4 {
+  font-size: 0.9rem;
+  margin: 0.75rem 0 0.3rem;
+  color: var(--text);
+}
+
+.api-doc figure.code {
+  margin: 0.5rem 0;
+}
+
+.api-doc figure.code figcaption {
+  display: none;
+}
+
+.api-doc .table-wrap {
+  margin: 0.5rem 0;
+}
+
+/* The interface items a tool calls */
+
+.calls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.calls-label {
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 0.2rem;
+}
+
+/* The interface index */
+
+.crate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.crate-card {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  color: var(--text);
+}
+
+.crate-card:hover {
+  border-color: var(--accent-strong);
+  background: var(--surface-raised);
+  text-decoration: none;
+}
+
+.crate-card header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.crate-card .name {
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.crate-card p {
+  margin: 0.5rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* A row of links that wrap, used for the item filter results. */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--accent);
+}
+
+.chip:hover {
+  border-color: var(--accent-strong);
+  text-decoration: none;
+}
+
+.chip-note {
+  color: var(--text-faint);
+  font-size: 0.72rem;
 }
 
 .kind {

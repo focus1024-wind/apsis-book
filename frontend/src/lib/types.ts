@@ -111,6 +111,8 @@ export interface ApiCrateSummary {
   name: string;
   layer: string;
   summary: string;
+  /** The module documentation, with the Markdown markup removed. */
+  summary_plain: string;
   items: number;
 }
 
@@ -119,7 +121,10 @@ export interface ApiItem {
   kind: string;
   name: string;
   signature: string;
+  /** The documentation comment as it is written in the source. */
   doc: string;
+  /** The documentation comment rendered as HTML by the backend. */
+  doc_html: string;
   associated: boolean;
 }
 
@@ -137,6 +142,7 @@ export interface ApiCrate {
   name: string;
   layer: string;
   summary: string;
+  summary_plain: string;
   items: ApiItem[];
 }
 

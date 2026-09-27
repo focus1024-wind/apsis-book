@@ -229,6 +229,7 @@ impl Router {
                     "name" => krate.name.clone(),
                     "layer" => krate.layer.clone(),
                     "summary" => krate.summary.clone(),
+                    "summary_plain" => crate::docs::markdown::to_plain_text(&krate.summary),
                     "items" => krate.items.len(),
                 }
             })
@@ -279,6 +280,8 @@ impl Router {
                     "name" => item.name.clone(),
                     "signature" => item.signature.clone(),
                     "doc" => item.doc.clone(),
+                    "doc_html" => crate::docs::markdown::render(&item.doc),
+                    "doc_plain" => crate::docs::markdown::to_plain_text(&item.doc),
                     "associated" => item.associated,
                 };
                 Response::json(json::to_string(&body)).with_cache_control("no-cache")
@@ -536,6 +539,7 @@ fn crate_json(krate: &crate::docs::ApiCrate) -> Value {
                 "name" => item.name.clone(),
                 "signature" => item.signature.clone(),
                 "doc" => item.doc.clone(),
+                "doc_html" => crate::docs::markdown::render(&item.doc),
                 "associated" => item.associated,
             }
         })
@@ -544,6 +548,7 @@ fn crate_json(krate: &crate::docs::ApiCrate) -> Value {
         "name" => krate.name.clone(),
         "layer" => krate.layer.clone(),
         "summary" => krate.summary.clone(),
+        "summary_plain" => crate::docs::markdown::to_plain_text(&krate.summary),
         "items" => items,
     }
 }

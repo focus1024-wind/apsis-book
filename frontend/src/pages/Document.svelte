@@ -81,7 +81,7 @@
     <p><a href="#/docs">{tr('docs.back', lang)}</a></p>
   </div>
 {:else}
-  <div class="doc-layout">
+  <div class="doc-layout" class:no-toc={form.headings.length === 0}>
     <article class="doc-body">
       <p class="breadcrumb">
         <a href="#/docs">{tr('docs.breadcrumb', lang)}</a> / {document.chapter}
@@ -130,11 +130,9 @@
       </div>
     </article>
 
-    <aside class="doc-toc">
-      <h2 style="font-size: 0.72rem;">{tr('docs.onThisPage', lang)}</h2>
-      {#if form.headings.length === 0}
-        <p class="empty">{tr('docs.noSections', lang)}</p>
-      {:else}
+    {#if form.headings.length > 0}
+      <aside class="doc-toc">
+        <h2 style="font-size: 0.72rem;">{tr('docs.onThisPage', lang)}</h2>
         <ul style="list-style: none; padding-left: 0;">
           {#each form.headings as heading}
             <li style="margin: 0.2rem 0;">
@@ -144,7 +142,7 @@
             </li>
           {/each}
         </ul>
-      {/if}
-    </aside>
+      </aside>
+    {/if}
   </div>
 {/if}

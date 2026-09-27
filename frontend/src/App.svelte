@@ -217,7 +217,7 @@
       >{tr('docs.otherLanguage', lang)}</button>
     </header>
 
-    <main class="content" class:wide={route.name === 'graph' || route.name === 'flows'} class:narrow={route.name === 'docs' && route.id !== null}>
+    <main class="content" class:doc={route.name === 'docs' && route.id !== null} class:wide={route.name === 'graph' || route.name === 'flows'}>
       {#if status}
         <div class="notice error"><p>{status}</p></div>
       {/if}
