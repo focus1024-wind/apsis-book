@@ -3,27 +3,15 @@
    * The algorithm flow graphs.
    *
    * Each flow describes the steps of one algorithm. Selecting a step shows
-   * the interface item that implements it.
+   * the interface item that implements it. The list of flows comes from the
+   * backend, so adding a flow to the content is enough for it to appear
+   * here.
    */
-  import type { Graph, GraphNode } from '../lib/types';
+  import type { FlowIndex, Graph, GraphNode } from '../lib/types';
   import { getJson } from '../lib/api';
   import { groupColor } from '../lib/format';
   import { language, pick, tr } from '../lib/i18n';
   import GraphView from '../lib/GraphView.svelte';
-
-  /** The flow identifiers, in display order. */
-  const FLOWS: { id: string; label: { zh: string; en: string } }[] = [
-    { id: 'sgp4-propagation', label: { zh: 'SGP4 传播', en: 'SGP4 propagation' } },
-    { id: 'tle-parsing', label: { zh: '两行元素解析', en: 'Two-line element parsing' } },
-    {
-      id: 'time-scale-conversion',
-      label: { zh: '时间尺度转换', en: 'Time scale conversion' },
-    },
-    {
-      id: 'frame-rotation',
-      label: { zh: '参考系旋转与大地坐标转换', en: 'Frame rotation and geodetic conversion' },
-    },
-  ];
 
   interface Props {
     id: string | null;
@@ -35,11 +23,12 @@
   let lang = $derived($language);
 
   let flows = $state<Record<string, Graph>>({});
+  let index = $state<FlowIndex['flows']>([]);
   let loading = $state(false);
   let selected = $state<string | null>(null);
 
   /** The identifier currently shown. */
-  const active = $derived(id ?? FLOWS[0].id);
+  const active = $derived(id ?? index[0]?.id ?? '');
   /** The graph currently shown. */
   const graph = $derived(flows[active] ?? null);
 
@@ -48,11 +37,14 @@
     graph && selected ? (graph.nodes.find((node) => node.id === selected) ?? null) : null,
   );
 
-  /** Loads the flow graphs that have not been fetched yet. */
+  /** Loads the flow index and any flow graph that has not been fetched. */
   async function load() {
     loading = true;
     try {
-      for (const flow of FLOWS) {
+      if (index.length === 0) {
+        index = (await getJson<FlowIndex>('/api/graph/flows')).flows;
+      }
+      for (const flow of index) {
         if (flows[flow.id]) continue;
         flows[flow.id] = await getJson<Graph>(`/api/graph/${flow.id}`);
       }
@@ -84,12 +76,12 @@
 </div>
 
 <div class="graph-controls">
-  {#each FLOWS as flow}
+  {#each index as flow}
     <a
       href={`#/flows/${flow.id}`}
       class="badge"
       style={active === flow.id ? 'border-color: var(--accent); color: var(--accent);' : ''}
-      >{pick(flow.label, lang)}</a>
+      >{pick(flow.title, lang)}</a>
   {/each}
   {#if loading && !graph}
     <span class="badge"><span class="spinner"></span> {tr('common.loading', lang)}</span>

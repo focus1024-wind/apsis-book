@@ -101,7 +101,7 @@ frontend:
 
 - `GET /health`
 - `GET /api/docs`, `GET /api/docs/<id>`, `GET /api/docs/search?q=`
-- `GET /api/graph`, `GET /api/graph/crates`, `GET /api/graph/<flow>`
+- `GET /api/graph`, `GET /api/graph/crates`, `GET /api/graph/flows`, `GET /api/graph/<flow>`
 - `GET /api/api`, `GET /api/api/crates/<name>`, `GET /api/api/items/<name>`
 - `GET /api/tools`, `GET /api/tools/<id>`, `POST /api/tools/<id>/run`
 

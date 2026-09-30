@@ -36,6 +36,8 @@ pub struct Router {
     search: crate::docs::SearchIndex,
     /// Pre-encoded concept graph.
     concept_graph: String,
+    /// Pre-encoded list of the flow graphs.
+    flow_index: String,
     /// Pre-encoded crate structure graph.
     crate_graph: String,
     /// Pre-encoded tool registry.
@@ -48,6 +50,7 @@ impl Router {
         let docs_index = json::to_string(&document_index(&state));
         let search = state.docs.search_index();
         let concept_graph = json::to_string(&graph_json(&state.graph.concepts));
+        let flow_index = json::to_string(&flow_list_json(&state.graph.flows));
         let crate_graph = json::to_string(&graph_json(&crate::graph::crate_structure(&state.api)));
         let tool_registry = json::to_string(&tools::registry_json(&state.tools));
         Self {
@@ -55,6 +58,7 @@ impl Router {
             docs_index,
             search,
             concept_graph,
+            flow_index,
             crate_graph,
             tool_registry,
         }
@@ -74,6 +78,9 @@ impl Handler for Router {
             (Method::Get | Method::Head, "/api/docs/search") => self.search_documents(request),
             (Method::Get | Method::Head, "/api/graph") => {
                 Response::json(self.concept_graph.clone()).with_cache_control("no-cache")
+            }
+            (Method::Get | Method::Head, "/api/graph/flows") => {
+                Response::json(self.flow_index.clone()).with_cache_control("no-cache")
             }
             (Method::Get | Method::Head, "/api/graph/crates") => {
                 Response::json(self.crate_graph.clone()).with_cache_control("no-cache")
@@ -204,6 +211,9 @@ impl Router {
     /// Returns one flow graph by identifier.
     fn flow(&self, path: &str) -> Response {
         let id = path.trim_start_matches("/api/graph/");
+        if id == "flows" {
+            return Response::json(self.flow_index.clone()).with_cache_control("no-cache");
+        }
         if id == "crates" {
             return Response::json(self.crate_graph.clone()).with_cache_control("no-cache");
         }
@@ -376,7 +386,7 @@ impl Router {
         if !relative.is_empty() && !relative.ends_with('/') {
             if let Some(bytes) = embedded::get(relative) {
                 return Response::new(Status::Ok, embedded::content_type(relative), bytes.to_vec())
-                    .with_cache_control(cache_policy(relative));
+                    .with_cache_control(CACHE_POLICY);
             }
         }
 
@@ -390,17 +400,13 @@ impl Router {
     }
 }
 
-/// Returns the cache policy for an asset.
+/// The cache policy for every asset.
 ///
-/// The build output uses content hashed file names, so those files are
-/// immutable. The entry point is not, because it names the hashed files.
-fn cache_policy(path: &str) -> &'static str {
-    if path.starts_with("assets/") || path.contains('.') && path.starts_with("static/") {
-        "public, max-age=31536000, immutable"
-    } else {
-        "no-cache"
-    }
-}
+/// The build writes stable file names rather than content hashed ones, so a
+/// browser must revalidate after a deployment. A year long immutable policy
+/// would be correct only for hashed names, and would pin a reader to the
+/// bundle that was current when they first loaded the page.
+const CACHE_POLICY: &str = "no-cache";
 
 /// Builds the document listing payload.
 fn document_index(state: &AppState) -> Value {
@@ -513,6 +519,27 @@ fn optional_bilingual(translation: &Option<String>, fallback: &str) -> Value {
         Some(zh) => json_object! { "zh" => zh.clone(), "en" => fallback.to_string() },
         None => json_object! { "zh" => fallback.to_string(), "en" => fallback.to_string() },
     }
+}
+
+/// Encodes the list of flow graphs.
+///
+/// The list is part of the payload so that the frontend does not carry its
+/// own copy of the flow identifiers; adding a flow to the content is enough
+/// for it to appear in the navigation.
+fn flow_list_json(flows: &[Graph]) -> Value {
+    let items: Vec<Value> = flows
+        .iter()
+        .map(|graph| {
+            json_object! {
+                "id" => graph.id.clone(),
+                "title" => optional_bilingual(&graph.title_zh, &graph.title),
+                "summary" => optional_bilingual(&graph.summary_zh, &graph.summary),
+                "nodes" => graph.nodes.len(),
+                "edges" => graph.edges.len(),
+            }
+        })
+        .collect();
+    json_object! { "flows" => items }
 }
 
 /// Encodes a graph as JSON.

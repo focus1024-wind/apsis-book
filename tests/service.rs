@@ -358,6 +358,44 @@ fn tool_result_labels_are_bilingual() {
 }
 
 #[test]
+fn the_flow_index_lists_every_flow() {
+    let service = Service::start();
+    wait_ready(&service);
+    let index = service.get("/api/graph/flows");
+    let body = body(&index);
+    assert!(body.contains("\"flows\""), "{body}");
+    assert!(body.contains("sgp4-propagation"), "{body}");
+    assert!(body.contains("tle-parsing"), "{body}");
+    // The index carries a bilingual title, so the frontend needs no copy of
+    // the flow names.
+    assert!(body.contains("\"title\""), "{body}");
+    assert!(body.contains("\"zh\""), "{body}");
+}
+
+#[test]
+fn static_assets_are_revalidated() {
+    let service = Service::start();
+    wait_ready(&service);
+    // The build writes stable file names, so an immutable policy would pin a
+    // reader to the bundle current at first load.
+    let asset = service.get("/assets/app.js");
+    assert!(asset.contains("no-cache"), "{asset}");
+    assert!(!asset.contains("immutable"), "{asset}");
+}
+
+#[test]
+fn a_traversal_attempt_does_not_reach_the_filesystem() {
+    let service = Service::start();
+    wait_ready(&service);
+    let response = service.get("/../../etc/passwd");
+    let body = body(&response);
+    assert!(
+        !body.contains("root:x:"),
+        "a traversal must not read a file"
+    );
+}
+
+#[test]
 fn graph_labels_are_bilingual() {
     let service = Service::start();
     wait_ready(&service);

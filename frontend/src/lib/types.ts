@@ -96,6 +96,20 @@ export interface GraphEdge {
   label: string | null;
 }
 
+/** An entry of the flow index. */
+export interface FlowEntry {
+  id: string;
+  title: Bilingual;
+  summary: Bilingual;
+  nodes: number;
+  edges: number;
+}
+
+/** The flow index. */
+export interface FlowIndex {
+  flows: FlowEntry[];
+}
+
 /** A graph. */
 export interface Graph {
   id: string;

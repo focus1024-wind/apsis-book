@@ -14,3 +14,7 @@
 # Vite and TypeScript caches.
 /frontend/.vite
 /frontend/*.tsbuildinfo
+
+# Session exports dropped into the project directory by tooling that runs
+# alongside it. They are large and unrelated to the service.
+apsis-book.html
