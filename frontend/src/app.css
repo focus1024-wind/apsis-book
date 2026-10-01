@@ -654,6 +654,15 @@ button.ghost:hover:not(:disabled) {
 }
 
 /*
+ * A grid whose track is wider than a narrow screen.
+ *
+ * `minmax(28rem, 1fr)` makes a track that is at least 28rem wide, so on a
+ * phone the column stays 448 pixels wide and the page scrolls sideways. The
+ * `min(…, 100%)` lets the track shrink to the width it actually has, so a
+ * narrow screen gets one narrow column rather than one wide one.
+ */
+
+/*
  * A card on the interface index shows what a crate is, in one or two lines.
  *
  * The cards there are in a grid with three columns on a wide screen, so a
@@ -712,7 +721,7 @@ button.ghost:hover:not(:disabled) {
 }
 
 .grid.metrics {
-  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(11rem, 100%), 1fr));
 }
 
 .metric {
@@ -987,7 +996,7 @@ tbody tr:hover {
 
 .scalars {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
   gap: 0.6rem 1.5rem;
   margin: 1rem 0;
 }
@@ -1123,7 +1132,7 @@ tbody tr:hover {
    items stays a reasonable height. */
 .item-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(28rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(28rem, 100%), 1fr));
   gap: 0.6rem;
   align-items: start;
 }
@@ -1229,7 +1238,7 @@ tbody tr:hover {
 
 .crate-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
   gap: 0.75rem;
   margin-top: 1rem;
 }
@@ -1455,7 +1464,7 @@ tbody tr:hover {
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(16rem, 100%), 1fr));
   gap: 0.9rem 1.25rem;
 }
 

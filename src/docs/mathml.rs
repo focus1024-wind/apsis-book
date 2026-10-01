@@ -516,6 +516,13 @@ fn emit(node: &Node) -> String {
                 (Some(single), None) if single.is_ascii_punctuation() => {
                     format!("<mo>{}</mo>", escape(text))
                 }
+                // An operator written with its spaces, as the ` - ` between
+                // two terms. It is dropped by the browser for the same reason
+                // as a single one, which loses the sign of a difference: `1 -
+                // e^2` came out as `1e^2`.
+                _ if is_operator_text(text) => {
+                    format!("<mo>{}</mo>", escape(text.trim()))
+                }
                 _ => escape(text),
             }
         }
@@ -613,20 +620,27 @@ pub fn render_plain(text: &str) -> Option<String> {
     }
 
     // A block qualifies as a formula when at least one of its lines is an
-    // equation. Brackets in these documents are a matrix or a vector, which
-    // this renderer does not lay out, so such a block stays a code block.
-    if lines
-        .iter()
-        .any(|line| line.contains('[') || line.contains(']'))
-        || !lines.iter().any(|line| line.contains('='))
-    {
+    // equation. A line that turns out to be a matrix or a vector is shown as
+    // the text it was written, and does not stop the equations beside it from
+    // being set as formulas.
+    if !lines.iter().any(|line| line.contains('=')) {
         return None;
     }
 
     let mut rows = String::new();
     let mut read = 0;
     for line in &lines {
-        let (equation, note) = split_trailing_note(line);
+        // A bracket in these documents is a matrix or a vector, which this
+        // renderer does not lay out. Such a line is shown as the text it was
+        // written, and the equations beside it are still set as formulas: a
+        // block often gives an equation and then the vector it acts on.
+        if line.contains('[') || line.contains(']') {
+            rows.push_str("<mtr><mtd><mtext>");
+            rows.push_str(&escape(&clean_note(line)));
+            rows.push_str("</mtext></mtd></mtr>");
+            continue;
+        }
+        let (equation, note) = split_trailing_note(line, reads_whole);
         let tokens = tokenize_ascii(equation);
         let mut cursor = 0;
         let nodes = parse_sum(&tokens, &mut cursor);
@@ -676,30 +690,52 @@ fn clean_note(note: &str) -> String {
     note.split_whitespace().collect::<Vec<&str>>().join(" ")
 }
 
+/// Reports whether a line reads out as a formula in its entirety.
+fn reads_whole(line: &str) -> bool {
+    let tokens = tokenize_ascii(line);
+    let mut cursor = 0;
+    parse_sum(&tokens, &mut cursor);
+    cursor == tokens.len()
+}
+
 /// Splits a trailing parenthetical note from an equation.
 ///
-/// A note is a phrase rather than part of the equation, so
-/// `N = a / sqrt(1 - e^2 sin^2 phi)  (prime vertical radius)` is an equation
-/// with a note and not an equation with a bracket. A parenthesis holding a
-/// space is read as a note, because the expressions in these documents do not
-/// write a space inside their own brackets.
-fn split_trailing_note(line: &str) -> (&str, Option<&str>) {
-    if !line.ends_with(')') {
-        return (line, None);
+/// A note is a phrase about the equation, as in `(prime vertical radius)`,
+/// and the authors wrote it out of the way of the equation: it starts in a
+/// column of its own, several spaces along. That spacing is what tells it
+/// apart from a bracket that belongs to the equation, such as the
+/// `(cos theta)` in `gamma = k * R^alpha / (cos theta)`, which follows a
+/// single space.
+///
+/// The spacing alone is not trusted: the rest of the line must also read out
+/// as an expression without the note. A parenthesis of several words reads as
+/// a product of names, so `prime vertical radius` on its own would be
+/// accepted by the reader; what marks it is that it is set apart.
+fn split_trailing_note(line: &str, reads: impl Fn(&str) -> bool) -> (&str, Option<&str>) {
+    let trimmed = line.trim_end();
+    if !trimmed.ends_with(')') {
+        return (trimmed, None);
     }
-    match line.rfind('(') {
-        Some(start) if start > 0 => {
-            let inside = &line[start + 1..line.len() - 1];
-            let is_phrase = inside.contains(' ')
-                && !inside.contains(['=', '/', '^', '_', '(', '+'])
-                && !inside.chars().any(|c| c.is_ascii_digit());
-            if is_phrase {
-                return (&line[..start], Some(inside));
-            }
-            (line, None)
-        }
-        _ => (line, None),
+    let Some(start) = trimmed.rfind('(') else {
+        return (trimmed, None);
+    };
+    if start == 0 {
+        return (trimmed, None);
     }
+    // The gap before the parenthesis, counted back to the last non-space.
+    let gap = trimmed[..start]
+        .chars()
+        .rev()
+        .take_while(|c| c.is_whitespace())
+        .count();
+    if gap < 2 {
+        return (trimmed, None);
+    }
+    let inside = &trimmed[start + 1..trimmed.len() - 1];
+    if !inside.contains(' ') || !reads(trimmed[..start].trim_end()) {
+        return (trimmed, None);
+    }
+    (trimmed[..start].trim_end(), Some(inside))
 }
 
 /// One unit of a plain formula.
@@ -772,6 +808,20 @@ fn tokenize_ascii(text: &str) -> Vec<Ascii> {
     tokens
 }
 
+/// Reports whether a piece of text is an operator written with its spacing.
+///
+/// The reader builds these for the operators between two terms, so they hold
+/// spaces around a punctuation mark and nothing else.
+fn is_operator_text(text: &str) -> bool {
+    let trimmed = text.trim();
+    // The minus the reader writes is the typographic one, U+2212, so the
+    // test is for anything that is neither a letter, a digit nor a space.
+    !trimmed.is_empty()
+        && trimmed
+            .chars()
+            .all(|character| !character.is_alphanumeric() && !character.is_whitespace())
+}
+
 /// The functions the documents write in plain ASCII.
 fn ascii_function(name: &str) -> bool {
     matches!(
@@ -799,15 +849,33 @@ fn ascii_function(name: &str) -> bool {
     )
 }
 
+/// Parses until a closing vertical bar, which ends an absolute value.
+///
+/// The bar is not a bracket as such: it closes only the bar that opened the
+/// run, and the tokens between are an ordinary expression.
+fn parse_sum_until_bar(tokens: &[Ascii], cursor: &mut usize) -> Vec<Node> {
+    let mut row = parse_product(tokens, cursor, true);
+    while let Some(Ascii::Sign(operator @ ('+' | '-'))) = tokens.get(*cursor) {
+        let operator = *operator;
+        *cursor += 1;
+        let right = parse_product(tokens, cursor, true);
+        row.push(Node::Text(
+            if operator == '+' { " + " } else { " − " }.to_string(),
+        ));
+        row.extend(right);
+    }
+    row
+}
+
 /// Parses a sum: factors joined by `+`, `-`, `=` or a comparison.
 fn parse_sum(tokens: &[Ascii], cursor: &mut usize) -> Vec<Node> {
-    let mut row = parse_product(tokens, cursor);
+    let mut row = parse_product(tokens, cursor, false);
     while let Some(Ascii::Sign(operator @ ('+' | '-' | '=' | '<' | '>' | ','))) =
         tokens.get(*cursor)
     {
         let operator = *operator;
         *cursor += 1;
-        let right = parse_product(tokens, cursor);
+        let right = parse_product(tokens, cursor, false);
         row.push(Node::Text(match operator {
             '=' => " = ".to_string(),
             '<' => " < ".to_string(),
@@ -829,7 +897,12 @@ fn parse_sum(tokens: &[Ascii], cursor: &mut usize) -> Vec<Node> {
 /// `2 f` or `mu (2/r_1 - 1/a_t)`, so a factor that follows another with
 /// nothing between them continues the product. The star, where it is written,
 /// is dropped.
-fn parse_product(tokens: &[Ascii], cursor: &mut usize) -> Vec<Node> {
+/// `inside_bars` stops the loop at a closing vertical bar.
+///
+/// Inside an absolute value a bar is the end of the expression, while outside
+/// one it opens the next factor of a product, as the `| x|` in
+/// `| f'(x) | * | x|`.
+fn parse_product(tokens: &[Ascii], cursor: &mut usize, inside_bars: bool) -> Vec<Node> {
     let mut row = parse_factor(tokens, cursor);
     loop {
         match tokens.get(*cursor).cloned() {
@@ -852,6 +925,9 @@ fn parse_product(tokens: &[Ascii], cursor: &mut usize) -> Vec<Node> {
             Some(Ascii::Word(_)) | Some(Ascii::Number(_)) | Some(Ascii::Sign('(')) => {
                 row.extend(parse_factor(tokens, cursor));
             }
+            Some(Ascii::Sign('|')) if !inside_bars => {
+                row.extend(parse_factor(tokens, cursor));
+            }
             _ => return row,
         }
     }
@@ -870,13 +946,15 @@ fn parse_factor(tokens: &[Ascii], cursor: &mut usize) -> Vec<Node> {
             // A brace holds a group without showing brackets; a parenthesis
             // shows them, because it is written in the source.
             if open == '{' {
-                vec![Node::Row(inner)]
+                vec![attach_power(Node::Row(inner), tokens, cursor)]
             } else {
-                vec![Node::Row(vec![
+                let group = Node::Row(vec![
                     Node::Text("(".to_string()),
                     Node::Row(inner),
                     Node::Text(")".to_string()),
-                ])]
+                ]);
+                // A bracketed group may be raised, as in `(4 pi d f / c)^2`.
+                vec![attach_power(group, tokens, cursor)]
             }
         }
         // A word in a script that is not the Latin one is a label written in
@@ -922,6 +1000,23 @@ fn parse_factor(tokens: &[Ascii], cursor: &mut usize) -> Vec<Node> {
             *cursor += 1;
             let base = ascii_atom(&number, tokens, cursor);
             vec![base]
+        }
+        // A vertical bar opens an absolute value, which the documents write
+        // as `| f'(x) |` and as `|r|^3`. The closing bar is written with
+        // its partner, because which bar closes depends on the nesting.
+        Some(Ascii::Sign('|')) => {
+            *cursor += 1;
+            let inner = parse_sum_until_bar(tokens, cursor);
+            if matches!(tokens.get(*cursor), Some(Ascii::Sign('|'))) {
+                *cursor += 1;
+            }
+            // The magnitude may be raised, as in `|r|^3`.
+            let magnitude = Node::Row(vec![
+                Node::Text("|".to_string()),
+                Node::Row(inner),
+                Node::Text("|".to_string()),
+            ]);
+            vec![attach_power(magnitude, tokens, cursor)]
         }
         other => {
             // Any other token is read past, so that the parse always makes
@@ -1201,5 +1296,68 @@ mod tests {
     #[test]
     fn a_block_with_no_readable_equation_is_left_alone() {
         assert!(render_plain("leap(y) = (y mod 4 == 0) and (y mod 100 != 0").is_none());
+    }
+
+    #[test]
+    fn an_absolute_value_may_hold_a_product() {
+        // `| f'(x) | * | x| / | f(x) |` is one expression: a bar inside it
+        // opens the next factor rather than closing the one before.
+        let html = render_plain("kappa = | f'(x) | * | x| / | f(x) |").expect("a formula");
+        assert!(!html.contains("<mtext"), "a note was read: {html}");
+    }
+
+    #[test]
+    fn a_power_may_be_a_word() {
+        // `R^alpha` writes the exponent as a name rather than a digit.
+        assert!(render_plain("gamma = k * R^alpha / (cos theta)").is_some());
+    }
+
+    #[test]
+    fn a_trailing_bracket_of_the_equation_is_not_a_note() {
+        // `(cos theta)` is part of the equation even though it holds only
+        // words; the whole line reads out, so there is no note.
+        let html = render_plain("gamma = k * R^alpha / (cos theta)").expect("a formula");
+        assert!(!html.contains("<mtext"), "a note was read: {html}");
+    }
+
+    #[test]
+    fn a_bracketed_group_is_not_mistaken_for_a_note() {
+        // `(m * g)` holds an operator, so it is part of the equation; a note
+        // is a phrase and has none.
+        let html = render_plain("H = k * T / (m * g)").expect("a formula");
+        assert!(html.contains("<mfrac"), "{html}");
+        assert!(!html.contains("<mtext"), "a note was read: {html}");
+    }
+
+    #[test]
+    fn a_vector_beside_an_equation_does_not_stop_it() {
+        // The block gives an equation and then the vector it acts on. The
+        // equation is a formula; the vector is shown as it was written.
+        let block =
+            "a_J2 = -1.5 J2 mu R^2 / r^5 *\n       [ x (1 - 5 z^2/r^2), y (1 - 5 z^2/r^2) ]";
+        let html = render_plain(block).expect("a formula");
+        assert!(html.contains("<mfrac"), "the equation was lost: {html}");
+        assert!(html.contains("<mtext"), "the vector was lost: {html}");
+    }
+
+    #[test]
+    fn an_operator_keeps_its_sign() {
+        // The operators between two terms are written with their spacing, and
+        // a browser drops bare text inside a row, which lost the sign of a
+        // difference: `1 - e^2` came out as `1e^2`.
+        let html = render_plain("x = (1 - e^2)^2").expect("a formula");
+        // The reader writes the typographic minus, so that is what is read.
+        assert!(
+            html.contains("<mo>\u{2212}</mo>"),
+            "the minus was lost: {html}"
+        );
+        assert!(html.contains("<mo>=</mo>"), "the equals was lost: {html}");
+    }
+
+    #[test]
+    fn an_equals_between_two_equations_is_kept() {
+        let html = render_plain("r = p / (1 + e cos nu),  p = a (1 - e^2)").expect("a formula");
+        assert!(html.contains("<mo>=</mo>"), "{html}");
+        assert!(html.contains("<mo>\u{2212}</mo>"), "{html}");
     }
 }
