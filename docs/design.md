@@ -307,6 +307,13 @@ A card is a column, so its **action sits on the bottom line of every card**
 whatever the length of the text above it. The summary is not truncated: a
 uniform height means a card with a longer summary simply carries more lines.
 
+The space between cards comes from the grid `gap` **only**. The sibling
+margin that stacks cards outside a grid is cancelled inside one, because a
+card with a preceding sibling would otherwise carry both a row gap and a
+sibling margin. The first card of a row has no preceding sibling, so it
+would sit flush while the rest of the row sank by one gap, which reads as a
+misalignment even though every card is the same size.
+
 The sidebar is **a sticky element inside a frame**. The frame carries the
 surface and the rule so the column is drawn for the whole page; the sidebar
 itself is `sticky` and scrolls. Without the frame the column would end one
