@@ -14,6 +14,12 @@ export interface Bilingual {
   en: string;
 }
 
+/** A list of strings carried in both languages. */
+export interface BilingualList {
+  zh: string[];
+  en: string[];
+}
+
 /** Service health. */
 export interface Health {
   status: string;
@@ -42,10 +48,11 @@ export interface DocumentForm {
 export interface Document {
   id: string;
   chapter: string;
-  tags: string[];
   prerequisites: string[];
   references: string[];
   forms: DocumentForm[];
+  /** Tags in both languages. */
+  tags: BilingualList;
 }
 
 /** The document listing, grouped by chapter. */
@@ -55,7 +62,7 @@ export interface DocumentIndex {
     id: string;
     title: Bilingual;
     summary: Bilingual;
-    documents: { id: string; title: Bilingual; summary: Bilingual; tags: string[] }[];
+    documents: { id: string; title: Bilingual; summary: Bilingual; tags: BilingualList }[];
   }[];
 }
 
@@ -66,6 +73,8 @@ export interface SearchHit {
   title: string;
   summary: string;
   chapter: string;
+  /** The chapter title in both languages, so a result is readable. */
+  chapter_title: Bilingual;
   score: number;
 }
 

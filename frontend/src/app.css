@@ -170,16 +170,22 @@ hr {
   min-height: 100vh;
 }
 
-.sidebar {
-  width: var(--sidebar-width);
+/* The frame carries the surface and the rule, so the column is drawn for
+   the whole page. The sidebar itself is sticky and scrolls; without the
+   frame the column would end one viewport down and look cut off on a long
+   page. */
+.sidebar-frame {
   flex: 0 0 var(--sidebar-width);
   background: var(--surface);
   border-right: 1px solid var(--border);
-  padding: 1.25rem 0 2rem;
+}
+
+.sidebar {
   position: sticky;
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  padding: 1.25rem 0 2rem;
 }
 
 .sidebar-brand {
@@ -271,7 +277,7 @@ hr {
 }
 
 .search-box {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   max-width: 34rem;
   display: flex;
   gap: 0.5rem;
@@ -404,8 +410,52 @@ button.ghost:hover:not(:disabled) {
   margin-top: 1rem;
 }
 
+/* A filter field is a control, not a paragraph, so it is given a measure
+   rather than the whole width of the page. */
+.filter-field {
+  max-width: 34rem;
+}
+
 .card h3 {
   margin-top: 0;
+}
+
+/* A grid of cards stretches every card in a row to the height of the
+   tallest. The card is a column so that its action sits at the bottom of
+   every card rather than floating at the height of the text above it. */
+.grid.cards > .card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.card-action {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  align-self: flex-start;
+}
+
+/* A card is a column, so its button would otherwise stretch across the
+   whole card rather than sit under the text. */
+.grid.cards > .card > button,
+.grid.cards > .card > a {
+  align-self: flex-start;
+}
+
+/* The tag row follows the summary; only the action is pushed to the bottom,
+   so the actions of a row line up regardless of how many tags a card has. */
+.card-tags {
+  padding-top: 0.15rem;
+}
+
+/* A summary is clamped so that one long paragraph does not stretch its card
+   far past the cards beside it. */
+.card-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .grid {
@@ -414,7 +464,7 @@ button.ghost:hover:not(:disabled) {
 }
 
 .grid.cards {
-  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
 }
 
 .grid.metrics {
@@ -438,8 +488,7 @@ button.ghost:hover:not(:disabled) {
 .metric .label {
   color: var(--text-faint);
   font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
 }
 
 .page-header {
@@ -463,6 +512,7 @@ button.ghost:hover:not(:disabled) {
 
 .tag {
   display: inline-block;
+  white-space: nowrap;
   background: var(--surface-raised);
   border: 1px solid var(--border);
   color: var(--text-muted);
@@ -474,6 +524,7 @@ button.ghost:hover:not(:disabled) {
 
 .badge {
   display: inline-block;
+  white-space: nowrap;
   border-radius: var(--radius-small);
   padding: 0.05rem 0.4rem;
   font-size: 0.72rem;
@@ -726,7 +777,11 @@ tbody tr:hover {
 
 .graph-canvas {
   width: 100%;
-  height: 34rem;
+  /* The aspect of the layout space, so the drawing fills the canvas
+     instead of being letterboxed inside it. */
+  aspect-ratio: 2 / 1;
+  min-height: 20rem;
+  max-height: 46rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -818,6 +873,19 @@ tbody tr:hover {
   align-items: baseline;
   gap: 0.6rem;
   flex-wrap: wrap;
+}
+
+/* The items of one crate, two to a row, so that a crate with dozens of
+   items stays a reasonable height. */
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(28rem, 1fr));
+  gap: 0.6rem;
+  align-items: start;
+}
+
+.item-grid .api-item {
+  margin-bottom: 0;
 }
 
 .api-item .name {
@@ -957,6 +1025,35 @@ tbody tr:hover {
   font-size: 0.85rem;
 }
 
+/* A tool in the tool index. The card is a link, so the whole area is the
+   target and the hover is the affordance. */
+.tool-card {
+  color: var(--text);
+}
+
+.tool-card:hover {
+  border-color: var(--accent-strong);
+  background: var(--surface-raised);
+  text-decoration: none;
+}
+
+.tool-card h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.98rem;
+  color: var(--accent);
+}
+
+.tool-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.tool-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 /* A row of links that wrap, used for the item filter results. */
 .chip-row {
   display: flex;
@@ -1060,6 +1157,18 @@ tbody tr:hover {
 }
 
 /* Responsive */
+
+@media (max-width: 700px) {
+  /* The counters are a summary, not navigation, so they are the first
+     thing to go when the bar is tight. */
+  .topbar .badge {
+    display: none;
+  }
+
+  .topbar {
+    padding: 0.6rem 1rem;
+  }
+}
 
 @media (max-width: 960px) {
   .app {

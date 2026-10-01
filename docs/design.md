@@ -276,6 +276,54 @@ sentence that contains 坐标, which a whole-run token would not. A single
 Chinese character is left to the substring fallback rather than becoming a
 token, because a token of one character would match nearly every document.
 
+## Interface layout
+
+Four layout decisions keep the pages coherent at any window width.
+
+A page is a **reading column**. Most pages are text, a card grid, or a form,
+and all three read better in a centred column than across a whole wide
+screen. A document is wider than the column because it carries a table of
+contents beside the text; the width of the pair is capped so the two stay
+together. A graph is the exception and uses the whole width, because a wide
+screen should show more of the graph rather than more margin.
+
+A grid of cards **stretches every card in a row** to the height of the
+tallest. A card is therefore a column, its action is pushed to the bottom,
+and its summary is clamped, so the actions of a row line up and one long
+paragraph cannot stretch a card past its neighbours.
+
+The sidebar is **a sticky element inside a frame**. The frame carries the
+surface and the rule so the column is drawn for the whole page; the sidebar
+itself is `sticky` and scrolls. Without the frame the column would end one
+viewport down and read as cut off on a long page.
+
+The graph canvas takes the **aspect of the layout space**, so the drawing
+fills it instead of being letterboxed inside it. The force simulation
+settles into a roughly round cluster while the canvas is wide, so the layout
+is widened to the canvas shape before it is fitted; the change is a uniform
+scale, which leaves relative distances readable.
+
+## Language coverage
+
+A user facing string falls into three classes, and each is handled
+differently.
+
+Interface chrome — navigation, headings, buttons, help text — is a
+hand written dictionary in `frontend/src/lib/i18n.ts`, keyed by a stable
+name. It covers the graph group captions and the interface item kinds, so a
+Chinese reader sees a Chinese legend and Chinese group headings.
+
+Authored content — concept documents, crate summaries, item documentation —
+is a separate file per language, so the backend serves both and the reader
+switches without another request. A document declares its own tags in each
+language file under the same key, so the tag list follows the language too.
+
+Derived text — a one line summary used in a card — is produced by the
+backend from the document, and the renderer resolves the rustdoc forms a doc
+comment uses. A shortcut reference such as `[`Vec3`]` is reduced to the item
+name; without that, the brackets and backticks appear verbatim in the
+summary.
+
 ## Testing
 
 Unit tests live beside the code they test and cover the parser, the codec,

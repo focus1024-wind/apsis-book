@@ -10,7 +10,7 @@
   import { getJson } from '../lib/api';
   import { navigate } from '../lib/router';
   import { groupColor } from '../lib/format';
-  import { language, pick, tr } from '../lib/i18n';
+  import { groupLabel, language, pick, tr } from '../lib/i18n';
   import GraphView from '../lib/GraphView.svelte';
 
   interface Props {
@@ -92,7 +92,7 @@
 
   <div class="legend">
     {#each graph.groups as group}
-      <span><i style={`background:${groupColor(group)}`}></i>{group}</span>
+      <span><i style={`background:${groupColor(group)}`}></i>{groupLabel(group, lang)}</span>
     {/each}
   </div>
 
@@ -102,7 +102,7 @@
         <h3 style="margin: 0;">{pick(selectedNode.label, lang)}</h3>
         <span class="badge">{selectedNode.kind}</span>
         <span class="badge" style={`color:${groupColor(selectedNode.group)}`}
-          >{selectedNode.group}</span>
+          >{groupLabel(selectedNode.group, lang)}</span>
       </header>
       <p style="color: var(--text-muted);">{pick(selectedNode.summary, lang)}</p>
       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">

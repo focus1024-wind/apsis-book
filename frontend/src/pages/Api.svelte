@@ -16,12 +16,15 @@
   import { getJson } from '../lib/api';
   import { navigate } from '../lib/router';
   import { language, pick, tr } from '../lib/i18n';
+  import { KIND_GROUPS } from '../lib/i18n';
   import Signature from '../lib/Signature.svelte';
 
   interface Props {
     index: ApiIndex | null;
     id: string | null;
   }
+
+  type Language = import('../lib/i18n').Language;
 
   let { index, id }: Props = $props();
 
@@ -96,6 +99,17 @@
     })).filter((group) => group.items.length > 0);
   });
 
+  /**
+   * Returns the heading of a group of interface items.
+   *
+   * The heading names the kind in the reader's language, in the plural,
+   * because it introduces a list.
+   */
+  function groupHeading(kind: string, language: Language): string {
+    const names = KIND_GROUPS[kind];
+    return names ? pick(names, language) : kind;
+  }
+
   /** Opens an item route. */
   function openItem(name: string) {
     navigate(`/api/${name}`);
@@ -119,20 +133,6 @@
     }
   }
 
-  /**
-   * Returns the first sentence of a crate summary.
-   *
-   * A crate summary is the module documentation, which is several
-   * paragraphs. The index shows one sentence per crate so that the grid
-   * stays readable; the full text is on the crate page.
-   */
-  function firstSentence(summary: string): string {
-    const text = summary.replace(/\s+/g, ' ').trim();
-    if (text === '') return '';
-    const end = text.search(/[.!?](\s|$)/);
-    if (end === -1) return text.length > 160 ? `${text.slice(0, 157)}...` : text;
-    return text.slice(0, end + 1);
-  }
 </script>
 
 <div class="page-header">
@@ -155,9 +155,10 @@
 
   {#each groups as group}
     <h3 id={`kind-${group.kind}`}>
-      {group.kind === 'fn' ? 'functions' : `${group.kind}s`}
+      {groupHeading(group.kind, lang)}
       <span class="badge">{group.items.length}</span>
     </h3>
+    <div class="item-grid">
     {#each group.items as candidate (candidate.name + candidate.signature)}
       <article class="api-item">
         <header>
@@ -186,6 +187,7 @@
         {/if}
       </article>
     {/each}
+    </div>
   {/each}
 {:else if item}
   <!-- One item on its own. -->
@@ -230,6 +232,7 @@
   <section class="card">
     <h3 style="margin-top: 0">{tr('api.find', lang)}</h3>
     <input
+      class="filter-field"
       type="search"
       placeholder={`${tr('api.filter', lang)} (${index.item_count})`}
       bind:value={filter}
@@ -256,9 +259,9 @@
         <header>
           <span class="name">{candidate.name}</span>
           <span class="badge">{candidate.layer}</span>
-          <span class="badge">{candidate.items}</span>
+          <span class="badge">{candidate.items} {tr('api.itemCount', lang)}</span>
         </header>
-        <p>{firstSentence(pick(candidate.summary.plain, lang))}</p>
+        <p class="card-clamp">{pick(candidate.summary.plain, lang)}</p>
       </a>
     {/each}
   </div>

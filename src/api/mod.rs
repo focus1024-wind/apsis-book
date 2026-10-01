@@ -149,6 +149,7 @@ impl Router {
                     "summary" => hit.summary.clone(),
                     "language" => hit.language.tag(),
                     "chapter" => hit.chapter.clone(),
+                    "chapter_title" => chapter_title(&self.state, &hit.chapter),
                     "score" => hit.score,
                 }
             })
@@ -197,7 +198,7 @@ impl Router {
                 let body = json_object! {
                     "id" => document.id.clone(),
                     "chapter" => document.chapter.clone(),
-                    "tags" => document.tags.iter().map(|tag| Value::from(tag.as_str())).collect::<Vec<Value>>(),
+                    "tags" => tag_lists(document),
                     "prerequisites" => document.prerequisites.iter().map(|id| Value::from(id.as_str())).collect::<Vec<Value>>(),
                     "references" => document.references().iter().map(|id| Value::from(id.as_str())).collect::<Vec<Value>>(),
                     "forms" => forms,
@@ -424,7 +425,7 @@ fn document_index(state: &AppState) -> Value {
                         "id" => document.id.clone(),
                         "title" => bilingual("title", document),
                         "summary" => bilingual("summary", document),
-                        "tags" => document.tags.iter().map(|tag| Value::from(tag.as_str())).collect::<Vec<Value>>(),
+                        "tags" => tag_lists(document),
                     }
                 })
                 .collect();
@@ -540,6 +541,22 @@ fn flow_list_json(flows: &[Graph]) -> Value {
         })
         .collect();
     json_object! { "flows" => items }
+}
+
+/// Encodes the tag lists of a document, one per language.
+fn tag_lists(document: &crate::docs::Document) -> Value {
+    json_object! {
+        "en" => document.tags.iter().map(|tag| Value::from(tag.as_str())).collect::<Vec<Value>>(),
+        "zh" => document.tags_zh.iter().map(|tag| Value::from(tag.as_str())).collect::<Vec<Value>>(),
+    }
+}
+
+/// Encodes the title of a chapter, in both languages.
+fn chapter_title(state: &AppState, chapter_id: &str) -> Value {
+    let Some(chapter) = state.docs.chapters().iter().find(|c| c.id == chapter_id) else {
+        return Value::string(chapter_id);
+    };
+    optional_bilingual(&chapter.title_zh, &chapter.title)
 }
 
 /// Encodes a graph as JSON.

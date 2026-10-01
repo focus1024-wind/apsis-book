@@ -1,5 +1,6 @@
 ---
 title: 闰秒
+tags: 时间, utc, 闰秒, iers
 summary: UTC 为何存在阶跃间断，以及内嵌闰秒表如何处理它们。
 ---
 

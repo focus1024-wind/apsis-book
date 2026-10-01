@@ -10,7 +10,7 @@
   import type { FlowIndex, Graph, GraphNode } from '../lib/types';
   import { getJson } from '../lib/api';
   import { groupColor } from '../lib/format';
-  import { language, pick, tr } from '../lib/i18n';
+  import { groupLabel, language, pick, tr } from '../lib/i18n';
   import GraphView from '../lib/GraphView.svelte';
 
   interface Props {
@@ -96,7 +96,7 @@
 
   <div class="legend">
     {#each graph.groups as group}
-      <span><i style={`background:${groupColor(group)}`}></i>{group}</span>
+      <span><i style={`background:${groupColor(group)}`}></i>{groupLabel(group, lang)}</span>
     {/each}
   </div>
 

@@ -1,5 +1,6 @@
 ---
 title: 工作区架构
+tags: 架构, 分层, crate
 summary: apsis-rs 的分层结构、每层的 crate 以及依赖规则。
 ---
 

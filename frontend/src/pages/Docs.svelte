@@ -7,7 +7,7 @@
    */
   import type { DocumentIndex } from '../lib/types';
   import { navigate } from '../lib/router';
-  import { language, pick, tr } from '../lib/i18n';
+  import { language, pick, pickList, tr } from '../lib/i18n';
 
   interface Props {
     index: DocumentIndex | null;
@@ -37,18 +37,17 @@
         {#each chapter.documents as document}
           <article class="card">
             <h3><a href={`#/docs/${document.id}`}>{pick(document.title, lang)}</a></h3>
-            <p style="color: var(--text-muted); margin: 0.4rem 0 0.6rem">
+            <p class="card-clamp" style="color: var(--text-muted); margin: 0.4rem 0 0.6rem">
               {pick(document.summary, lang)}
             </p>
-            <div>
-              {#each document.tags as tag}
+            <div class="card-tags">
+              {#each pickList(document.tags, lang) as tag}
                 <span class="tag">{tag}</span>
               {/each}
             </div>
             <button
-              class="ghost"
+              class="ghost card-action"
               type="button"
-              style="margin-top: 0.75rem;"
               onclick={() => navigate(`/docs/${document.id}`)}>{tr('docs.read', lang)}</button>
           </article>
         {/each}

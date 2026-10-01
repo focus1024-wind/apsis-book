@@ -52,9 +52,13 @@
     const currentRegistry = registry;
     const currentId = id;
     if (!currentRegistry) return;
-    const found = currentId
-      ? (currentRegistry.tools.find((candidate) => candidate.id === currentId) ?? null)
-      : null;
+    // With no tool named in the route the first one is shown, so the page
+    // opens on a working form rather than an invitation to pick.
+    const wanted =
+      (currentId
+        ? currentRegistry.tools.find((candidate) => candidate.id === currentId)
+        : undefined) ?? currentRegistry.tools[0];
+    const found = wanted ?? null;
     tool = found;
     result = null;
     error = null;
@@ -125,18 +129,17 @@
   <p class="empty">{tr('tools.loading', lang)}</p>
 {:else}
   {#each categories as group}
-    <section style="margin-bottom: 1.25rem;">
-      <h3 style="margin-bottom: 0.5rem;">{pick(group.category, lang)}</h3>
-      <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+    <section style="margin-bottom: 2rem;">
+      <h3 style="margin-bottom: 0.75rem;">{pick(group.category, lang)}</h3>
+      <div class="grid cards">
         {#each group.tools as candidate}
           <a
+            class="card tool-card"
+            class:selected={id === candidate.id}
             href={`#/tools/${candidate.id}`}
-            class="badge"
-            style={id === candidate.id
-              ? 'border-color: var(--accent); color: var(--accent); padding: 0.3rem 0.7rem;'
-              : 'padding: 0.3rem 0.7rem;'}
           >
-            {pick(candidate.name, lang)}
+            <h4>{pick(candidate.name, lang)}</h4>
+            <p>{pick(candidate.summary, lang)}</p>
           </a>
         {/each}
       </div>

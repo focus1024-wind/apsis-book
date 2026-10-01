@@ -13,7 +13,7 @@
    */
   import type { Document, DocumentForm } from '../lib/types';
   import { navigate } from '../lib/router';
-  import { language, setLanguage, tr, type Language } from '../lib/i18n';
+  import { language, pickList, setLanguage, tr, type Language } from '../lib/i18n';
 
   interface Props {
     document: Document | null;
@@ -101,7 +101,7 @@
         <p style="color: var(--text-muted); font-size: 1.05rem;">{form.summary}</p>
       {/if}
       <div>
-        {#each document.tags as tag}
+        {#each pickList(document.tags, lang) as tag}
           <span class="tag">{tag}</span>
         {/each}
         {#if otherLanguage}

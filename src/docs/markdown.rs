@@ -683,6 +683,18 @@ fn strip_inline(text: &str) -> String {
                 continue;
             }
         }
+        if character == '[' && characters.get(index + 1) == Some(&'`') {
+            // A rustdoc shortcut reference, `[`Epoch`]`, is a reference to
+            // another item. The plain text keeps the item name so that a
+            // summary still names what it is about, and the brackets never
+            // reach the reader.
+            if let Some((label, end)) = parse_shortcut_link(&characters, index) {
+                let name = label.rsplit("::").next().unwrap_or(&label);
+                output.push_str(name.trim());
+                index = end;
+                continue;
+            }
+        }
         if character == '[' {
             if let Some((label, _, end)) = parse_link(&characters, index) {
                 output.push_str(&label);
@@ -808,5 +820,16 @@ mod tests {
         assert!(text.contains("SGP4"));
         assert!(!text.contains("[["));
         assert!(!text.contains('`'));
+    }
+
+    #[test]
+    fn plain_text_resolves_a_shortcut_reference() {
+        // A rustdoc shortcut keeps the item name and loses the brackets,
+        // which otherwise appear verbatim in a one line summary.
+        let text = to_plain_text("See [`Vec3`] and [`Epoch::mjd`](crate::Epoch::mjd).\n");
+        assert!(text.contains("Vec3"));
+        assert!(text.contains("mjd"));
+        assert!(!text.contains('['), "{text}");
+        assert!(!text.contains('`'), "{text}");
     }
 }

@@ -27,6 +27,12 @@ export interface Text {
   en: string;
 }
 
+/** A list of strings carried in both languages. */
+export interface BilingualList {
+  zh: string[];
+  en: string[];
+}
+
 /** Returns `true` when the value is a supported language tag. */
 export function isLanguage(value: unknown): value is Language {
   return value === 'zh' || value === 'en';
@@ -75,6 +81,19 @@ export function pick(value: Text | null | undefined, target?: Language): string 
   const selected = target ?? get(language);
   if (selected === 'zh') return value.zh || value.en;
   return value.en || value.zh;
+}
+
+/** Picks a list from a bilingual value that may be empty in one language. */
+export function pickList(
+  value: BilingualList | null | undefined,
+  target?: Language,
+): string[] {
+  if (!value) return [];
+  const selected = target ?? get(language);
+  // A list can be empty in one language and filled in the other, so the
+  // length is checked rather than the truthiness of the array.
+  if (selected === 'zh') return value.zh?.length ? value.zh : (value.en ?? []);
+  return value.en?.length ? value.en : (value.zh ?? []);
 }
 
 /** The interface strings, keyed by a stable name. */
@@ -172,7 +191,7 @@ const STRINGS: Record<string, Text> = {
   'graph.edges': { zh: '边', en: 'edges' },
   'graph.zoom': { zh: '缩放', en: 'zoom' },
   'graph.reset': { zh: '复位视图', en: 'Reset view' },
-  'graph.fit': { zh: '适配', en: 'Fit' },
+  'graph.fit': { zh: '适应窗口', en: 'Fit to view' },
   'graph.openDocument': { zh: '打开文档', en: 'Open the document' },
   'graph.interface': { zh: '接口：', en: 'Interface:' },
   'graph.crateNote': {
@@ -233,6 +252,50 @@ const STRINGS: Record<string, Text> = {
   'common.notFound': { zh: '不存在页面', en: 'There is no page at' },
   'common.goHome': { zh: '前往总览', en: 'Go to the overview' },
   'common.language': { zh: '语言', en: 'Language' },
+
+  // Group captions of the knowledge graph and the flow graphs. The keys are
+  // the group identifiers used by the content data.
+  'group.overview': { zh: '总览', en: 'Overview' },
+  'group.time': { zh: '时间', en: 'Time' },
+  'group.geometry': { zh: '坐标与几何', en: 'Geometry' },
+  'group.elements': { zh: '元素集', en: 'Elements' },
+  'group.propagation': { zh: '轨道传播', en: 'Propagation' },
+  'group.methods': { zh: '方法对比', en: 'Methods' },
+  'group.foundation': { zh: '基础层', en: 'Foundation' },
+  'group.physics': { zh: '物理层', en: 'Physics' },
+  'group.orbit': { zh: '轨道层', en: 'Orbit' },
+  'group.rf': { zh: '射频层', en: 'Radio' },
+  'group.network': { zh: '网络层', en: 'Network' },
+  'group.ops': { zh: '运行层', en: 'Operations' },
+  'group.sim': { zh: '仿真层', en: 'Simulation' },
+  'group.input': { zh: '输入', en: 'Input' },
+  'group.parse': { zh: '解析', en: 'Parse' },
+  'group.prepare': { zh: '准备', en: 'Prepare' },
+  'group.branch': { zh: '分支', en: 'Branch' },
+  'group.propagate': { zh: '传播', en: 'Propagate' },
+  'group.verify': { zh: '校验', en: 'Verify' },
+  'group.fields': { zh: '字段', en: 'Fields' },
+  'group.crosscheck': { zh: '交叉检查', en: 'Cross-check' },
+  'group.error': { zh: '错误', en: 'Error' },
+  'group.output': { zh: '输出', en: 'Output' },
+  'group.validate': { zh: '校验', en: 'Validate' },
+  'group.convert': { zh: '换算', en: 'Convert' },
+  'group.store': { zh: '存储', en: 'Store' },
+  'group.frames': { zh: '参考系', en: 'Frames' },
+  'group.rotate': { zh: '旋转', en: 'Rotate' },
+  'group.geodetic': { zh: '大地坐标', en: 'Geodetic' },
+  'group.general': { zh: '其他', en: 'General' },
+
+  // Item kinds of the interface documentation.
+  'kind.struct': { zh: '结构体', en: 'struct' },
+  'kind.enum': { zh: '枚举', en: 'enum' },
+  'kind.trait': { zh: 'trait', en: 'trait' },
+  'kind.fn': { zh: '函数', en: 'fn' },
+  'kind.const': { zh: '常量', en: 'const' },
+  'kind.type': { zh: '类型别名', en: 'type' },
+
+  'api.itemCount': { zh: '个接口项', en: 'items' },
+  'tools.choose': { zh: '共 {count} 个工具，按类别分组。', en: '{count} tools, grouped by category.' },
 };
 
 /** Returns an interface string in the given language. */
@@ -248,5 +311,38 @@ export function t(key: string): string {
   if (!entry) return key;
   return get(language) === 'zh' ? entry.zh : entry.en;
 }
+
+/**
+ * Returns the caption of a graph group.
+ *
+ * A group that is not in the dictionary is shown as written, which keeps a
+ * new group in the content readable rather than blank.
+ */
+export function groupLabel(group: string, target?: Language): string {
+  const entry = STRINGS[`group.${group}`];
+  if (!entry) return group;
+  return pick(entry, target);
+}
+
+/**
+ * Returns the caption of an interface item kind.
+ */
+export function kindLabel(kind: string, target?: Language): string {
+  const entry = STRINGS[`kind.${kind}`];
+  if (!entry) return kind;
+  return pick(entry, target);
+}
+
+/**
+ * The headings that introduce a group of interface items, in the plural.
+ */
+export const KIND_GROUPS: Record<string, Text> = {
+  struct: { zh: '结构体', en: 'Structs' },
+  enum: { zh: '枚举', en: 'Enums' },
+  trait: { zh: 'trait', en: 'Traits' },
+  fn: { zh: '函数', en: 'Functions' },
+  const: { zh: '常量', en: 'Constants' },
+  type: { zh: '类型别名', en: 'Type aliases' },
+};
 
 export default t;

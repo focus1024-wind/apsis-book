@@ -1,5 +1,6 @@
 ---
 title: 时间尺度
+tags: 时间, utc, tai, tt, gps
 summary: UTC、TAI、TT 与 GPS，以及为什么时刻只存储在单一尺度上。
 ---
 

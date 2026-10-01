@@ -73,8 +73,10 @@ pub struct Document {
     pub id: String,
     /// Chapter identifier the document belongs to.
     pub chapter: String,
-    /// Free form tags.
+    /// Free form tags in the language of the English form.
     pub tags: Vec<String>,
+    /// The same tags in Chinese, when the document declares them.
+    pub tags_zh: Vec<String>,
     /// Identifier of the document this one builds on, when declared.
     pub prerequisites: Vec<String>,
     /// The English form. Every document has one, and it is the fallback
@@ -105,6 +107,7 @@ impl Document {
             id: id.to_string(),
             chapter: chapter_of(text),
             tags: list_of(text, "tags"),
+            tags_zh: Vec::new(),
             prerequisites: list_of(text, "prerequisites"),
             english: variant,
             chinese: None,
@@ -216,6 +219,14 @@ fn strip_leading_title(body: &str, title: &str) -> String {
         }
     }
     body.to_string()
+}
+
+/// Returns the tag list a document header declares.
+///
+/// Each language file declares its own tags under the same key, so the
+/// loader reads them from the translation rather than from the original.
+pub fn tags_of(text: &str) -> Vec<String> {
+    list_of(text, "tags")
 }
 
 /// Returns the value of a metadata key, trimmed.

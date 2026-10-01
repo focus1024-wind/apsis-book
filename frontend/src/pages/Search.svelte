@@ -7,7 +7,7 @@
    * that a reader can tell why it was returned.
    */
   import type { SearchResponse } from '../lib/types';
-  import { language, tr } from '../lib/i18n';
+  import { language, pick, tr } from '../lib/i18n';
 
   interface Props {
     response: SearchResponse | null;
@@ -62,8 +62,7 @@
         <a class="result-title" href={`#/docs/${hit.id}`}>{hit.title}</a>
         <p class="result-summary">{excerpt(hit.summary, query)}</p>
         <div class="result-meta">
-          <span class="badge">{hit.chapter}</span>
-          <span class="badge">{hit.language}</span>
+          <span class="badge">{pick(hit.chapter_title, lang)}</span>
           <span class="badge">{tr('search.score', lang)} {hit.score.toFixed(2)}</span>
         </div>
       </li>

@@ -73,8 +73,10 @@ pub fn load_documents() -> Vec<Document> {
         let Some(translation) = DocumentVariant::parse(text) else {
             continue;
         };
+        let tags_zh = crate::docs::document::tags_of(text);
         if let Some(document) = documents.get_mut(stem) {
             document.chinese = Some(translation);
+            document.tags_zh = tags_zh;
         }
     }
 

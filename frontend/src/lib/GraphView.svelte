@@ -37,9 +37,14 @@
 
   /** The radius of a node marker. */
   const NODE_RADIUS = 9;
-  /** Width and height of the layout space. */
-  const WIDTH = 1200;
-  const HEIGHT = 760;
+  /**
+   * Width and height of the layout space.
+   *
+   * The canvas takes this aspect, so the drawing fills it rather than being
+   * letterboxed inside it.
+   */
+  const WIDTH = 1400;
+  const HEIGHT = 700;
 
   let placements = $state<Map<string, Placement>>(new Map());
   let span = $state(1);
@@ -120,14 +125,84 @@
         placement.y = Math.min(HEIGHT - 60, Math.max(60, placement.y));
       }
     }
-    return result;
+    return spreadToCanvas(result);
+  }
+
+  /**
+   * Widens a layout until it has the shape of the canvas.
+   *
+   * The simulation settles into a roughly round cluster, while the canvas is
+   * wide. Left alone the fit then scales by the short axis and leaves a large
+   * empty margin on the long one. Stretching along the long axis to match the
+   * canvas shape uses the whole area; the distortion is a uniform scale, so
+   * relative distances and the layout stay readable.
+   */
+  function spreadToCanvas(points: Map<string, Placement>): Map<string, Placement> {
+    const values = [...points.values()];
+    if (values.length < 2) return points;
+    let minX = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    for (const point of values) {
+      minX = Math.min(minX, point.x);
+      maxX = Math.max(maxX, point.x);
+      minY = Math.min(minY, point.y);
+      maxY = Math.max(maxY, point.y);
+    }
+    const width = maxX - minX;
+    const height = maxY - minY;
+    if (width < 1 || height < 1) return points;
+    const wanted = WIDTH / HEIGHT;
+    const current = width / height;
+    // Only widen a narrow layout; a layout that is already wider than the
+    // canvas is left alone, since stretching further would overflow it.
+    if (current >= wanted * 0.9) return points;
+    const scale = (wanted * height) / width;
+    if (scale > 3) return points;
+    const centreX = (minX + maxX) / 2;
+    for (const point of values) {
+      point.x = centreX + (point.x - centreX) * scale;
+    }
+    return points;
+  }
+
+  /**
+   * Scales and centres the view so that every node is visible with a margin.
+   *
+   * The layout occupies a fixed design space, which the force simulation
+   * fills only in its centre. Fitting the view to the nodes removes the
+   * empty margin the reader would otherwise have to pan across.
+   */
+  function fitToNodes() {
+    if (placements.size === 0) {
+      span = 1;
+      offsetX = 0;
+      offsetY = 0;
+      return;
+    }
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    for (const placement of placements.values()) {
+      minX = Math.min(minX, placement.x);
+      maxX = Math.max(maxX, placement.x);
+      minY = Math.min(minY, placement.y);
+      maxY = Math.max(maxY, placement.y);
+    }
+    const margin = 70;
+    const width = Math.max(1, maxX - minX + margin * 2);
+    const height = Math.max(1, maxY - minY + margin * 2);
+    const scale = Math.min(WIDTH / width, HEIGHT / height);
+    span = Math.max(0.3, Math.min(2.5, scale));
+    offsetX = (WIDTH - (maxX - minX) * span) / 2 - minX * span;
+    offsetY = (HEIGHT - (maxY - minY) * span) / 2 - minY * span;
   }
 
   $effect(() => {
     placements = layout(graph);
-    span = 1;
-    offsetX = 0;
-    offsetY = 0;
+    fitToNodes();
   });
 
   /** The transform of the layout viewport. */
@@ -166,16 +241,14 @@
     span = next;
   }
 
-  /** Resets the viewport. */
+  /** Returns the viewport to the fitted view. */
   function reset() {
-    span = 1;
-    offsetX = 0;
-    offsetY = 0;
+    fitToNodes();
   }
 </script>
 
 <div class="graph-controls">
-  <button class="ghost" type="button" onclick={reset}>{tr('graph.reset', lang)}</button>
+  <button class="ghost" type="button" onclick={reset}>{tr('graph.fit', lang)}</button>
   <span class="badge">{graph.nodes.length} {tr('graph.nodes', lang)}</span>
   <span class="badge">{graph.edges.length} {tr('graph.edges', lang)}</span>
   <span class="badge">{tr('graph.zoom', lang)} {span.toFixed(2)}×</span>

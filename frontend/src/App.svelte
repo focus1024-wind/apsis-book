@@ -154,6 +154,7 @@
 </svelte:head>
 
 <div class="app">
+  <div class="sidebar-frame">
   <aside class="sidebar">
     <div class="sidebar-brand">
       <a href="#/">APSIS</a>
@@ -192,6 +193,7 @@
       {/if}
     </nav>
   </aside>
+  </div>
 
   <div class="main">
     <header class="topbar">
