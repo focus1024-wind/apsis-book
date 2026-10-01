@@ -29,6 +29,13 @@
   /* One hue per layer, so that a legend with ten entries is readable. The
      concept graph uses these directly; the flow graphs reuse the earlier
      stage names. */
+  /* Layout. Both are fixed proportions: the sidebar is a share of the
+     window and the table of contents is a share of the reading column, so
+     neither changes size with the length of a title. */
+  --sidebar-width: 19rem;
+  --toc-width: 15rem;
+
+  /* Graph group colours. */
   --group-overview: #7fd1ff;
   --group-foundation: #a3e635;
   --group-physics: #4ade80;
@@ -229,9 +236,17 @@ hr {
    written differently from the layers inside it. */
 .sidebar-group-title {
   color: var(--accent);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   padding-bottom: 0.35rem;
-  margin-bottom: 0.6rem;
-  border-bottom: 1px solid var(--border);
+  margin: 0 0 0.55rem 0.4rem;
+  border-bottom: 1px solid var(--border-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-section h2 {
@@ -244,30 +259,40 @@ hr {
   padding: 0;
 }
 
+/* A layer in the sidebar. It is a two column grid: the title and the fold
+   control, so that every layer occupies the same box whatever the length
+   of its name. A row that grew with its text would give the sidebar an
+   irregular rhythm down its length. */
 .sidebar-chapter {
-  margin-bottom: 0.5rem;
+  /* One box per layer, whatever the length of its name, so the sidebar has a
+     regular rhythm down its length rather than one that follows the text. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1.1rem;
+  align-items: center;
+  column-gap: 0.15rem;
+  margin-bottom: 0.15rem;
+  padding-left: 0.4rem;
+  border-left: 2px solid var(--border-strong);
+  min-height: 1.35rem;
+  margin-bottom: 0.15rem;
 }
 
-/* The chapter head is a row: the title is a link to the chapter listing
-   and the chevron folds the group. They sit apart so the two do not look
-   like one control. */
-.sidebar-chapter-head {
-  display: flex;
-  align-items: center;
-  gap: 0.1rem;
-  margin-bottom: 0.15rem;
-  padding-left: 0.35rem;
-  border-left: 2px solid var(--border-strong);
+/* The document links belong to the layer but are not part of its header
+   row, so they take the whole width below it. Without this they are
+   placed in the header's first column and a link with no space to break is
+   set one character per line. */
+.sidebar-chapter > a.item {
+  grid-column: 1 / -1;
 }
 
 .sidebar-chapter-title {
-  flex: 1 1 auto;
+  min-width: 0;
   font-size: 0.78rem;
+  line-height: 1.35;
   color: var(--text);
   margin: 0;
   font-weight: 700;
   letter-spacing: 0.02em;
-  text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -279,7 +304,6 @@ hr {
 }
 
 .sidebar-chapter-toggle {
-  flex: 0 0 auto;
   width: 1.1rem;
   height: 1.1rem;
   padding: 0;
@@ -1373,15 +1397,21 @@ tbody tr:hover {
   }
 
   .doc-layout {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .doc-layout.no-toc {
+    max-width: none;
   }
 
   .doc-toc {
-    position: relative;
-    top: 0;
-    width: 100%;
-    flex: none;
+    position: static;
     max-height: none;
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    padding-left: 0;
+    padding-top: 0.75rem;
   }
 
   .content {

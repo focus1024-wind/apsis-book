@@ -11,7 +11,9 @@
           "title_zh": "导论",
           "summary": "What this documentation covers, how it is organised, and how to read it.",
           "summary_zh": "本套文档的范围、组织方式与阅读方法。",
-          "documents": ["overview"]
+          "documents": [
+            "overview"
+          ]
         },
         {
           "id": "foundation",
@@ -19,14 +21,17 @@
           "title_zh": "基础层",
           "summary": "Units, dimensions, numerical method, and the treatment of error.",
           "summary_zh": "单位与量纲、数值方法以及误差处理。",
-          "documents": ["units-and-dimensions", "numerical-methods"]
+          "documents": [
+            "units-and-dimensions",
+            "numerical-methods"
+          ]
         },
         {
           "id": "physics",
-          "title": "Time and geometry",
-          "title_zh": "时间与几何",
-          "summary": "Time scales, leap seconds, calendars, reference frames, the Earth rotation angle, and the reference ellipsoid.",
-          "summary_zh": "时间尺度、闰秒、日历、参考系、地球自转角与参考椭球。",
+          "title": "Physics",
+          "title_zh": "物理层",
+          "summary": "Time scales, leap seconds, calendars, and the geometry of the Earth: its reference frames, its rotation, and its reference ellipsoid.",
+          "summary_zh": "时间尺度、闰秒与日历，以及地球的几何：参考系、自转与参考椭球。",
           "documents": [
             "time-scales",
             "leap-seconds",
@@ -74,7 +79,11 @@
           "title_zh": "星座与网络",
           "summary": "Constellations, coverage, visibility, access, and the behaviour of a network of satellites.",
           "summary_zh": "星座、覆盖、可见性、接入以及卫星网络的行为。",
-          "documents": ["constellations", "access-and-availability", "handover-and-routing"]
+          "documents": [
+            "constellations",
+            "access-and-availability",
+            "handover-and-routing"
+          ]
         },
         {
           "id": "ops",
@@ -82,7 +91,10 @@
           "title_zh": "运行层",
           "summary": "Command, tracking and telemetry, and the planning of daily operations.",
           "summary_zh": "测控链路以及日常运行的规划。",
-          "documents": ["tt-and-c", "operations-planning"]
+          "documents": [
+            "tt-and-c",
+            "operations-planning"
+          ]
         },
         {
           "id": "sim",
@@ -90,7 +102,9 @@
           "title_zh": "仿真层",
           "summary": "Scenarios, events, and the reasoning behind a simulation result.",
           "summary_zh": "场景、事件以及仿真结果的解读。",
-          "documents": ["scenario-simulation"]
+          "documents": [
+            "scenario-simulation"
+          ]
         }
       ]
     },
@@ -105,7 +119,10 @@
           "title_zh": "ApsisRS 工作区",
           "summary": "How the library is organised, and the provenance of what it implements.",
           "summary_zh": "该库的组织方式，以及其所实现内容的来源。",
-          "documents": ["architecture-apsis-rs", "standards-and-provenance"]
+          "documents": [
+            "architecture-apsis-rs",
+            "standards-and-provenance"
+          ]
         }
       ]
     }

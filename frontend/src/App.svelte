@@ -191,17 +191,15 @@
             <h2 class="sidebar-group-title">{pick(group.title, lang)}</h2>
             {#each group.sections as section (section.id)}
               <div class="sidebar-chapter" class:collapsed={collapsed.includes(section.id)}>
-                <div class="sidebar-chapter-head">
-                  <a class="sidebar-chapter-title" href="#/docs" title={pick(section.title, lang)}>
-                    {pick(section.title, lang)}
-                  </a>
-                  <button
-                    class="sidebar-chapter-toggle"
-                    aria-expanded={!collapsed.includes(section.id)}
-                    aria-label="{tr('nav.toggleChapter', lang)}: {pick(section.title, lang)}"
-                    onclick={() => toggleChapter(section.id)}
-                  >▾</button>
-                </div>
+                <a class="sidebar-chapter-title" href="#/docs" title={pick(section.title, lang)}>
+                  {pick(section.title, lang)}
+                </a>
+                <button
+                  class="sidebar-chapter-toggle"
+                  aria-expanded={!collapsed.includes(section.id)}
+                  aria-label="{tr('nav.toggleChapter', lang)}: {pick(section.title, lang)}"
+                  onclick={() => toggleChapter(section.id)}
+                >▾</button>
                 {#if !collapsed.includes(section.id)}
                   {#each section.documents as entry (entry.id)}
                     <a
