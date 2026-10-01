@@ -104,15 +104,16 @@ impl Options {
     /// either of the two separate options is an error, because the order in
     /// which they would apply is not defined.
     fn from_environment() -> Result<Self, String> {
-        let mut host = std::env::var("APSIS_BOOK_HOST").unwrap_or_else(|_| DEFAULT_HOST.to_string());
+        let mut host =
+            std::env::var("APSIS_BOOK_HOST").unwrap_or_else(|_| DEFAULT_HOST.to_string());
         let mut port = match std::env::var("APSIS_BOOK_PORT") {
             Ok(value) => parse_port(&value).map_err(|error| format!("APSIS_BOOK_PORT: {error}"))?,
             Err(_) => DEFAULT_PORT,
         };
         let mut combined: Option<SocketAddr> = match std::env::var("APSIS_BOOK_ADDRESS") {
-            Ok(value) => {
-                Some(parse_address(&value).map_err(|error| format!("APSIS_BOOK_ADDRESS: {error}"))?)
-            }
+            Ok(value) => Some(
+                parse_address(&value).map_err(|error| format!("APSIS_BOOK_ADDRESS: {error}"))?,
+            ),
             Err(_) => None,
         };
         let mut workers = match std::env::var("APSIS_BOOK_WORKERS") {
