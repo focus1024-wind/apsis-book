@@ -6,6 +6,11 @@
 # other facility, including the HTTP server and the JSON codec, is written
 # against the standard library so that the crate stays self-contained and
 # auditable.
+#
+# The licence is the GNU General Public License, version 3 or later, and
+# that alone. `apsis-rs` is offered under MIT or Apache-2.0; those terms
+# permit redistribution inside a GPL work, so the two may be distributed
+# together under these terms.
 
 [package]
 name = "apsis-book"

@@ -104,6 +104,23 @@ the number of documents a token appears in, so a common word contributes
 less than a rare one. The index is built once at startup and never changes,
 so the postings are read only and need no lock.
 
+
+
+A query is handled in two ways. A query that yields tokens is matched
+against the postings; a query that yields no token, such as a single
+character, is matched as a substring, because a one character query cannot
+form a token and would otherwise always return nothing.
+
+Chinese text needs more than word splitting. Latin text is split on
+whitespace and punctuation, but Chinese is written without spaces, so
+splitting a Chinese sentence on non-alphanumeric characters leaves one long
+token that a two character query can never match. A run of Chinese
+characters therefore yields one token per adjacent pair, which is the
+smallest unit specific enough to be a word. A query of 坐标 matches a
+sentence that contains 坐标, which a whole-run token would not. A single
+Chinese character is left to the substring fallback rather than becoming a
+token, because a token of one character would match nearly every document.
+
 ## Graphs
 
 One graph shape serves the knowledge graph, the crate structure, and the
@@ -237,7 +254,7 @@ line, and the resulting behaviour would be surprising.
 
 ## Interface layout
 
-Three layout decisions keep the pages readable at any window width.
+These layout decisions keep the pages coherent at any window width.
 
 A page is a **reading column**. Most pages are text, a card grid, or a form,
 and all three read better in a centred column than across a whole wide
@@ -259,33 +276,7 @@ The **graph** is drawn on a fixed layout space that is scaled to the
 viewport. A double click opens the document or the interface item a node
 names, so a graph is also a way into the documentation.
 
-## Search
 
-A query is handled in two ways. A query that yields tokens is matched
-against the postings; a query that yields no token, such as a single
-character, is matched as a substring, because a one character query cannot
-form a token and would otherwise always return nothing.
-
-Chinese text needs more than word splitting. Latin text is split on
-whitespace and punctuation, but Chinese is written without spaces, so
-splitting a Chinese sentence on non-alphanumeric characters leaves one long
-token that a two character query can never match. A run of Chinese
-characters therefore yields one token per adjacent pair, which is the
-smallest unit specific enough to be a word. A query of 坐标 matches a
-sentence that contains 坐标, which a whole-run token would not. A single
-Chinese character is left to the substring fallback rather than becoming a
-token, because a token of one character would match nearly every document.
-
-## Interface layout
-
-Four layout decisions keep the pages coherent at any window width.
-
-A page is a **reading column**. Most pages are text, a card grid, or a form,
-and all three read better in a centred column than across a whole wide
-screen. A document is wider than the column because it carries a table of
-contents beside the text; the width of the pair is capped so the two stay
-together. A graph is the exception and uses the whole width, because a wide
-screen should show more of the graph rather than more margin.
 
 A grid of cards has **one card size on the whole page**, not one per row.
 

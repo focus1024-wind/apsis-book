@@ -1,5 +1,7 @@
 # apsis-book
 
+[简体中文](./README.zh.md) | English
+
 The web service layer of ApsisRS. It presents the ApsisRS computational
 kernels for commercial spaceflight and satellite internet systems in a
 browser: the concept documentation, a knowledge graph, the interface
@@ -132,7 +134,7 @@ library is built in, because that is the order a reader meets the subject:
 |-------|---------|
 | 导论 Introduction | Scope, organisation, and how to read a page |
 | 基础层 Foundations | Units, dimensions, numerical method, error |
-| 时间与几何 Time and geometry | Time scales, leap seconds, calendars, frames, the Earth rotation angle, the ellipsoid |
+| 物理层 Physics | Time scales and reference frames, which are two unrelated subjects and are both held here |
 | 轨道层 Orbit | Elements, element formats, perturbations, propagators, manoeuvres |
 | 射频与传播 Radio and propagation | Doppler, link budgets, the medium, interference |
 | 星座与网络 Constellation and network | Constellations, access, topology, handover, routing |
@@ -221,4 +223,10 @@ plain TCP requests against it.
 
 ## License
 
-MIT OR Apache-2.0. See `LICENSE-MIT` and `LICENSE-APACHE`.
+GNU General Public License, version 3 or later, and that alone. See
+`LICENSE`.
+
+The service depends on `apsis-rs`, which is offered under MIT or
+Apache-2.0. Both of those permit redistribution inside a GPL work, so the
+two are distributed together under these terms. No other licence is
+offered for this service.
