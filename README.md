@@ -41,6 +41,13 @@ The service follows the constraints of the workspace it belongs to.
 The frontend must be built before the release binary so that its output can
 be embedded. A release build does this automatically.
 
+Every built asset carries a content hash in its name, so replacing the binary
+replaces those names. A browser therefore cannot be holding a stale bundle:
+the new bundle is requested under a URL it has never seen. The entry point
+is served with `no-cache, must-revalidate`, and hashed assets with
+`public, max-age=31536000, immutable`. The service registers no service
+worker.
+
 ```sh
 # Development: a debug build embeds whatever is in frontend/dist and does
 # not run the frontend build.

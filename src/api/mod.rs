@@ -387,27 +387,74 @@ impl Router {
         if !relative.is_empty() && !relative.ends_with('/') {
             if let Some(bytes) = embedded::get(relative) {
                 return Response::new(Status::Ok, embedded::content_type(relative), bytes.to_vec())
-                    .with_cache_control(CACHE_POLICY);
+                    .with_cache_control(cache_policy(relative));
             }
         }
 
         // A directory request, or an unknown path that looks like a route,
-        // returns the single page entry point.
+        // returns the single page entry point, which names the current
+        // bundle and is therefore never served from a cache.
         match embedded::get("index.html") {
             Some(bytes) => Response::new(Status::Ok, "text/html; charset=utf-8", bytes.to_vec())
-                .with_cache_control("no-cache"),
+                .with_cache_control(ENTRY_CACHE_POLICY),
             None => not_found("asset"),
         }
     }
 }
 
-/// The cache policy for every asset.
+/// The cache policy for the entry point.
 ///
-/// The build writes stable file names rather than content hashed ones, so a
-/// browser must revalidate after a deployment. A year long immutable policy
-/// would be correct only for hashed names, and would pin a reader to the
-/// bundle that was current when they first loaded the page.
-const CACHE_POLICY: &str = "no-cache";
+/// The entry point names the current bundle, so it is never reused from a
+/// cache without asking. `must-revalidate` states that requirement to
+/// intermediaries as well as to the browser.
+const ENTRY_CACHE_POLICY: &str = "no-cache, must-revalidate";
+
+/// The cache policy for a file whose name carries a content hash.
+///
+/// A build that changes a file also changes its name, so the URL of the new
+/// file has never been requested before and cannot be in a cache. Marking it
+/// immutable is therefore both safe and free: the browser keeps it until it
+/// is no longer named by any entry point.
+const HASHED_CACHE_POLICY: &str = "public, max-age=31536000, immutable";
+
+/// The cache policy for a file whose name carries no content hash.
+///
+/// Such a file is a name that a future build reuses, so it must be
+/// revalidated rather than reused from a cache.
+const UNHASHED_CACHE_POLICY: &str = "no-cache, must-revalidate";
+
+/// Returns the cache policy for an asset path.
+///
+/// The decision is made from the file name alone, which is the same signal
+/// the build uses to decide whether the contents changed. Nothing about the
+/// contents is read, so the policy is correct for a file that was embedded by
+/// an earlier build as well as for one embedded by the current one.
+fn cache_policy(path: &str) -> &'static str {
+    if is_content_hashed(path) {
+        HASHED_CACHE_POLICY
+    } else {
+        UNHASHED_CACHE_POLICY
+    }
+}
+
+/// Returns `true` when a file name ends with a content hash.
+///
+/// The build appends the hash before the extension. The alphabet is the one
+/// the bundler emits, which is base64 and therefore mixes cases, so the
+/// check accepts both and only rejects characters that cannot appear in a
+/// hash. A name without one is a name a later build reuses.
+fn is_content_hashed(path: &str) -> bool {
+    let Some((stem, _)) = path.rsplit_once('.') else {
+        return false;
+    };
+    let Some((_, hash)) = stem.rsplit_once('-') else {
+        return false;
+    };
+    hash.len() >= 8
+        && hash
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric())
+}
 
 /// Builds the document listing payload.
 fn document_index(state: &AppState) -> Value {
@@ -863,6 +910,39 @@ mod tests {
         let response = post(&router, "/api/tools/sgp4-propagate/run", "{");
         let body = parse(&response);
         assert_eq!(body.get("ok").unwrap().as_bool(), Some(false));
+    }
+
+    #[test]
+    fn a_hashed_asset_is_immutable_and_a_plain_one_is_not() {
+        // A content hash in the name means the name changes with the
+        // contents, so the browser can keep it for as long as it likes.
+        assert_eq!(
+            cache_policy("assets/index-Vou83oaV.js"),
+            "public, max-age=31536000, immutable"
+        );
+        assert_eq!(
+            cache_policy("assets/style-CEH25aoZ.css"),
+            "public, max-age=31536000, immutable"
+        );
+        // A name without one is reused by the next build.
+        assert_eq!(cache_policy("index.html"), UNHASHED_CACHE_POLICY);
+        assert_eq!(cache_policy("assets/app.js"), UNHASHED_CACHE_POLICY);
+        assert_eq!(cache_policy("favicon.ico"), UNHASHED_CACHE_POLICY);
+        // A name that merely ends in a dash is not hashed.
+        assert_eq!(cache_policy("assets/app-.js"), UNHASHED_CACHE_POLICY);
+        assert_eq!(cache_policy("assets/no-extension"), UNHASHED_CACHE_POLICY);
+    }
+
+    #[test]
+    fn a_hash_is_recognised_by_its_shape() {
+        // The bundler emits a mixed case base64 hash.
+        assert!(is_content_hashed("index-Vou83oaV.js"));
+        assert!(is_content_hashed("style-CEH25aoZ.css"));
+        assert!(is_content_hashed("app-deadbeef.js"));
+        assert!(!is_content_hashed("app-abc.js"), "too few digits");
+        assert!(!is_content_hashed("app-na-me.js"), "a dash is not a hash");
+        assert!(!is_content_hashed("app.js"), "no hash segment");
+        assert!(!is_content_hashed("noextension"));
     }
 
     #[test]

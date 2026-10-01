@@ -324,6 +324,38 @@ comment uses. A shortcut reference such as `[`Vec3`]` is reduced to the item
 name; without that, the brackets and backticks appear verbatim in the
 summary.
 
+## Caching
+
+The service serves one binary that is replaced wholesale on an upgrade, so
+the only question caching has to answer is: can a browser be holding a copy
+that is no longer the one this binary embeds?
+
+The build answers it by putting a content hash in every asset name. A build
+that changes a file also changes that file's name, so the URL of the new
+bundle is one the browser has never requested and therefore cannot have
+cached. The service then states the policy that follows from the name alone:
+
+- A file whose name carries a hash is `public, max-age=31536000,
+  immutable`. The file is kept for a year and never revalidated, because
+  nothing will ask for that name again.
+- The entry point is `no-cache, must-revalidate`. It names the current
+  bundle, so it is never served from a cache without asking, and the
+  requirement is stated to intermediaries as well as to the browser.
+- A file whose name carries no hash is `no-cache, must-revalidate`, because
+  a later build reuses that name.
+
+The decision reads the name only, so it is correct for a file embedded by an
+earlier build as well as for one embedded by the current build.
+
+Two alternatives were rejected. `no-store` on every file removes the
+question at the cost of re-downloading the bundle on every page load.
+`no-cache` on every file is correct but, without a conditional request
+handler on the service, makes the browser re-download content it could have
+reused. Neither is as fast as naming the content.
+
+The service registers no service worker and emits no manifest, so there is
+no second cache layer to reason about.
+
 ## Testing
 
 Unit tests live beside the code they test and cover the parser, the codec,
