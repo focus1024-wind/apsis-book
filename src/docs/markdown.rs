@@ -42,6 +42,10 @@ pub fn render(markdown: &str) -> String {
 /// shortcut link whose name is not in the set is left as a code span, so a
 /// doc comment can write `[`0, 1`]` without producing a link to nothing.
 pub fn render_with(markdown: &str, items: Option<&std::collections::HashSet<String>>) -> String {
+    // Anchors must be unique within the document: two headings that reduce
+    // to the same text would otherwise share one anchor, and the second
+    // entry of a table of contents would scroll to the first.
+    let mut seen: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     let lines: Vec<&str> = markdown.lines().collect();
     let mut output = String::with_capacity(markdown.len() + markdown.len() / 2);
     let mut index = 0;
@@ -70,7 +74,17 @@ pub fn render_with(markdown: &str, items: Option<&std::collections::HashSet<Stri
 
         if let Some(level) = heading_level(trimmed) {
             let text = trimmed[level..].trim();
-            let id = slug(text);
+            // Two headings that reduce to the same text must not share one
+            // anchor, or every later entry of a table of contents scrolls
+            // to the first of them.
+            let base = slug(text);
+            let count = seen.entry(base.clone()).or_insert(0);
+            *count += 1;
+            let id = if *count == 1 {
+                base
+            } else {
+                format!("{base}-{count}")
+            };
             output.push_str(&format!(
                 "<h{level} id=\"{}\">{}<a class=\"anchor\" href=\"#{id}\" aria-hidden=\"true\">#</a></h{level}>\n",
                 escape(&id),
@@ -609,8 +623,14 @@ fn slug(text: &str) -> String {
     let mut slug = String::with_capacity(text.len());
     let mut last_dash = true;
     for character in text.chars() {
-        if character.is_ascii_alphanumeric() {
-            slug.push(character.to_ascii_lowercase());
+        // Letters of any script are kept, so a Chinese heading keeps its own
+        // characters instead of collapsing to the fallback. Keeping only the
+        // ASCII ones gave every Chinese heading the same anchor, so the
+        // table of contents pointed every entry at the first section.
+        if character.is_alphanumeric() {
+            for lowered in character.to_lowercase() {
+                slug.push(lowered);
+            }
             last_dash = false;
         } else if !last_dash {
             slug.push('-');
@@ -789,6 +809,24 @@ mod tests {
         // A name that is not in the catalog also stays as a code span.
         let html = render_with("See [`NotAnItem`].\n", Some(&known));
         assert!(!html.contains("data-api"), "{html}");
+    }
+
+    #[test]
+    fn a_chinese_heading_keeps_its_own_anchor() {
+        // Only ASCII letters were kept, so every Chinese heading reduced to
+        // the fallback and the whole table of contents pointed at the first
+        // section.
+        let html = render("# 时间尺度\n\n正文。\n\n# 单位约定\n\n更多。\n");
+        assert!(html.contains("id=\"时间尺度\""), "{html}");
+        assert!(html.contains("id=\"单位约定\""), "{html}");
+        assert!(!html.contains("id=\"section\""), "{html}");
+    }
+
+    #[test]
+    fn a_repeated_heading_gets_a_distinct_anchor() {
+        let html = render("# 说明\n\n甲。\n\n# 说明\n\n乙。\n");
+        assert!(html.contains("id=\"说明\""), "{html}");
+        assert!(html.contains("id=\"说明-2\""), "{html}");
     }
 
     #[test]

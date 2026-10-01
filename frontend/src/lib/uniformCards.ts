@@ -13,6 +13,15 @@
  */
 
 /**
+ * The cards the measurement covers.
+ *
+ * The interface page groups its items under a kind and lays them out in its
+ * own grid, so both grids take part; a card in either is made the height of
+ * the tallest.
+ */
+const CARD_SELECTOR = '.grid.cards > .card, .item-grid > .api-item';
+
+/**
  * Returns the height of the tallest card under `root`, in pixels, or `0` when
  * there is no card.
  */
@@ -20,7 +29,7 @@ export function tallestCardHeight(root: ParentNode): number {
   let tallest = 0;
   // The card is laid out at its natural height here, because the uniform
   // height is not applied yet.
-  for (const card of root.querySelectorAll<HTMLElement>('.grid.cards > .card')) {
+  for (const card of root.querySelectorAll<HTMLElement>(CARD_SELECTOR)) {
     tallest = Math.max(tallest, card.getBoundingClientRect().height);
   }
   return Math.ceil(tallest);
@@ -31,7 +40,7 @@ export function tallestCardHeight(root: ParentNode): number {
  * inline height when there is no card.
  */
 export function applyUniformHeight(root: ParentNode): void {
-  const cards = [...root.querySelectorAll<HTMLElement>('.grid.cards > .card')];
+  const cards = [...root.querySelectorAll<HTMLElement>(CARD_SELECTOR)];
   if (cards.length === 0) {
     return;
   }

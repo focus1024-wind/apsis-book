@@ -60,8 +60,8 @@ pub struct DocumentVariant {
     pub markdown: String,
     /// Rendered HTML.
     pub html: String,
-    /// Section headings, in order, as pairs of anchor identifier and text.
-    pub headings: Vec<(String, String)>,
+    /// Section headings, in order.
+    pub headings: Vec<Heading>,
     /// Concept identifiers referenced by the body.
     pub references: Vec<String>,
 }
@@ -279,9 +279,8 @@ fn split_list(value: &str) -> Vec<String> {
         .collect()
 }
 
-/// Collects the headings of a Markdown body as pairs of anchor and text.
-fn collect_headings(markdown: &str) -> Vec<(String, String)> {
-    let mut headings = Vec::new();
+fn collect_headings(markdown: &str) -> Vec<Heading> {
+    let mut headings: Vec<Heading> = Vec::new();
     let mut in_code = false;
     for line in markdown.lines() {
         let trimmed = line.trim_end();
@@ -298,10 +297,41 @@ fn collect_headings(markdown: &str) -> Vec<(String, String)> {
             .count();
         if (1..=6).contains(&hashes) && trimmed[hashes..].starts_with(' ') {
             let text = trimmed[hashes..].trim();
-            headings.push((slug(text), text.to_string()));
+            // The anchor must match the one the renderer emits, and two
+            // headings can reduce to the same text, so a repeat is numbered
+            // the way the renderer numbers it.
+            let base = slug(text);
+            let repeats = headings
+                .iter()
+                .filter(|heading| heading.base == base)
+                .count();
+            let anchor = if repeats == 0 {
+                base.clone()
+            } else {
+                format!("{base}-{}", repeats + 1)
+            };
+            headings.push(Heading {
+                base,
+                anchor,
+                text: text.to_string(),
+                level: hashes as u32,
+            });
         }
     }
     headings
+}
+
+/// One heading of a document.
+#[derive(Debug, Clone)]
+pub struct Heading {
+    /// The anchor before the uniqueness suffix, used to detect a repeat.
+    pub base: String,
+    /// The anchor the document carries for this heading.
+    pub anchor: String,
+    /// The heading text.
+    pub text: String,
+    /// The heading level, from one to six.
+    pub level: u32,
 }
 
 /// Returns a URL friendly slug, matching the anchors the Markdown renderer
@@ -310,8 +340,10 @@ fn slug(text: &str) -> String {
     let mut slug = String::with_capacity(text.len());
     let mut last_dash = true;
     for character in text.chars() {
-        if character.is_ascii_alphanumeric() {
-            slug.push(character.to_ascii_lowercase());
+        if character.is_alphanumeric() {
+            for lowered in character.to_lowercase() {
+                slug.push(lowered);
+            }
             last_dash = false;
         } else if !last_dash {
             slug.push('-');
@@ -889,7 +921,7 @@ BSTAR 项。
         assert_eq!(document.prerequisites, vec!["tle"]);
         assert_eq!(document.references(), vec!["tle"]);
         assert_eq!(document.english.headings.len(), 2);
-        assert_eq!(document.english.headings[1].0, "drag");
+        assert_eq!(document.english.headings[1].anchor, "drag");
         assert!(document.english.html.contains("<h1"));
     }
 
@@ -904,7 +936,7 @@ BSTAR 项。
                 .english
                 .headings
                 .iter()
-                .any(|(_, text)| text == "SGP4")
+                .any(|heading| heading.text == "SGP4")
         );
 
         // A body that repeats the metadata title loses the repeated heading.
@@ -915,7 +947,7 @@ BSTAR 项。
             !variant
                 .headings
                 .iter()
-                .any(|(_, text)| text == "SGP4 propagation")
+                .any(|heading| heading.text == "SGP4 propagation")
         );
         assert!(variant.html.contains("Body."));
     }

@@ -74,6 +74,19 @@
     values = defaultsFor(found);
   });
 
+  /**
+   * Moves the form into view after a tool is chosen.
+   *
+   * The index and the form share the page, so a reader who picks a tool from
+   * the list would otherwise stay on the index and not see the form. This
+   * runs only when the route names a tool, which is what a click does.
+   */
+  let form = $state<HTMLElement | null>(null);
+  $effect(() => {
+    if (!id || !form) return;
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
   /** Runs the selected tool. */
   async function run() {
     if (!tool) return;
@@ -147,8 +160,12 @@
             class="card tool-card"
             class:selected={id === candidate.id}
             href={`#/tools/${candidate.id}`}
+            aria-label="{tr('tools.open', lang)}: {pick(candidate.name, lang)}"
           >
-            <h4>{pick(candidate.name, lang)}</h4>
+            <h4>
+              {pick(candidate.name, lang)}
+              <span class="tool-go" aria-hidden="true">›</span>
+            </h4>
             <p>{pick(candidate.summary, lang)}</p>
           </a>
         {/each}
@@ -161,7 +178,7 @@
       <p>{tr('tools.select', lang)}</p>
     </div>
   {:else}
-    <section class="card" style="margin-top: 1.5rem;">
+    <section class="card tool-form" bind:this={form} style="margin-top: 1.5rem;">
       <header style="display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap;">
         <h2 style="margin: 0; border: none;">{pick(tool.name, lang)}</h2>
         <span class="badge">{pick(tool.category, lang)}</span>

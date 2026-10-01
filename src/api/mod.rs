@@ -191,7 +191,13 @@ impl Router {
                         "headings" => variant
                             .headings
                             .iter()
-                            .map(|(anchor, text)| json_object! { "anchor" => anchor.clone(), "text" => text.clone() })
+                            .map(|heading| {
+                            json_object! {
+                                "anchor" => heading.anchor.clone(),
+                                "text" => heading.text.clone(),
+                                "level" => heading.level as f64,
+                            }
+                        })
                             .collect::<Vec<Value>>(),
                     });
                 }

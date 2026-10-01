@@ -325,6 +325,27 @@ settles into a roughly round cluster while the canvas is wide, so the layout
 is widened to the canvas shape before it is fitted; the change is a uniform
 scale, which leaves relative distances readable.
 
+## Anchors and outlines
+
+A heading anchor is reduced from the heading text, and a table of contents
+carries that anchor. Two rules make the link land where the reader expects.
+
+The reduction **keeps the letters of every script**. Keeping only the ASCII
+ones meant every Chinese heading reduced to the same fallback, so the whole
+table of contents pointed at the first section and clicking an entry always
+scrolled to the top of the document. The document text and the outline are
+reduced by the same rule, so an entry names an anchor the document carries.
+
+A repeated heading is **numbered on both sides**. Two headings with the same
+text would otherwise share one anchor, and the second entry would scroll to
+the first. The document and the outline number the repeat the same way, so
+the mapping stays exact.
+
+An outline carries the **level** of each heading, so a nested heading is
+indented under its parent rather than listed beside it. A fold control is
+shown only for a heading that has a child, because a control that hides
+nothing is worse than no control.
+
 ## Language coverage
 
 A user facing string falls into three classes, and each is handled

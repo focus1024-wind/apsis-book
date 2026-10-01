@@ -227,14 +227,60 @@ hr {
 }
 
 .sidebar-chapter {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+/* The chapter head is a row: the title is a link to the chapter listing
+   and the chevron folds the group. They sit apart so the two do not look
+   like one control. */
+.sidebar-chapter-head {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  margin-bottom: 0.15rem;
+  padding-left: 0.35rem;
+  border-left: 2px solid var(--border-strong);
 }
 
 .sidebar-chapter-title {
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  margin: 0 0 0.2rem 0.5rem;
-  font-weight: 600;
+  flex: 1 1 auto;
+  font-size: 0.78rem;
+  color: var(--text);
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-chapter-title:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.sidebar-chapter-toggle {
+  flex: 0 0 auto;
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  font-size: 0.65rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.sidebar-chapter.collapsed .sidebar-chapter-toggle {
+  transform: rotate(-90deg);
+}
+
+.sidebar-chapter-toggle:hover {
+  color: var(--accent);
+  background: none;
 }
 
 .sidebar a.item {
@@ -1061,9 +1107,31 @@ tbody tr:hover {
 }
 
 .tool-card h4 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
   margin: 0 0 0.35rem;
   font-size: 0.98rem;
   color: var(--accent);
+}
+
+/* The chevron marks the card as an entry point to a page of its own, which
+   is what a reader cannot otherwise tell from a heading. */
+.tool-go {
+  color: var(--text-faint);
+  font-size: 1.05rem;
+  line-height: 1;
+  transition: transform 0.12s ease, color 0.12s ease;
+}
+
+.tool-card:hover .tool-go {
+  color: var(--accent);
+  transform: translateX(2px);
+}
+
+/* The form a tool opens, given room to breathe under the index. */
+.tool-form {
+  scroll-margin-top: 4.5rem;
 }
 
 .tool-card p {
@@ -1075,6 +1143,65 @@ tbody tr:hover {
 .tool-card.selected {
   border-color: var(--accent);
   background: var(--accent-soft);
+}
+
+/* The table of contents beside a document. */
+
+.toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* A deeper heading is indented, so the levels of the document are visible
+   without reading the text. */
+.toc-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  margin: 0.1rem 0;
+}
+
+.toc-item.level-3 {
+  padding-left: 0.85rem;
+}
+
+.toc-item.level-4 {
+  padding-left: 1.7rem;
+}
+
+.toc-item.level-5,
+.toc-item.level-6 {
+  padding-left: 2.55rem;
+}
+
+.toc-toggle {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  font-size: 0.7rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.toc-toggle.collapsed {
+  transform: rotate(-90deg);
+}
+
+.toc-toggle:hover {
+  color: var(--accent);
+  background: none;
+}
+
+.toc-link {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
 /* A row of links that wrap, used for the item filter results. */

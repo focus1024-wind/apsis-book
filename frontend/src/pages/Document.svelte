@@ -11,7 +11,7 @@
    * the reader's language is shown, with the English form as the fallback
    * when a translation is absent.
    */
-  import type { Document, DocumentForm } from '../lib/types';
+  import type { Document, DocumentForm, DocumentHeading } from '../lib/types';
   import { navigate } from '../lib/router';
   import { language, pickList, setLanguage, tr, type Language } from '../lib/i18n';
 
@@ -37,6 +37,47 @@
   const translationMissing = $derived(
     !!document && !!form && form.language !== lang,
   );
+
+  /** Which top level sections of the table of contents are expanded. */
+  let openSections = $state<Record<string, boolean>>({});
+
+  /**
+   * Returns `true` when a heading has a child under it.
+   *
+   * A fold control is only shown for a heading that actually has children,
+   * so a flat document does not carry controls that do nothing.
+   */
+  function hasChildren(heading: DocumentHeading, index: number): boolean {
+    const next = form?.headings[index + 1];
+    return next !== undefined && next.level > heading.level;
+  }
+
+  /**
+   * Returns `true` when a heading is visible in the table of contents.
+   *
+   * A heading is visible when it is a top level entry, when its section is
+   * expanded, or when it is the first child of a section so that a section
+   * never looks empty while it is collapsed.
+   */
+  function isVisible(heading: DocumentHeading, index: number): boolean {
+    if (heading.level <= 2) return true;
+    const parent = form?.headings
+      .slice(0, index)
+      .reverse()
+      .find((candidate) => candidate.level <= 2);
+    if (!parent) return true;
+    const open = openSections[parent.anchor];
+    if (open !== false) return true;
+    // Keep the first child visible so a collapsed section still shows where
+    // it starts.
+    const firstChild = form?.headings.findIndex((candidate) => candidate.level > 2);
+    return firstChild === index;
+  }
+
+  /** Flips a section open or closed. */
+  function toggleSection(anchor: string) {
+    openSections = { ...openSections, [anchor]: openSections[anchor] === false };
+  }
 
   /** True when a form in the other language is available to switch to. */
   const otherLanguage = $derived.by((): Language | null => {
@@ -143,17 +184,27 @@
     {#if form.headings.length > 0}
       <aside class="doc-toc">
         <h2 style="font-size: 0.72rem;">{tr('docs.onThisPage', lang)}</h2>
-        <ul style="list-style: none; padding-left: 0;">
-          {#each form.headings as heading}
-            <li style="margin: 0.2rem 0;">
-              <a
-                href={`#${heading.anchor}`}
-                style="color: var(--text-muted); font-size: 0.85rem;"
-                onclick={(event) => {
-                  event.preventDefault();
-                  scrollToSection(heading.anchor);
-                }}>{heading.text}</a>
-            </li>
+        <ul class="toc-list">
+          {#each form.headings as heading, index (heading.anchor)}
+            {#if isVisible(heading, index)}
+              <li class="toc-item level-{heading.level}">
+                {#if hasChildren(heading, index)}
+                  <button
+                    class="toc-toggle"
+                    class:collapsed={openSections[heading.anchor] === false}
+                    aria-expanded={openSections[heading.anchor] !== false}
+                    aria-label="{tr('docs.toggle', lang)}: {heading.text}"
+                    onclick={() => toggleSection(heading.anchor)}>▾</button>
+                {/if}
+                <a
+                  class="toc-link"
+                  href="#{heading.anchor}"
+                  onclick={(event) => {
+                    event.preventDefault();
+                    scrollToSection(heading.anchor);
+                  }}>{heading.text}</a>
+              </li>
+            {/if}
           {/each}
         </ul>
       </aside>

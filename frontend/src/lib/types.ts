@@ -34,6 +34,13 @@ export interface Health {
   frontend_embedded: boolean;
 }
 
+/** One section heading of a document. */
+export interface DocumentHeading {
+  anchor: string;
+  text: string;
+  level: number;
+}
+
 /** One language form of a document. */
 export interface DocumentForm {
   language: 'zh' | 'en';
@@ -41,7 +48,8 @@ export interface DocumentForm {
   summary: string;
   html: string;
   markdown: string;
-  headings: { anchor: string; text: string }[];
+  /** Section headings, each with the anchor, text, and level. */
+  headings: { anchor: string; text: string; level: number }[];
 }
 
 /** One document, with a rendered form per embedded language. */

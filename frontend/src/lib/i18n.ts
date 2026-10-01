@@ -108,6 +108,7 @@ const STRINGS: Record<string, Text> = {
   'nav.api': { zh: '接口文档', en: 'Interface' },
   'nav.tools': { zh: '在线工具', en: 'Online tools' },
   'nav.documents': { zh: '文档', en: 'Documents' },
+  'nav.toggleChapter': { zh: '展开或折叠该章', en: 'Expand or collapse the chapter' },
   'search.placeholder': { zh: '搜索文档', en: 'Search the documentation' },
   'search.button': { zh: '搜索', en: 'Search' },
   'search.title': { zh: '搜索', en: 'Search' },
@@ -171,6 +172,7 @@ const STRINGS: Record<string, Text> = {
   'docs.back': { zh: '返回列表', en: 'Back to the listing' },
   'docs.readFirst': { zh: '先读：', en: 'Read first:' },
   'docs.onThisPage': { zh: '本页目录', en: 'On this page' },
+  'docs.toggle': { zh: '展开或折叠该节', en: 'Expand or collapse the section' },
   'docs.noSections': { zh: '无小节。', en: 'No sections.' },
   'docs.translationMissing': {
     zh: '本文档暂无中文版本，显示英文原文。',
@@ -295,6 +297,7 @@ const STRINGS: Record<string, Text> = {
   'kind.type': { zh: '类型别名', en: 'type' },
 
   'api.itemCount': { zh: '个接口项', en: 'items' },
+  'tools.open': { zh: '打开', en: 'Open' },
   'tools.choose': { zh: '共 {count} 个工具，按类别分组。', en: '{count} tools, grouped by category.' },
 };
 

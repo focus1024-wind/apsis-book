@@ -45,6 +45,16 @@
   let searchLoading = $state(false);
   let status = $state<string | null>(null);
 
+  /** The chapters whose documents are hidden in the sidebar. */
+  let collapsed = $state<string[]>([]);
+
+  /** Folds a chapter, or unfolds it when it is already folded. */
+  function toggleChapter(id: string) {
+    collapsed = collapsed.includes(id)
+      ? collapsed.filter((entry) => entry !== id)
+      : [...collapsed, id];
+  }
+
   /** Loads the content every page shares. */
   async function loadShared() {
     try {
@@ -178,15 +188,27 @@
       {#if index}
         <div class="sidebar-section">
           <h2>{tr('nav.documents', lang)}</h2>
-          {#each index.chapters as chapter}
-            <div class="sidebar-chapter">
-              <div class="sidebar-chapter-title">{pick(chapter.title, lang)}</div>
-              {#each chapter.documents as entry}
-                <a
-                  class="item"
-                  class:active={route.name === 'docs' && route.id === entry.id}
-                  href={`#/docs/${entry.id}`}>{pick(entry.title, lang)}</a>
-              {/each}
+          {#each index.chapters as chapter (chapter.id)}
+            <div class="sidebar-chapter" class:collapsed={collapsed.includes(chapter.id)}>
+              <div class="sidebar-chapter-head">
+                <a class="sidebar-chapter-title" href="#/docs" title="{pick(chapter.title, lang)}">
+                  {pick(chapter.title, lang)}
+                </a>
+                <button
+                  class="sidebar-chapter-toggle"
+                  aria-expanded={!collapsed.includes(chapter.id)}
+                  aria-label="{tr('nav.toggleChapter', lang)}: {pick(chapter.title, lang)}"
+                  onclick={() => toggleChapter(chapter.id)}
+                >▾</button>
+              </div>
+              {#if !collapsed.includes(chapter.id)}
+                {#each chapter.documents as entry}
+                  <a
+                    class="item"
+                    class:active={route.name === 'docs' && route.id === entry.id}
+                    href={`#/docs/${entry.id}`}>{pick(entry.title, lang)}</a>
+                {/each}
+              {/if}
             </div>
           {/each}
         </div>
