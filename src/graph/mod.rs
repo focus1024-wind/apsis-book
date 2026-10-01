@@ -336,6 +336,13 @@ pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
     let mut present: Vec<&str> = Vec::new();
 
     for krate in &catalog.crates {
+        // A crate that belongs to no layer has no place in a diagram of the
+        // layer structure: the workspace facade re-exports every layer and
+        // would sit under a layer it is not part of. It stays on the index,
+        // where it is a crate like any other.
+        if krate.layer.is_empty() {
+            continue;
+        }
         nodes.push(Node {
             id: krate.name.clone(),
             label: krate.name.clone(),
@@ -363,8 +370,8 @@ pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
         }
     }
 
-    // One node per layer that the enabled feature set contains, so the graph
-    // describes this build rather than the whole workspace.
+    // One node per layer that the catalog contains, so the graph describes
+    // this build rather than the whole workspace.
     for layer in layers {
         if !present.contains(&layer) {
             continue;

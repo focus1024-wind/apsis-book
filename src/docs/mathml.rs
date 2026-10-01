@@ -106,6 +106,10 @@ enum Node {
     Subscript(Box<Node>, Box<Node>),
     /// A subscript and a superscript on one base.
     Scripts(Box<Node>, Box<Node>, Box<Node>),
+    /// A quotient drawn with a slash rather than stacked.
+    Slash(Box<Node>, Box<Node>),
+    /// A subscript on a subscript, as the `1` in the `v_1` of `delta_v_1`.
+    Nested(Box<Node>, Box<Node>),
     /// A named function such as `sin`.
     Function(String),
 }
@@ -498,7 +502,11 @@ fn emit(node: &Node) -> String {
                 (Some(single), None) if single.is_numeric() => {
                     format!("<mn>{}</mn>", escape(text))
                 }
-                (Some(single), None) if single.is_alphabetic() => {
+                // A name of more than one letter is an identifier too. Bare
+                // text inside a row is dropped by the browser, which is why
+                // a left-hand side such as `delta_v` was showing as nothing at
+                // all rather than as its name.
+                _ if text.chars().all(|c| c.is_alphabetic()) => {
                     format!("<mi>{}</mi>", escape(text))
                 }
                 // An operator is written as one rather than as bare text. A
@@ -551,9 +559,467 @@ fn emit(node: &Node) -> String {
             emit(bottom),
             emit(top)
         ),
+        // A stacked fraction would be as tall as the line it is in, so a
+        // quotient inside a formula is drawn with a slash and takes the
+        // height of its parts.
+        Node::Slash(top, bottom) => format!(
+            "<mfrac linethickness=\"0\"><mrow>{}</mrow><mrow>{}</mrow></mfrac>",
+            emit(top),
+            emit(bottom)
+        ),
+        Node::Nested(base, inner) => format!(
+            "<msub><mrow>{}</mrow><mrow>{}</mrow></msub>",
+            emit(base),
+            emit(inner)
+        ),
     }
 }
 
+/// Renders a formula written in plain ASCII notation.
+///
+/// The documents were written before the formula support existed, and they
+/// wrote formulas the way a plain text file allows: a fenced block holding
+/// `delta_v_1 = sqrt( mu (2/r_1 - 1/a_t) )`. Rendering those as formulas is
+/// what makes them formulas, so this reads that notation and produces the
+/// same MathML as the dollar form.
+///
+/// The notation understood is the one the documents use:
+///
+/// - an identifier or a number, which may carry a subscript and a
+///   superscript, as in `a_t^2` or `e^2`;
+/// - `sqrt(...)` for a root, and `sin`, `cos`, `tan`, `ln`, `exp`, `floor`
+///   and `arctan` among others for the functions;
+/// - `*` for a product, which is written by juxtaposition;
+/// - `/` for a quotient, which is drawn with a slash rather than stacked, so
+///   that `2/r_1` does not become a fraction as tall as the line it is in;
+/// - `+ - = < >` as they are.
+///
+/// The reading is a plain precedence climb: a sum, then a product, then a
+/// factor. That is what makes `2/r_1 - 1/a_t` two quotients rather than one
+/// quotient of the whole difference.
+///
+/// Returns `None` when the text is not a formula. A block holding a matrix, or
+/// prose, or something not fully read is not a formula and must stay as it was
+/// written: showing part of a formula that was not understood would be worse
+/// than showing the source.
+pub fn render_plain(text: &str) -> Option<String> {
+    let lines: Vec<&str> = text
+        .lines()
+        .map(str::trim_end)
+        .filter(|line| !line.trim().is_empty())
+        .collect();
+    if lines.is_empty() {
+        return None;
+    }
+
+    // A block qualifies as a formula when at least one of its lines is an
+    // equation. Brackets in these documents are a matrix or a vector, which
+    // this renderer does not lay out, so such a block stays a code block.
+    if lines
+        .iter()
+        .any(|line| line.contains('[') || line.contains(']'))
+        || !lines.iter().any(|line| line.contains('='))
+    {
+        return None;
+    }
+
+    let mut rows = String::new();
+    let mut read = 0;
+    for line in &lines {
+        let (equation, note) = split_trailing_note(line);
+        let tokens = tokenize_ascii(equation);
+        let mut cursor = 0;
+        let nodes = parse_sum(&tokens, &mut cursor);
+        // A line that could not be read whole is still shown, but as the text
+        // it was written. A block of equations often carries a continuation
+        // line with no equals sign on it, and losing that would lose the
+        // equation above it.
+        if cursor != tokens.len() {
+            rows.push_str("<mtr><mtd><mtext>");
+            rows.push_str(&escape(&clean_note(equation)));
+            rows.push_str("</mtext></mtd></mtr>");
+            continue;
+        }
+        read += 1;
+        rows.push_str("<mtr><mtd>");
+        rows.push_str(&emit(&Node::Row(nodes)));
+        if let Some(note) = note {
+            // The note is a phrase about the equation rather than part of it,
+            // so it is set beside the formula and not inside it.
+            rows.push_str("<mspace width=\"1em\"/><mtext class=\"math-note\">");
+            rows.push_str(&escape(&clean_note(note)));
+            rows.push_str("</mtext>");
+        }
+        rows.push_str("</mtd></mtr>");
+    }
+
+    // Nothing in the block could be read, so the caller is better served by
+    // the source than by a block of text set as mathematics.
+    if read == 0 {
+        return None;
+    }
+
+    Some(format!(
+        "<span class=\"math math-display math-plain\" data-tex=\"{}\">\
+         <math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\">\
+         <mtable columnalign=\"left\">{rows}</mtable></math></span>",
+        escape_attr(text.trim())
+    ))
+}
+
+/// Tidies a note read out of an equation line.
+///
+/// The note was written in the same block as the equation, so it carries the
+/// alignment of the block and runs on several lines; what is left after the
+/// spaces are collapsed is a phrase.
+fn clean_note(note: &str) -> String {
+    note.split_whitespace().collect::<Vec<&str>>().join(" ")
+}
+
+/// Splits a trailing parenthetical note from an equation.
+///
+/// A note is a phrase rather than part of the equation, so
+/// `N = a / sqrt(1 - e^2 sin^2 phi)  (prime vertical radius)` is an equation
+/// with a note and not an equation with a bracket. A parenthesis holding a
+/// space is read as a note, because the expressions in these documents do not
+/// write a space inside their own brackets.
+fn split_trailing_note(line: &str) -> (&str, Option<&str>) {
+    if !line.ends_with(')') {
+        return (line, None);
+    }
+    match line.rfind('(') {
+        Some(start) if start > 0 => {
+            let inside = &line[start + 1..line.len() - 1];
+            let is_phrase = inside.contains(' ')
+                && !inside.contains(['=', '/', '^', '_', '(', '+'])
+                && !inside.chars().any(|c| c.is_ascii_digit());
+            if is_phrase {
+                return (&line[..start], Some(inside));
+            }
+            (line, None)
+        }
+        _ => (line, None),
+    }
+}
+
+/// One unit of a plain formula.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Ascii {
+    /// An identifier: a run of letters, digits and underscores.
+    Word(String),
+    /// A number, possibly with a decimal point or an exponent.
+    Number(String),
+    /// An operator, a bracket or a mark.
+    Sign(char),
+}
+
+/// Reads a plain formula into tokens.
+fn tokenize_ascii(text: &str) -> Vec<Ascii> {
+    let characters: Vec<char> = text.chars().collect();
+    let mut tokens: Vec<Ascii> = Vec::with_capacity(characters.len());
+    let mut index = 0;
+
+    while index < characters.len() {
+        let character = characters[index];
+        if character.is_whitespace() {
+            index += 1;
+            continue;
+        }
+        if character.is_alphabetic() {
+            let start = index;
+            while index < characters.len()
+                && (characters[index].is_alphanumeric()
+                    || characters[index] == '_'
+                    || characters[index] == '\'')
+            {
+                index += 1;
+            }
+            tokens.push(Ascii::Word(characters[start..index].iter().collect()));
+            continue;
+        }
+        if character.is_ascii_digit() || character == '.' {
+            let start = index;
+            while index < characters.len() && characters[index].is_ascii_digit() {
+                index += 1;
+            }
+            if index < characters.len() && characters[index] == '.' {
+                index += 1;
+                while index < characters.len() && characters[index].is_ascii_digit() {
+                    index += 1;
+                }
+            }
+            // An exponent is part of the number, as in `1e-6`.
+            if index < characters.len()
+                && matches!(characters[index], 'e' | 'E')
+                && characters
+                    .get(index + 1)
+                    .is_some_and(|next| next.is_ascii_digit() || *next == '-')
+            {
+                index += 1;
+                if characters[index] == '-' {
+                    index += 1;
+                }
+                while index < characters.len() && characters[index].is_ascii_digit() {
+                    index += 1;
+                }
+            }
+            tokens.push(Ascii::Number(characters[start..index].iter().collect()));
+            continue;
+        }
+        tokens.push(Ascii::Sign(character));
+        index += 1;
+    }
+    tokens
+}
+
+/// The functions the documents write in plain ASCII.
+fn ascii_function(name: &str) -> bool {
+    matches!(
+        name,
+        "sin"
+            | "cos"
+            | "tan"
+            | "cot"
+            | "sec"
+            | "csc"
+            | "asin"
+            | "acos"
+            | "atan"
+            | "arctan"
+            | "sinh"
+            | "cosh"
+            | "tanh"
+            | "ln"
+            | "log"
+            | "log10"
+            | "exp"
+            | "floor"
+            | "ceil"
+            | "abs"
+    )
+}
+
+/// Parses a sum: factors joined by `+`, `-`, `=` or a comparison.
+fn parse_sum(tokens: &[Ascii], cursor: &mut usize) -> Vec<Node> {
+    let mut row = parse_product(tokens, cursor);
+    while let Some(Ascii::Sign(operator @ ('+' | '-' | '=' | '<' | '>' | ','))) =
+        tokens.get(*cursor)
+    {
+        let operator = *operator;
+        *cursor += 1;
+        let right = parse_product(tokens, cursor);
+        row.push(Node::Text(match operator {
+            '=' => " = ".to_string(),
+            '<' => " < ".to_string(),
+            '>' => " > ".to_string(),
+            '+' => " + ".to_string(),
+            // Two equations are often written on one line, separated by a
+            // comma, as in `r = p / (1 + e cos nu), p = a (1 - e^2)`.
+            ',' => ",  ".to_string(),
+            _ => " − ".to_string(),
+        }));
+        row.extend(right);
+    }
+    row
+}
+
+/// Parses a product: factors joined by `/`, by `*`, or by nothing at all.
+///
+/// A product written in these documents is usually juxtaposition, as in
+/// `2 f` or `mu (2/r_1 - 1/a_t)`, so a factor that follows another with
+/// nothing between them continues the product. The star, where it is written,
+/// is dropped.
+fn parse_product(tokens: &[Ascii], cursor: &mut usize) -> Vec<Node> {
+    let mut row = parse_factor(tokens, cursor);
+    loop {
+        match tokens.get(*cursor).cloned() {
+            Some(Ascii::Sign('*')) => {
+                *cursor += 1;
+            }
+            Some(Ascii::Sign('/')) => {
+                *cursor += 1;
+                let bottom = parse_factor(tokens, cursor);
+                // The quotient takes the factor before it as its top and the
+                // one after it as its bottom, so `2/r_1` is one quotient and
+                // not a quotient of whatever happened to precede it.
+                let top = row.split_off(row.len() - 1);
+                row.push(Node::Slash(
+                    Box::new(Node::Row(top)),
+                    Box::new(Node::Row(bottom)),
+                ));
+            }
+            // Two factors with nothing between them are a product.
+            Some(Ascii::Word(_)) | Some(Ascii::Number(_)) | Some(Ascii::Sign('(')) => {
+                row.extend(parse_factor(tokens, cursor));
+            }
+            _ => return row,
+        }
+    }
+}
+
+/// Parses one factor: a value with its scripts, a root, a call, or a group.
+fn parse_factor(tokens: &[Ascii], cursor: &mut usize) -> Vec<Node> {
+    match tokens.get(*cursor).cloned() {
+        Some(Ascii::Sign(open @ ('(' | '{'))) => {
+            let close = if open == '(' { ')' } else { '}' };
+            *cursor += 1;
+            let inner = parse_sum(tokens, cursor);
+            if matches!(tokens.get(*cursor), Some(Ascii::Sign(closed)) if *closed == close) {
+                *cursor += 1;
+            }
+            // A brace holds a group without showing brackets; a parenthesis
+            // shows them, because it is written in the source.
+            if open == '{' {
+                vec![Node::Row(inner)]
+            } else {
+                vec![Node::Row(vec![
+                    Node::Text("(".to_string()),
+                    Node::Row(inner),
+                    Node::Text(")".to_string()),
+                ])]
+            }
+        }
+        // A word in a script that is not the Latin one is a label written in
+        // the line's own language, as in `近地点半径 r_p = a (1 - e)`. It is set
+        // upright, because a label is not a variable.
+        Some(Ascii::Word(word)) if !word.is_ascii() => {
+            *cursor += 1;
+            vec![Node::Text(word)]
+        }
+        Some(Ascii::Word(word)) => {
+            *cursor += 1;
+            if word == "sqrt" {
+                let radicand = parse_group(tokens, cursor);
+                return vec![attach_power(
+                    Node::Root(Box::new(radicand), None),
+                    tokens,
+                    cursor,
+                )];
+            }
+            if ascii_function(&word) {
+                let inner = parse_group(tokens, cursor);
+                let argument = match inner {
+                    Node::Row(nodes) => Node::Row(nodes),
+                    other => Node::Row(vec![other]),
+                };
+                let call = Node::Row(vec![
+                    Node::Function(word),
+                    Node::Text(" ".to_string()),
+                    Node::Row(vec![
+                        Node::Text("(".to_string()),
+                        argument,
+                        Node::Text(")".to_string()),
+                    ]),
+                ]);
+                // A function may be raised, as in `sin^2 phi`. The power
+                // belongs to the whole function rather than to its argument.
+                return vec![attach_power(call, tokens, cursor)];
+            }
+            let base = ascii_atom(&word, tokens, cursor);
+            vec![base]
+        }
+        Some(Ascii::Number(number)) => {
+            *cursor += 1;
+            let base = ascii_atom(&number, tokens, cursor);
+            vec![base]
+        }
+        other => {
+            // Any other token is read past, so that the parse always makes
+            // progress rather than stalling on it.
+            *cursor += 1;
+            if let Some(Ascii::Sign(character)) = other {
+                vec![Node::Text(character.to_string())]
+            } else {
+                Vec::new()
+            }
+        }
+    }
+}
+
+/// Raises a value to the power that follows it, if there is one.
+fn attach_power(value: Node, tokens: &[Ascii], cursor: &mut usize) -> Node {
+    match tokens.get(*cursor) {
+        Some(Ascii::Sign('^')) => {
+            *cursor += 1;
+            Node::Superscript(Box::new(value), Box::new(parse_group(tokens, cursor)))
+        }
+        _ => value,
+    }
+}
+
+/// Reads a bracketed argument, or a single token when there are no brackets.
+fn parse_group(tokens: &[Ascii], cursor: &mut usize) -> Node {
+    match tokens.get(*cursor).cloned() {
+        Some(Ascii::Sign(open @ ('(' | '{'))) => {
+            let close = if open == '(' { ')' } else { '}' };
+            *cursor += 1;
+            let inner = parse_sum(tokens, cursor);
+            if matches!(tokens.get(*cursor), Some(Ascii::Sign(closed)) if *closed == close) {
+                *cursor += 1;
+            }
+            Node::Row(inner)
+        }
+        Some(Ascii::Word(word)) => {
+            *cursor += 1;
+            Node::Text(word)
+        }
+        Some(Ascii::Number(number)) => {
+            *cursor += 1;
+            Node::Text(number)
+        }
+        _ => Node::Text(String::new()),
+    }
+}
+
+/// Builds the node for one identifier or number, with its scripts.
+///
+/// A name is written with an underscore between its parts, as in `delta_v_1`
+/// or `right_ascension`, so the name is read up to the first underscore and
+/// what follows is the subscript. The subscript may carry its own subscript,
+/// as `v_1` does.
+fn ascii_atom(word: &str, tokens: &[Ascii], cursor: &mut usize) -> Node {
+    let (base, subscript) = match word.find('_') {
+        Some(index) => (
+            word[..index].to_string(),
+            Some(word[index + 1..].to_string()),
+        ),
+        None => (word.to_string(), None),
+    };
+    let base = Node::Text(base);
+
+    // `E_{n+1}` leaves the subscript to a brace rather than to the name, so an
+    // underscore with nothing after it is completed from the next token, which
+    // is the brace group that follows it.
+    let subscript = match subscript {
+        Some(text) if text.is_empty() => Some(match parse_group(tokens, cursor) {
+            Node::Row(nodes) => Node::Row(nodes),
+            other => Node::Row(vec![other]),
+        }),
+        Some(text) => Some(match text.rfind('_') {
+            Some(index) => Node::Nested(
+                Box::new(Node::Text(text[..index].to_string())),
+                Box::new(Node::Text(text[index + 1..].to_string())),
+            ),
+            None => Node::Text(text),
+        }),
+        None => None,
+    };
+
+    let superscript = match tokens.get(*cursor) {
+        Some(Ascii::Sign('^')) => {
+            *cursor += 1;
+            Some(parse_group(tokens, cursor))
+        }
+        _ => None,
+    };
+
+    match (subscript, superscript) {
+        (None, None) => base,
+        (Some(bottom), None) => Node::Subscript(Box::new(base), Box::new(bottom)),
+        (None, Some(top)) => Node::Superscript(Box::new(base), Box::new(top)),
+        (Some(bottom), Some(top)) => Node::Scripts(Box::new(base), Box::new(bottom), Box::new(top)),
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -637,5 +1103,103 @@ mod tests {
     fn the_source_is_kept_in_the_output() {
         // The page keeps the source so the formula can be copied back.
         assert!(render("x^2", false).contains("data-tex=\"x^2\""));
+    }
+
+    #[test]
+    fn the_rocket_equation_is_read() {
+        // The form the documents write.
+        let html = render_plain("delta_v = v_e * ln (m_0 / m_f)").expect("a formula");
+        assert!(html.contains("<math"), "{html}");
+        assert!(!html.contains("<msqrt>"), "no root here");
+    }
+
+    #[test]
+    fn a_subscript_within_a_subscript_is_read() {
+        // `delta_v_1` is delta with a subscript v, itself carrying 1.
+        let html = render_plain("delta_v_1 = 3").expect("a formula");
+        assert!(html.contains("delta"), "{html}");
+        assert!(html.contains("<msub>"), "the subscript was lost: {html}");
+    }
+
+    #[test]
+    fn a_power_is_read() {
+        let html = render_plain("e^2 = 2 f - f^2").expect("a formula");
+        assert!(html.contains("<msup>"), "the power was lost: {html}");
+    }
+
+    #[test]
+    fn a_root_is_read() {
+        let html = render_plain("x = sqrt( mu / r )").expect("a formula");
+        assert!(html.contains("<msqrt>"), "the root was lost: {html}");
+    }
+
+    #[test]
+    fn a_quotient_is_taken_as_its_own() {
+        // `2/r_1 - 1/a_t` is two quotients, not one quotient of a difference.
+        let html = render_plain("d = 2/r_1 - 1/a_t").expect("a formula");
+        assert_eq!(html.matches("<mfrac").count(), 2, "{html}");
+    }
+
+    #[test]
+    fn several_equations_keep_their_order() {
+        let html = render_plain("a = 1\nb = 2\nc = 3").expect("formulas");
+        assert_eq!(html.matches("<mtr>").count(), 3, "{html}");
+    }
+
+    #[test]
+    fn a_matrix_stays_as_written() {
+        // A matrix is not a formula this renderer lays out.
+        assert!(render_plain("R = [ 1 0\n      0 1 ]").is_none());
+    }
+
+    #[test]
+    fn prose_stays_as_written() {
+        assert!(render_plain("e_max such that the elevation is arctan").is_none());
+        assert!(render_plain("just some text").is_none());
+    }
+
+    #[test]
+    fn a_trailing_note_is_not_part_of_the_equation() {
+        // The parenthesis is a phrase, not a bracket in the expression.
+        let html = render_plain("N = a / sqrt(1 - e^2 sin^2 phi)   (prime vertical radius)")
+            .expect("a formula");
+        // The note is set beside the formula rather than inside it, and it is
+        // kept rather than dropped.
+        assert!(
+            html.contains("prime vertical radius"),
+            "the note was lost: {html}"
+        );
+        assert!(
+            html.contains("<mtext"),
+            "the note should be set as a note: {html}"
+        );
+    }
+
+    #[test]
+    fn a_bracketed_expression_is_still_read() {
+        // No space inside, so it is a bracket rather than a note.
+        let html = render_plain("x = sqrt( mu (2/r_1 - 1/a_t) )").expect("a formula");
+        assert!(html.contains("<msqrt>"), "{html}");
+    }
+
+    #[test]
+    fn a_brace_holds_a_subscript_of_several_symbols() {
+        // The Newton iteration, written the way the documents write it.
+        let html = render_plain("E_{n+1} = E_n - f(E_n)").expect("a formula");
+        assert!(html.contains("<msub>"), "the subscript was lost: {html}");
+    }
+
+    #[test]
+    fn a_continuation_line_is_kept_though_it_is_not_an_equation() {
+        // A block of equations often carries a line with no equals sign on it.
+        // Losing that line would lose the equation above it.
+        let html = render_plain("JDN = day + 365 y\n      + 153 m").expect("a formula");
+        assert!(html.contains("JDN"), "{html}");
+        assert!(html.contains("153 m"), "the continuation was lost: {html}");
+    }
+
+    #[test]
+    fn a_block_with_no_readable_equation_is_left_alone() {
+        assert!(render_plain("leap(y) = (y mod 4 == 0) and (y mod 100 != 0").is_none());
     }
 }

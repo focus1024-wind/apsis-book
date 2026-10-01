@@ -215,10 +215,13 @@ fn parse_crate(
     item_texts: Option<&Value>,
 ) -> Option<ApiCrate> {
     let name = value.get("name")?.as_str()?.to_string();
+    // A crate that belongs to no layer, which is the facade that re-exports
+    // every layer, is left empty. Defaulting it to a layer would file it
+    // under a subject it does not belong to.
     let layer = value
         .get("layer")
         .and_then(Value::as_str)
-        .unwrap_or("foundation")
+        .unwrap_or_default()
         .to_string();
     let summary = value
         .get("summary")

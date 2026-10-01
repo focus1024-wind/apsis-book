@@ -21,40 +21,82 @@ import os
 import re
 import sys
 
-# Crates of the layers that the enabled `apsis-rs` features pull in, in
-# dependency order. The order is the one the workspace layer rule defines.
-LAYERS = [
-    ("foundation", ["apsis-core", "apsis-units", "apsis-math", "apsis-macros"]),
-    ("physics", ["apsis-time", "apsis-leap", "apsis-coord", "apsis-geodesy", "apsis-frames"]),
-    ("orbit", [
-        "apsis-tle",
-        "apsis-sgp4",
-        "apsis-kepler",
-        "apsis-ephemeris",
-        "apsis-maneuver",
-        "apsis-orbit",
-    ]),
+# The layer of a crate is the directory it sits under, so the catalog is
+# grouped the same way the workspace is laid out.
+LAYER_ORDER = [
+    "foundation",
+    "physics",
+    "orbit",
+    "network",
+    "rf",
+    "ops",
+    "sim",
 ]
 
-# Directories of the workspace, relative to the workspace root, keyed by
-# crate name.
-CRATE_DIRS = {
-    "apsis-core": "crates/foundation/apsis-core",
-    "apsis-units": "crates/foundation/apsis-units",
-    "apsis-math": "crates/foundation/apsis-math",
-    "apsis-macros": "crates/foundation/apsis-macros",
-    "apsis-time": "crates/physics/apsis-time",
-    "apsis-leap": "crates/physics/apsis-leap",
-    "apsis-coord": "crates/physics/apsis-coord",
-    "apsis-geodesy": "crates/physics/apsis-geodesy",
-    "apsis-frames": "crates/physics/apsis-frames",
-    "apsis-tle": "crates/orbit/apsis-tle",
-    "apsis-sgp4": "crates/orbit/apsis-sgp4",
-    "apsis-kepler": "crates/orbit/apsis-kepler",
-    "apsis-ephemeris": "crates/orbit/apsis-ephemeris",
-    "apsis-maneuver": "crates/orbit/apsis-maneuver",
-    "apsis-orbit": "crates/orbit/apsis-orbit",
-}
+
+def manifest_crates(workspace):
+    """Return (layer, name, directory) for every crate of the workspace.
+
+    The crates come from the workspace manifest rather than from a list kept
+    here. A list goes stale the moment a crate is added, and a stale list is
+    silent: the catalog is simply short of the interface and every page
+    built from it is quietly incomplete. The manifest is the one place the
+    workspace states which crates there are, and each member path carries its
+    layer in the directory above the crate name.
+
+    The order is the one the workspace defines, which is also dependency
+    order within each layer.
+    """
+    manifest = manifest_path(workspace)
+    members = []
+    inside = False
+    with open(manifest, "r", encoding="utf-8") as handle:
+        for line in handle:
+            stripped = line.strip()
+            if stripped.startswith("members"):
+                inside = True
+                continue
+            if inside:
+                if stripped.startswith("]"):
+                    break
+                # A member is a quoted path, possibly with a trailing comma.
+                entry = stripped.split("#")[0].strip().strip(",").strip('"')
+                if entry:
+                    members.append(entry)
+
+    crates = []
+    for directory in members:
+        parts = directory.split("/")
+        if len(parts) < 2:
+            continue
+        name = parts[-1]
+        # A member that sits directly in `crates` is the facade, which
+        # re-exports every layer and so belongs to none of them. It is left
+        # without a layer rather than given the wrong one, and the page that
+        # lists crates by layer shows it apart from the layers.
+        layer = parts[-2] if len(parts) >= 3 else None
+        crates.append((layer, name, directory))
+    return crates
+
+
+def manifest_path(workspace):
+    """The workspace manifest path."""
+    return os.path.join(workspace, "Cargo.toml")
+
+
+def ordered(crates):
+    """Order the crates by layer, keeping the workspace order within a layer."""
+    rank = {layer: index for index, layer in enumerate(LAYER_ORDER)}
+    return sorted(
+        enumerate(crates),
+        # The facade goes last: it re-exports what the layers define, so a
+        # reader reaches it after the crate that defines an item.
+        key=lambda pair: (
+            rank.get(pair[1][0], len(rank) + 1) if pair[1][0] else len(rank),
+            pair[0],
+        ),
+    )
+
 
 ITEM = re.compile(
     r"^(?P<indent>\s*)pub (?:(?P<qualifier>const|unsafe) )?"
@@ -214,15 +256,21 @@ def main():
         sys.stderr.write("apsis-rs workspace not found at %s\n" % workspace)
         return 1
 
+    discovered = manifest_crates(workspace)
+    if not discovered:
+        sys.stderr.write("no crates found in %s\n" % manifest_path(workspace))
+        return 1
+
     crates = []
     sources = []
-    for layer, names in LAYERS:
-        for name in names:
-            directory = CRATE_DIRS[name]
-            entry = collect_crate(workspace, name, directory)
-            entry["layer"] = layer
-            crates.append(entry)
-            sources.append(os.path.join(directory, "src"))
+    for _, (layer, name, directory) in ordered(discovered):
+        if not os.path.isdir(os.path.join(workspace, directory)):
+            sys.stderr.write("skipping %s: no such directory\n" % directory)
+            continue
+        entry = collect_crate(workspace, name, directory)
+        entry["layer"] = layer
+        crates.append(entry)
+        sources.append(os.path.join(directory, "src"))
 
     document = {
         "generated_from": sources,
