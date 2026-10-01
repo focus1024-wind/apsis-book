@@ -1,8 +1,10 @@
 /*
  * The visual design of the service.
  *
- * The palette is a single dark theme. Colour carries meaning in the graph
- * and in the tables, so the variables are named by role rather than by hue.
+ * Colour carries meaning in the graph and in the tables, so the variables
+ * are named by role rather than by hue. The dark palette is the default and
+ * the light one overrides the same variables, so every rule is written once.
+ * A reader's stored choice sets `data-theme` on the document element.
  */
 
 :root {
@@ -25,6 +27,21 @@
   --positive: #5fd39a;
   --warning: #e8c26a;
   --negative: #f28b82;
+
+  --shadow: rgba(0, 0, 0, 0.35);
+  --graph-surface: #161d2b;
+  --graph-grid: #1e2738;
+
+  --topbar: rgba(11, 15, 23, 0.9);
+  --scrim: rgba(0, 0, 0, 0.45);
+  --warning-soft: rgba(232, 194, 106, 0.1);
+  --negative-soft: rgba(242, 139, 130, 0.1);
+  --accent-faint: rgba(127, 209, 255, 0.04);
+  --on-accent: #04121c;
+
+  --syntax-keyword: #c792ea;
+  --syntax-type: #82aaff;
+  --syntax-function: #7fd1ff;
 
   /* One hue per layer, so that a legend with ten entries is readable. The
      concept graph uses these directly; the flow graphs reuse the earlier
@@ -70,6 +87,84 @@
   --group-general: #94a3b8;
   --group-damping: #4ade80;
   --group-frameset: #4ade80;
+}
+
+/*
+ * The light palette. It is a full override rather than a filter, because a
+ * filter inverts the graph colours and makes the legend meaningless. The
+ * background is tinted rather than pure white, because a long page of
+ * pure white is harder to read than a page that is not.
+ */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --background: #f4f6fa;
+  --surface: #ffffff;
+  --surface-raised: #eef1f6;
+  --border: #d3dae4;
+  --border-strong: #b3bfcd;
+
+  --text: #16202e;
+  --text-muted: #4a5769;
+  --text-faint: #6b7787;
+
+  --accent: #0b6fa4;
+  --accent-strong: #08587f;
+  --accent-soft: rgba(11, 111, 164, 0.1);
+
+  --positive: #147d54;
+  --warning: #9a6510;
+  --negative: #b3261e;
+
+  --shadow: rgba(15, 30, 50, 0.12);
+  --graph-surface: #ffffff;
+  --graph-grid: #dce3ec;
+
+  --topbar: rgba(255, 255, 255, 0.9);
+  --scrim: rgba(15, 30, 50, 0.35);
+  --warning-soft: rgba(154, 101, 16, 0.1);
+  --negative-soft: rgba(179, 38, 30, 0.09);
+  --accent-faint: rgba(11, 111, 164, 0.05);
+  --on-accent: #ffffff;
+
+  --syntax-keyword: #7c3aed;
+  --syntax-type: #1d4ed8;
+  --syntax-function: #0b6fa4;
+
+  /* The graph hues are darkened so that a thin stroke stays legible on a
+     light background; the dark values are too pale to read here. */
+  --group-overview: #0b6fa4;
+  --group-foundation: #4d7c0f;
+  --group-physics: #15803d;
+  --group-geometry: #0f766e;
+  --group-elements: #a16207;
+  --group-orbit: #c2410c;
+  --group-propagation: #b91c1c;
+  --group-rf: #86198f;
+  --group-network: #6d28d9;
+  --group-ops: #3730a3;
+  --group-sim: #0369a1;
+  --group-methods: #475569;
+  --group-input: #475569;
+  --group-parse: #0369a1;
+  --group-prepare: #5b21b6;
+  --group-propagate: #0369a1;
+  --group-verify: #15803d;
+  --group-fields: #15803d;
+  --group-crosscheck: #a16207;
+  --group-branch: #a16207;
+  --group-error: #b91c1c;
+  --group-output: #15803d;
+  --group-validate: #5b21b6;
+  --group-convert: #0369a1;
+  --group-store: #5b21b6;
+  --group-frames: #0f766e;
+  --group-rotate: #0369a1;
+  --group-geodetic: #a16207;
+  --group-time: #5b21b6;
+  --group-general: #475569;
+  --group-damping: #15803d;
+  --group-frameset: #0f766e;
 }
 
 * {
@@ -357,7 +452,7 @@ hr {
   gap: 0.75rem;
   padding: 0.75rem 1.5rem;
   border-bottom: 1px solid var(--border);
-  background: rgba(11, 15, 23, 0.9);
+  background: var(--topbar);
   position: sticky;
   top: 0;
   z-index: 20;
@@ -447,7 +542,7 @@ textarea {
 
 button {
   background: var(--accent-strong);
-  color: #04121c;
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius-small);
   padding: 0.45rem 0.9rem;
@@ -655,12 +750,12 @@ button.ghost:hover:not(:disabled) {
 
 .notice.warning {
   border-color: var(--warning);
-  background: rgba(232, 194, 106, 0.1);
+  background: var(--warning-soft);
 }
 
 .notice.error {
   border-color: var(--negative);
-  background: rgba(242, 139, 130, 0.1);
+  background: var(--negative-soft);
 }
 
 .notice.muted {
@@ -847,7 +942,7 @@ tbody tr:last-child td {
 }
 
 tbody tr:hover {
-  background: rgba(127, 209, 255, 0.04);
+  background: var(--accent-faint);
 }
 
 /* Scalars */
@@ -960,15 +1055,15 @@ tbody tr:hover {
 }
 
 .signature .kw {
-  color: #c792ea;
+  color: var(--syntax-keyword);
 }
 
 .signature .ty {
-  color: #82aaff;
+  color: var(--syntax-type);
 }
 
 .signature .fn {
-  color: #7fd1ff;
+  color: var(--syntax-function);
 }
 
 .api-item {
@@ -1143,6 +1238,26 @@ tbody tr:hover {
   margin-bottom: 1rem;
   border-bottom: 1px solid var(--border-strong);
   color: var(--accent);
+}
+
+/* A subject within a layer, shown above the documents of that subject. */
+.docs-subject {
+  margin: 1.5rem 0 0.5rem;
+  color: var(--text);
+  font-size: 0.95rem;
+  border-left: 2px solid var(--border-strong);
+  padding-left: 0.6rem;
+}
+
+.sidebar-subject {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 0.35rem 0 0.15rem 0.55rem;
+  padding-left: 0.45rem;
+  border-left: 2px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* A tool in the tool index. The card is a link, so the whole area is the
@@ -1357,6 +1472,46 @@ tbody tr:hover {
   }
 }
 
+/*
+ * Formulas.
+ *
+ * The output is MathML, which the browser sets itself, so only the container
+ * needs styling: the family to read in, and the room a display formula takes.
+ * `math` inherits the surrounding colour, so a formula follows the theme
+ * without a second set of variables.
+ */
+.math {
+  /* The browser's default math font is fine on a dark background and thin on
+     a light one, so the family is only suggested and the browser may use its
+     own. */
+  font-size: 1.02em;
+  line-height: 1.5;
+}
+
+.math-display {
+  display: block;
+  margin: 1.1rem 0;
+  /* A formula is centred on its own, as a formula rather than as a line of
+     prose. Overflow scrolls rather than being clipped, because a long
+     formula stays readable when it can be scrolled and disappears when it
+     cannot. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-align: center;
+}
+
+:root[data-theme='light'] .math {
+  /* On a light background the browser's math font is thin, so it is asked
+     for a slightly heavier weight to match the text around it. */
+  font-weight: 500;
+}
+
+/* The drawer toggle. It is only useful while the sidebar is a drawer, so it
+   is hidden by default and the narrow-screen rule below reveals it. */
+.menu-button {
+  display: none;
+}
+
 /* Responsive */
 
 @media (max-width: 1180px) {
@@ -1383,17 +1538,78 @@ tbody tr:hover {
   }
 }
 
+/*
+ * Below this width there is no room for a sidebar beside the page, so the
+ * sidebar becomes a drawer that covers the page and is opened from the top
+ * bar. It is a drawer rather than a stacked block because a block would push
+ * the page down by half the screen, and the navigation is long.
+ *
+ * The drawer is a normal element rather than a dialog because it holds no
+ * state to trap and no action to confirm; what it does need is to be
+ * dismissible, which the overlay and the close button both do.
+ */
 @media (max-width: 960px) {
   .app {
     flex-direction: column;
   }
 
+  /* The sidebar is a drawer here, so the button that opens it is needed. */
+  .menu-button {
+    display: inline-flex;
+  }
+
+  /* The frame holds the width of the sidebar beside the page. Once the
+     sidebar is a drawer the frame has nothing to hold, and left in the flow
+     it would push the page down by its own width. */
+  .sidebar-frame {
+    flex: 0 0 auto;
+    width: 0;
+    height: 0;
+    border-right: none;
+    background: none;
+    overflow: visible;
+  }
+
   .sidebar {
-    width: 100%;
-    flex: none;
-    height: auto;
-    position: relative;
-    max-height: 45vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(20rem, 84vw);
+    /* The frame that carried the background is empty in this layout, so the
+       drawer carries it itself; without this the page shows through it. */
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    max-width: none;
+    height: 100dvh;
+    z-index: 40;
+    /* The drawer sits over the page, so it needs its own edge to lift it
+       off the content behind it. */
+    box-shadow: var(--shadow);
+    /* Closed by default on a narrow screen; the open class is set by the
+       top bar button. */
+    transform: translateX(-100%);
+    transition: transform 160ms ease;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Tapping outside the drawer dismisses it. It covers the page, so it is
+     placed below the drawer and above the page. */
+  .sidebar-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: var(--scrim);
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .content {
+    padding: 1.25rem 1rem 3rem;
   }
 
   .doc-layout {
@@ -1412,9 +1628,5 @@ tbody tr:hover {
     border-top: 1px solid var(--border);
     padding-left: 0;
     padding-top: 0.75rem;
-  }
-
-  .content {
-    padding: 1.25rem 1rem 3rem;
   }
 }

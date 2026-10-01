@@ -46,6 +46,31 @@
           {#if pick(section.summary, lang)}
             <p style="color: var(--text-muted); margin-top: 0">{pick(section.summary, lang)}</p>
           {/if}
+          {#each section.subsections as subject (subject.id)}
+            <h4 class="docs-subject">{pick(subject.title, lang)}</h4>
+            {#if pick(subject.summary, lang)}
+              <p style="color: var(--text-muted); margin-top: 0">{pick(subject.summary, lang)}</p>
+            {/if}
+            <div class="grid cards">
+              {#each subject.documents as document (document.id)}
+                <article class="card">
+                  <h3><a href={`#/docs/${document.id}`}>{pick(document.title, lang)}</a></h3>
+                  <p class="card-clamp" style="color: var(--text-muted); margin: 0.4rem 0 0.6rem">
+                    {pick(document.summary, lang)}
+                  </p>
+                  <div class="card-tags">
+                    {#each pickList(document.tags, lang) as tag}
+                      <span class="tag">{tag}</span>
+                    {/each}
+                  </div>
+                  <button
+                    class="ghost card-action"
+                    type="button"
+                    onclick={() => navigate(`/docs/${document.id}`)}>{tr('docs.read', lang)}</button>
+                </article>
+              {/each}
+            </div>
+          {/each}
           <div class="grid cards">
             {#each section.documents as document (document.id)}
               <article class="card">

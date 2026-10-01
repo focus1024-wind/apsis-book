@@ -180,6 +180,10 @@ const STRINGS: Record<string, Text> = {
   },
   'docs.otherLanguage': { zh: 'English', en: '中文' },
   'docs.otherLanguageTitle': { zh: 'Switch to English', en: '切换到中文' },
+  'nav.lightMode': { zh: 'Light mode', en: '明亮模式' },
+  'nav.darkMode': { zh: 'Dark mode', en: '深色模式' },
+  'nav.menu': { zh: 'Menu', en: '菜单' },
+  'nav.closeMenu': { zh: 'Close menu', en: '关闭菜单' },
 
   'graph.title': { zh: '知识图谱', en: 'Knowledge graph' },
   'graph.intro': {

@@ -483,16 +483,31 @@ fn document_index(state: &AppState) -> Value {
                 .sections
                 .iter()
                 .map(|section| {
-                    let documents: Vec<Value> = section
-                        .documents
+                    let documents = |ids: &[String]| -> Vec<Value> {
+                        ids.iter()
+                            .filter_map(|id| state.docs.document(id))
+                            .map(|document| {
+                                json_object! {
+                                    "id" => document.id.clone(),
+                                    "title" => bilingual("title", document),
+                                    "summary" => bilingual("summary", document),
+                                    "tags" => tag_lists(document),
+                                }
+                            })
+                            .collect()
+                    };
+                    // A layer that covers two unrelated subjects carries a
+                    // subject for each, rather than one list of documents
+                    // that have nothing to do with one another.
+                    let subsections: Vec<Value> = section
+                        .subsections
                         .iter()
-                        .filter_map(|id| state.docs.document(id))
-                        .map(|document| {
+                        .map(|subject| {
                             json_object! {
-                                "id" => document.id.clone(),
-                                "title" => bilingual("title", document),
-                                "summary" => bilingual("summary", document),
-                                "tags" => tag_lists(document),
+                                "id" => subject.id.clone(),
+                                "title" => optional_bilingual(&subject.title_zh, &subject.title),
+                                "summary" => optional_bilingual(&subject.summary_zh, &subject.summary),
+                                "documents" => documents(&subject.documents),
                             }
                         })
                         .collect();
@@ -500,7 +515,8 @@ fn document_index(state: &AppState) -> Value {
                         "id" => section.id.clone(),
                         "title" => optional_bilingual(&section.title_zh, &section.title),
                         "summary" => optional_bilingual(&section.summary_zh, &section.summary),
-                        "documents" => documents,
+                        "documents" => documents(&section.documents),
+                        "subsections" => subsections,
                     }
                 })
                 .collect();

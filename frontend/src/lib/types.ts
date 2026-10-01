@@ -71,12 +71,28 @@ export interface DocumentSummary {
   tags: BilingualList;
 }
 
-/** A layer, or section, inside a group. */
+/** One subject within a layer. */
+export interface DocumentSubsection {
+  id: string;
+  title: Bilingual;
+  summary: Bilingual;
+  documents: DocumentSummary[];
+}
+
+/**
+ * A layer inside a group.
+ *
+ * A layer that covers two unrelated subjects, such as the physics layer,
+ * carries a subsection for each so that the two are not presented as one
+ * list. `documents` is then empty and the documents live in the
+ * subsections.
+ */
 export interface DocumentSection {
   id: string;
   title: Bilingual;
   summary: Bilingual;
   documents: DocumentSummary[];
+  subsections: DocumentSubsection[];
 }
 
 /**

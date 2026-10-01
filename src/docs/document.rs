@@ -415,8 +415,17 @@ pub struct Group {
 }
 
 /// A chapter, or layer, of a group.
+///
+/// A layer that covers two unrelated subjects declares a subsection for each,
+/// so that a reader is not shown one flat list of documents that have
+/// nothing to do with one another. When the list is empty the layer holds its
+/// documents directly.
 #[derive(Debug, Clone)]
 pub struct Chapter {
+    /// The subjects of the layer, when it is presented as more than one.
+    ///
+    /// Empty when the layer holds its documents directly.
+    pub subsections: Vec<Section>,
     /// Chapter identifier.
     pub id: String,
     /// Display title.
@@ -428,6 +437,24 @@ pub struct Chapter {
     /// One sentence description in Chinese, when the chapter list gives one.
     pub summary_zh: Option<String>,
     /// Document identifiers in reading order.
+    pub documents: Vec<String>,
+}
+
+/// One subject within a layer, used when a layer covers two that are
+/// unrelated.
+#[derive(Debug, Clone)]
+pub struct Section {
+    /// Section identifier.
+    pub id: String,
+    /// Display title.
+    pub title: String,
+    /// Display title in Chinese, when the chapter list gives one.
+    pub title_zh: Option<String>,
+    /// One sentence description.
+    pub summary: String,
+    /// The same description in Chinese, when the chapter list gives one.
+    pub summary_zh: Option<String>,
+    /// Document identifiers, in reading order.
     pub documents: Vec<String>,
 }
 
@@ -470,12 +497,31 @@ impl Tree {
                 .get(&id)
                 .map(|document| document.chapter.clone())
                 .unwrap_or_else(|| "overview".to_string());
-            let section = groups
+            let holder = groups
                 .iter_mut()
                 .flat_map(|group| group.sections.iter_mut())
                 .find(|section| section.id == layer);
-            match section {
-                Some(section) => section.documents.push(id),
+            match holder {
+                Some(section) if section.subsections.is_empty() => section.documents.push(id),
+                Some(section) => {
+                    // The layer is presented as subjects, so a document that
+                    // the chapter list already placed in one of them stays
+                    // where it is. Only an unlisted document is appended,
+                    // and it goes into the first subject rather than beside
+                    // them.
+                    let already_listed = section
+                        .subsections
+                        .iter()
+                        .any(|subject| subject.documents.contains(&id));
+                    if !already_listed {
+                        section
+                            .subsections
+                            .first_mut()
+                            .expect("the layer has subjects")
+                            .documents
+                            .push(id);
+                    }
+                }
                 None => {
                     let section = Chapter {
                         id: layer.clone(),
@@ -484,6 +530,7 @@ impl Tree {
                         summary: String::new(),
                         summary_zh: None,
                         documents: vec![id],
+                        subsections: Vec::new(),
                     };
                     match groups.iter_mut().find(|group| group.id == "implementation") {
                         Some(group) => group.sections.push(section),
@@ -503,17 +550,37 @@ impl Tree {
         for group in &mut groups {
             for section in &mut group.sections {
                 section.documents.retain(|id| map.contains_key(id));
+                for subject in &mut section.subsections {
+                    subject.documents.retain(|id| map.contains_key(id));
+                }
+                section
+                    .subsections
+                    .retain(|subject| !subject.documents.is_empty());
+                // A layer that declares subjects holds its documents in
+                // them. The layer's own list is dropped, because a document
+                // named in both places would be offered twice and the two
+                // entries would share a key, which stops the page rendering.
+                if !section.subsections.is_empty() {
+                    section.documents.clear();
+                }
             }
             group
                 .sections
-                .retain(|section| !section.documents.is_empty());
+                .retain(|section| !section.documents.is_empty() || !section.subsections.is_empty());
         }
         groups.retain(|group| !group.sections.is_empty());
 
         let order: Vec<String> = groups
             .iter()
             .flat_map(|group| group.sections.iter())
-            .flat_map(|section| section.documents.iter().cloned())
+            .flat_map(|section| {
+                section.documents.iter().cloned().chain(
+                    section
+                        .subsections
+                        .iter()
+                        .flat_map(|subject| subject.documents.iter().cloned()),
+                )
+            })
             .collect();
 
         Self {
@@ -654,6 +721,46 @@ fn parse_group(value: &Value) -> Option<Group> {
 fn parse_section(value: &Value) -> Option<Chapter> {
     let id = value.get("id")?.as_str()?.to_string();
     Some(Chapter {
+        title: value
+            .get("title")
+            .and_then(Value::as_str)
+            .unwrap_or(&id)
+            .to_string(),
+        title_zh: value
+            .get("title_zh")
+            .and_then(Value::as_str)
+            .map(str::to_string),
+        summary: value
+            .get("summary")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string(),
+        summary_zh: value
+            .get("summary_zh")
+            .and_then(Value::as_str)
+            .map(str::to_string),
+        documents: value
+            .get("documents")
+            .map(Value::as_array)
+            .unwrap_or_default()
+            .iter()
+            .filter_map(|document| document.as_str().map(str::to_string))
+            .collect(),
+        subsections: value
+            .get("subsections")
+            .map(Value::as_array)
+            .unwrap_or_default()
+            .iter()
+            .filter_map(parse_subsection)
+            .collect(),
+        id,
+    })
+}
+
+/// Parses one subject within a layer.
+fn parse_subsection(value: &Value) -> Option<Section> {
+    let id = value.get("id")?.as_str()?.to_string();
+    Some(Section {
         title: value
             .get("title")
             .and_then(Value::as_str)
@@ -1174,5 +1281,55 @@ BSTAR 项。
         let tree = Tree::new(vec![sample("sgp4")]);
         let missing = tree.missing_links();
         assert_eq!(missing, vec![("sgp4".to_string(), "tle".to_string())]);
+    }
+
+    #[test]
+    fn a_document_is_offered_once_when_its_layer_has_subjects() {
+        // The physics layer declares two subjects, so its documents live in
+        // them. If a document were also left in the layer's own list, the
+        // page would render it twice under one key and stop rendering at
+        // all, so no identifier may appear twice in the reading order.
+        let documents = vec![
+            Document::parse(
+                "time-scales",
+                "physics",
+                Language::English,
+                "---\ntitle: Time scales\nsummary: s\n---\n\nScales.\n",
+            )
+            .expect("must parse"),
+            Document::parse(
+                "geodesy-wgs84",
+                "physics",
+                Language::English,
+                "---\ntitle: WGS84\nsummary: s\n---\n\nThe ellipsoid.\n",
+            )
+            .expect("must parse"),
+        ];
+        let tree = Tree::new(documents);
+
+        let mut seen: Vec<&String> = tree.order.iter().collect();
+        let before = seen.len();
+        seen.sort();
+        seen.dedup();
+        assert_eq!(
+            before,
+            seen.len(),
+            "a document is offered twice: {:?}",
+            tree.order
+        );
+
+        // Both documents are still reachable, each under exactly one layer.
+        let physics = tree
+            .groups
+            .iter()
+            .flat_map(|group| group.sections.iter())
+            .find(|section| section.id == "physics")
+            .expect("the physics layer is declared");
+        assert!(
+            physics.documents.is_empty(),
+            "the layer still lists its own documents: {:?}",
+            physics.documents
+        );
+        assert!(physics.subsections.len() >= 2, "the subjects are missing");
     }
 }

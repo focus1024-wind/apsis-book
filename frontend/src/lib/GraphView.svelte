@@ -11,6 +11,8 @@
    * Interaction: dragging pans, the wheel zooms about the pointer, a click
    * on a node selects it, and a double click opens its document.
    */
+  import { untrack } from 'svelte';
+
   import type { Graph, GraphNode } from '../lib/types';
   import { groupColor, truncate } from '../lib/format';
   import { language, pick, tr } from '../lib/i18n';
@@ -46,7 +48,12 @@
   const WIDTH = 1400;
   const HEIGHT = 760;
 
-  let placements = $state<Map<string, Placement>>(new Map());
+  // The layout is written once per graph and read many times by the
+  // template. A deep reactive proxy over it would pay for a tracking
+  // structure on every node of every frame, so it is held as raw data and
+  // the view is refreshed by changing a version counter instead.
+  let placements = $state.raw(new Map<string, Placement>());
+  let layoutVersion = $state(0);
   let span = $state(1);
   let offsetX = $state(0);
   let offsetY = $state(0);
@@ -89,26 +96,71 @@
       .map((edge) => ({ source: result.get(edge.source), target: result.get(edge.target) }))
       .filter((link) => link.source !== undefined && link.target !== undefined);
 
-    // A small force simulation: repulsion between every pair, attraction
+    // A force simulation with repulsion between every pair, attraction
     // along every edge, and a weak pull toward the centre.
-    // The spacing grows with the node count: a graph of forty nodes laid out
-    // for a graph of twenty is legible, and the same spacing is crowded.
-    const iterations = 420;
+    //
+    // The repulsion is the cost. Computing it for every pair on every step is
+    // quadratic in the node count and dominated the time to draw the graph, so
+    // it is approximated on a grid: each node is compared with the nodes in
+    // its own cell and the eight neighbouring cells, which is enough because
+    // distant nodes exert little force. The cost becomes linear in the node
+    // count for a fixed neighbourhood, and the layout is unchanged in
+    // character.
+    //
+    // The spacing grows with the node count, so a larger graph is a larger
+    // graph rather than a denser one.
     const idealLength = 130 + Math.sqrt(count) * 16;
     const repulsion = 9000 + count * 260;
+    // A cell is about the ideal spacing, so the neighbourhood holds the
+    // nodes whose distance actually matters.
+    const cellSize = idealLength;
+    const iterations = 320;
+
+    // A flat array is used rather than the map, so the inner loops do not pay
+    // for iteration over a map on every step.
+    const nodes = [...result.values()];
+    let cells = new Map<number, number[]>();
+
+    const cellKey = (x: number, y: number) =>
+      Math.floor(x / cellSize) * 100003 + Math.floor(y / cellSize);
+
     for (let step = 0; step < iterations; step += 1) {
-      for (const first of result.values()) {
-        for (const second of result.values()) {
-          if (first === second) continue;
-          const dx = second.x - first.x;
-          const dy = second.y - first.y;
-          const distanceSquared = Math.max(64, dx * dx + dy * dy);
-          const force = repulsion / distanceSquared;
-          const distance = Math.sqrt(distanceSquared);
-          first.vx -= (dx / distance) * force;
-          first.vy -= (dy / distance) * force;
+      // Bucket the nodes by their cell once per step.
+      cells = new Map();
+      for (let index = 0; index < nodes.length; index += 1) {
+        const node = nodes[index];
+        const key = cellKey(node.x, node.y);
+        const bucket = cells.get(key);
+        if (bucket) {
+          bucket.push(index);
+        } else {
+          cells.set(key, [index]);
         }
       }
+
+      for (let index = 0; index < nodes.length; index += 1) {
+        const first = nodes[index];
+        const cellX = Math.floor(first.x / cellSize);
+        const cellY = Math.floor(first.y / cellSize);
+        for (let ox = -1; ox <= 1; ox += 1) {
+          for (let oy = -1; oy <= 1; oy += 1) {
+            const bucket = cells.get((cellX + ox) * 100003 + (cellY + oy));
+            if (!bucket) continue;
+            for (const other of bucket) {
+              if (other === index) continue;
+              const second = nodes[other];
+              const dx = second.x - first.x;
+              const dy = second.y - first.y;
+              const distanceSquared = Math.max(64, dx * dx + dy * dy);
+              const force = repulsion / distanceSquared;
+              const distance = Math.sqrt(distanceSquared);
+              first.vx -= (dx / distance) * force;
+              first.vy -= (dy / distance) * force;
+            }
+          }
+        }
+      }
+
       for (const link of links) {
         const source = link.source as Placement;
         const target = link.target as Placement;
@@ -121,7 +173,8 @@
         target.vx -= (dx / distance) * force;
         target.vy -= (dy / distance) * force;
       }
-      for (const placement of result.values()) {
+
+      for (const placement of nodes) {
         placement.vx += (WIDTH / 2 - placement.x) * 0.0016;
         placement.vy += (HEIGHT / 2 - placement.y) * 0.0016;
         placement.x += placement.vx;
@@ -207,9 +260,18 @@
     offsetY = (HEIGHT - (maxY - minY) * span) / 2 - minY * span;
   }
 
+  // The effect reads `graph` and writes the layout and the viewport. The
+  // writes must not be tracked, or the effect would depend on the state it
+  // sets and would schedule itself again on every run.
   $effect(() => {
-    placements = layout(graph);
-    fitToNodes();
+    const current = graph;
+    untrack(() => {
+      placements = layout(current);
+      fitToNodes();
+      // Bumping the version tells the template that the raw map changed,
+      // which a raw state does not announce on its own.
+      layoutVersion += 1;
+    });
   });
 
   /** The transform of the layout viewport. */
@@ -318,7 +380,9 @@
     {/each}
 
     {#each graph.nodes as item (item.id)}
-      {@const placement = placements.get(item.id)}
+      <!-- Reading the version is what subscribes the block to a change of
+           the layout, which a raw state does not announce on its own. -->
+      {@const placement = layoutVersion >= 0 ? placements.get(item.id) : undefined}
       {#if placement}
         {@const isSelected = selected === item.id}
         {@const isHovered = hovered === item.id}

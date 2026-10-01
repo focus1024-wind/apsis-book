@@ -30,15 +30,34 @@
           "id": "physics",
           "title": "Physics",
           "title_zh": "物理层",
-          "summary": "Time scales, leap seconds, calendars, and the geometry of the Earth: its reference frames, its rotation, and its reference ellipsoid.",
-          "summary_zh": "时间尺度、闰秒与日历，以及地球的几何：参考系、自转与参考椭球。",
-          "documents": [
-            "time-scales",
-            "leap-seconds",
-            "calendar-and-mjd",
-            "reference-frames",
-            "earth-rotation-angle",
-            "geodesy-wgs84"
+          "summary": "The physics layer holds two unrelated subjects: the time a measurement is stamped with, and the geometry of the Earth it is measured against.",
+          "summary_zh": "物理层包含两个彼此无关的主题：一次测量被标注的时刻，以及它所参照的地球几何。",
+          "documents": [],
+          "subsections": [
+            {
+              "id": "physics-time",
+              "title": "Time",
+              "title_zh": "时间",
+              "summary": "Time scales, the leap seconds that keep them aligned with the Earth's rotation, and the calendar that turns an instant into a date.",
+              "summary_zh": "时间尺度、使其与地球自转对齐的闰秒，以及把时刻变为日期的日历。",
+              "documents": [
+                "time-scales",
+                "leap-seconds",
+                "calendar-and-mjd"
+              ]
+            },
+            {
+              "id": "physics-frames",
+              "title": "Frames and the Earth",
+              "title_zh": "参考系与地球",
+              "summary": "The frames a position is measured in, the angle that ties them together, and the ellipsoid that defines the surface.",
+              "summary_zh": "测量位置所用的参考系、把各参考系联系起来的角度，以及定义地表的椭球。",
+              "documents": [
+                "reference-frames",
+                "earth-rotation-angle",
+                "geodesy-wgs84"
+              ]
+            }
           ]
         },
         {

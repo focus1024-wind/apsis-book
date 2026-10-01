@@ -20,6 +20,7 @@ pub mod api;
 pub mod content;
 pub mod document;
 pub mod markdown;
+pub mod mathml;
 
 #[allow(unused_imports)]
 pub use api::ApiItem;

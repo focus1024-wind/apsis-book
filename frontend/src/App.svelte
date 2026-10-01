@@ -19,6 +19,8 @@
   import { getJson, queryString } from './lib/api';
   import { currentRoute, onRouteChange, navigate } from './lib/router';
   import { language, pick, setLanguage, tr, type Language } from './lib/i18n';
+  import { theme, toggleTheme } from './lib/theme';
+  import { untrack } from 'svelte';
   import Home from './pages/Home.svelte';
   import Docs from './pages/Docs.svelte';
   import DocumentPage from './pages/Document.svelte';
@@ -31,6 +33,15 @@
   let route = $state(currentRoute());
   /** The current language, read so that the shell re-renders on a switch. */
   let lang = $derived($language);
+  let colour = $derived($theme);
+
+  /** Whether the sidebar covers the page, on a narrow screen. */
+  let menuOpen = $state(false);
+
+  /** Switches between the dark and light palettes. */
+  function onToggleTheme() {
+    toggleTheme(colour);
+  }
 
   let health = $state<Health | null>(null);
   let index = $state<DocumentIndex | null>(null);
@@ -49,6 +60,16 @@
   let collapsed = $state<string[]>([]);
 
   /** Folds a chapter, or unfolds it when it is already folded. */
+  // The sidebar covers the page on a narrow screen, so it is closed when the
+  // route changes. Following a link is the usual way the route changes, and
+  // the links are ordinary anchors, so this is where the close belongs.
+  $effect(() => {
+    void route;
+    untrack(() => {
+      menuOpen = false;
+    });
+  });
+
   function toggleChapter(id: string) {
     collapsed = collapsed.includes(id)
       ? collapsed.filter((entry) => entry !== id)
@@ -165,7 +186,19 @@
 
 <div class="app">
   <div class="sidebar-frame">
-  <aside class="sidebar">
+  {#if menuOpen}
+    <!-- Dismisses the drawer by tapping the page behind it. It is a button
+         so that it is reachable from the keyboard. -->
+    <button
+      class="sidebar-scrim"
+      type="button"
+      tabindex={-1}
+      aria-label={tr('nav.closeMenu', lang)}
+      onclick={() => (menuOpen = false)}
+    ></button>
+  {/if}
+
+  <aside class="sidebar" class:open={menuOpen}>
     <div class="sidebar-brand">
       <a href="#/">APSIS</a>
       <p>{tr('app.subtitle', lang)}</p>
@@ -207,6 +240,15 @@
                       class:active={route.name === 'docs' && route.id === entry.id}
                       href={`#/docs/${entry.id}`}>{pick(entry.title, lang)}</a>
                   {/each}
+                  {#each section.subsections as subject (subject.id)}
+                    <div class="sidebar-subject">{pick(subject.title, lang)}</div>
+                    {#each subject.documents as entry (entry.id)}
+                      <a
+                        class="item"
+                        class:active={route.name === 'docs' && route.id === entry.id}
+                        href={`#/docs/${entry.id}`}>{pick(entry.title, lang)}</a>
+                    {/each}
+                  {/each}
                 {/if}
               </div>
             {/each}
@@ -234,11 +276,26 @@
         <span class="badge">v{health.version}</span>
       {/if}
       <button
+        class="ghost nav-button"
+        type="button"
+        aria-label={colour === 'dark' ? tr('nav.lightMode', lang) : tr('nav.darkMode', lang)}
+        title={colour === 'dark' ? tr('nav.lightMode', lang) : tr('nav.darkMode', lang)}
+        onclick={onToggleTheme}
+      >{colour === 'dark' ? '☀' : '☾'}</button>
+      <button
         class="ghost"
         type="button"
         title={tr('docs.otherLanguageTitle', lang)}
         onclick={toggleLanguage}
       >{tr('docs.otherLanguage', lang)}</button>
+      <button
+        class="ghost nav-button menu-button"
+        type="button"
+        aria-expanded={menuOpen}
+        aria-label={menuOpen ? tr('nav.closeMenu', lang) : tr('nav.menu', lang)}
+        title={menuOpen ? tr('nav.closeMenu', lang) : tr('nav.menu', lang)}
+        onclick={() => (menuOpen = !menuOpen)}
+      >{menuOpen ? '✕' : '☰'}</button>
     </header>
 
     <main class="content" class:doc={route.name === 'docs' && route.id !== null} class:wide={route.name === 'graph' || route.name === 'flows'}>

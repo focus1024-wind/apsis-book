@@ -329,14 +329,145 @@ fn inline(text: &str) -> String {
     inline_items(text, None)
 }
 
+/// Renders a formula written between dollar signs.
+///
+/// The formula is found before any other inline markup, because a dollar
+/// sign is otherwise ordinary text and a formula may itself contain the
+/// characters that the other rules act on.
+/// Reports whether a position falls inside a code span.
+///
+/// The span is found by counting the backticks before this position: an odd
+/// number means the last one opened a span that has not been closed. Code
+/// spans do not nest, so the count alone settles it.
+fn inside_code_span(characters: &[char], index: usize) -> bool {
+    let mut backticks = 0;
+    let mut cursor = index;
+    while cursor > 0 {
+        cursor -= 1;
+        if characters[cursor] == '`' {
+            backticks += 1;
+        }
+        // A span ends at a line break, so a backtick on an earlier line
+        // cannot pair with one on this one.
+        if characters[cursor] == '\n' {
+            break;
+        }
+    }
+    backticks % 2 == 1
+}
+
+/// Finds a formula at `start`, if there is one.
+///
+/// Returns the source, whether it stands on its own line, and the position
+/// just past it.
+///
+/// An inline formula may not begin or end with a space. That rule is what
+/// separates a formula from a price or a shell prompt: in `$5 and `$HOME`
+/// the second dollar has a space before it, so the pair is not a formula and
+/// both dollars are text. Without the rule a sentence mentioning two prices
+/// would be read as a formula between them.
+fn find_formula(characters: &[char], start: usize) -> Option<(String, bool, usize)> {
+    // Two dollars open a formula that stands on its own line; a single one
+    // opens a formula within the sentence.
+    let display = characters.get(start + 1) == Some(&'$');
+    let open = if display { start + 2 } else { start + 1 };
+
+    if display {
+        // A display formula runs to the closing pair and may span lines.
+        let mut cursor = open;
+        while cursor + 1 < characters.len() {
+            // A code span is stepped over, for the same reason as below.
+            if characters[cursor] == '`' {
+                match find(characters, cursor + 1, '`') {
+                    Some(end) => {
+                        cursor = end + 1;
+                        continue;
+                    }
+                    None => {
+                        cursor += 1;
+                        continue;
+                    }
+                }
+            }
+            if characters[cursor] == '$' && characters[cursor + 1] == '$' {
+                let source: String = characters[open..cursor].iter().collect();
+                if source.trim().is_empty() {
+                    return None;
+                }
+                return Some((source, true, cursor + 2));
+            }
+            cursor += 1;
+        }
+        return None;
+    }
+
+    // An inline formula must not open on a space, and must not close on one.
+    match characters.get(open) {
+        Some(character) if character.is_whitespace() => return None,
+        None => return None,
+        _ => {}
+    }
+    let mut cursor = open + 1;
+    while cursor < characters.len() {
+        // A code span is stepped over rather than read, so that a dollar
+        // inside one cannot close the formula. This is what keeps
+        // `` `$HOME` `` from being read as the end of one.
+        if characters[cursor] == '`' {
+            match find(characters, cursor + 1, '`') {
+                Some(end) => {
+                    cursor = end + 1;
+                    continue;
+                }
+                // An unmatched backtick is ordinary text.
+                None => {
+                    cursor += 1;
+                    continue;
+                }
+            }
+        }
+        if characters[cursor] == '$' {
+            if characters[cursor - 1].is_whitespace() {
+                return None;
+            }
+            let source: String = characters[open..cursor].iter().collect();
+            return Some((source, false, cursor + 1));
+        }
+        // A newline ends the sentence, and a formula does not cross one.
+        if characters[cursor] == '\n' {
+            return None;
+        }
+        cursor += 1;
+    }
+    None
+}
+
 /// Renders inline markup, resolving a shortcut link against `items`.
 fn inline_items(text: &str, items: Option<&std::collections::HashSet<String>>) -> String {
     let characters: Vec<char> = text.chars().collect();
     let mut output = String::with_capacity(text.len());
     let mut index = 0;
-
     while index < characters.len() {
         let character = characters[index];
+
+        // A formula is read before anything else, because a dollar sign is
+        // otherwise ordinary text and the characters inside a formula are
+        // not escaped. A dollar inside a code span is left to the code rule,
+        // which is the older one and the more specific of the two.
+        if character == '$' && !inside_code_span(&characters, index) {
+            match find_formula(&characters, index) {
+                Some((source, display, next)) => {
+                    output.push_str(&crate::docs::mathml::render(&source, display));
+                    index = next;
+                    continue;
+                }
+                // An unpaired dollar is a dollar.
+                None => {
+                    output.push('$');
+                    index += 1;
+                    continue;
+                }
+            }
+        }
 
         if character == '`' {
             if let Some(end) = find(&characters, index + 1, '`') {
@@ -594,7 +725,7 @@ fn render_concept_link(inner: &str, items: Option<&std::collections::HashSet<Str
 }
 
 /// Escapes text for use in an HTML text node.
-fn escape(text: &str) -> String {
+pub(crate) fn escape(text: &str) -> String {
     let mut output = String::with_capacity(text.len());
     for character in text.chars() {
         match character {
@@ -614,7 +745,7 @@ fn escape(text: &str) -> String {
 /// Only the characters that can end the attribute or start an entity are
 /// escaped; the value never contains a quote because identifiers are
 /// restricted by [`render_concept_link`] and links are escaped here too.
-fn escape_attr(text: &str) -> String {
+pub(crate) fn escape_attr(text: &str) -> String {
     escape(text)
 }
 
@@ -735,6 +866,63 @@ fn strip_inline(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_inline_formula_is_rendered() {
+        let html = render("The rate is $r$ per second.");
+        assert!(html.contains("<math"), "the formula was not rendered");
+        assert!(!html.contains("math-display"), "it belongs in the sentence");
+        assert!(html.contains("per second."), "the sentence was lost");
+    }
+
+    #[test]
+    fn a_display_formula_is_rendered_on_its_own() {
+        let html = render("$$a^2 + b^2 = c^2$$");
+        assert!(html.contains("math-display"), "the formula is not a block");
+        assert!(html.contains("display=\"block\""), "it is not a display");
+    }
+
+    #[test]
+    fn a_dollar_without_a_pair_is_left_alone() {
+        // A price must survive as a price.
+        let html = render("It costs $5 today.");
+        assert!(html.contains("$5"), "the lone dollar was consumed");
+        assert!(!html.contains("<math"), "no formula should be produced");
+    }
+
+    #[test]
+    fn two_prices_are_not_a_formula() {
+        // The closing dollar has a space before it, which is what separates
+        // this from a formula.
+        let html = render("It costs $5 and then $6.");
+        assert!(
+            !html.contains("<math"),
+            "two prices should not be a formula"
+        );
+        assert!(html.contains("$5 and then $6."), "the prices were consumed");
+    }
+
+    #[test]
+    fn a_dollar_inside_code_is_left_alone() {
+        let html = render("`$HOME` is the home directory.");
+        assert!(!html.contains("<math"), "code should not become a formula");
+        assert!(
+            html.contains("<code>$HOME</code>"),
+            "the code span was lost"
+        );
+    }
+
+    #[test]
+    fn a_formula_does_not_cross_a_line() {
+        let html = render("A $x$ and\nB $y$.");
+        assert_eq!(html.matches("<math").count(), 2, "each should be its own");
+    }
+
+    #[test]
+    fn a_backslash_in_a_formula_is_kept() {
+        let html = render("$\\frac{1}{2}$");
+        assert!(html.contains("<mfrac>"), "the fraction was not built");
+    }
 
     #[test]
     fn renders_headings_and_paragraphs() {
