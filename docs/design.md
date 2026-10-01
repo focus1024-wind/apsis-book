@@ -399,6 +399,22 @@ reused. Neither is as fast as naming the content.
 The service registers no service worker and emits no manifest, so there is
 no second cache layer to reason about.
 
+## Tool routes
+
+The tool route has two states. Without a tool identifier the page is the
+index: one card per tool, grouped by category, each card opening the tool.
+With an identifier the page is that tool on its own.
+
+The two states are one route rather than two pages. A single route means the
+back button, a shared link, and a reload all behave the same way whether the
+reader arrived from the index or from a link elsewhere. The tool page carries
+a link back to the index, because the index is not on it.
+
+The tool page holds no list. That is the point of the split: a reader who
+opens a link to a tool sees the form rather than the list it was reached
+from, and the form gets the whole width. The cost is that comparing two
+tools takes two round trips through the index.
+
 ## Testing
 
 Unit tests live beside the code they test and cover the parser, the codec,

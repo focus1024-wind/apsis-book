@@ -298,6 +298,7 @@ const STRINGS: Record<string, Text> = {
 
   'api.itemCount': { zh: '个接口项', en: 'items' },
   'tools.open': { zh: '打开', en: 'Open' },
+  'tools.back': { zh: '全部工具', en: 'All tools' },
   'tools.choose': { zh: '共 {count} 个工具，按类别分组。', en: '{count} tools, grouped by category.' },
 };
 

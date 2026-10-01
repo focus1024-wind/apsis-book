@@ -2,6 +2,12 @@
   /**
    * The online tools.
    *
+   * The route has two states. Without a tool identifier the page is the
+   * index: one card per tool, grouped by category, each card opening the
+   * tool. With an identifier the page is that tool on its own, so a link
+   * that names a tool shows the form rather than the list it was reached
+   * from. The index carries a way back.
+   *
    * The form is generated from the tool description the backend supplies,
    * so a tool that is added to the registry appears here without a change to
    * this component. Running a tool posts the form values as JSON and renders
@@ -24,9 +30,9 @@
   let lang = $derived($language);
 
   /**
-   * The page root, measured so that every tool card shares one height. The
-   * cards are spread over one grid per category, so the measurement has to
-   * start from the element that contains all of them.
+   * The index, measured so that every tool card shares one height. The cards
+   * are spread over one grid per category, so the measurement has to start
+   * from the element that contains all of them.
    */
   let page = $state<HTMLElement | null>(null);
   $effect(() => uniformCards(page));
@@ -61,30 +67,15 @@
     const currentRegistry = registry;
     const currentId = id;
     if (!currentRegistry) return;
-    // With no tool named in the route the first one is shown, so the page
-    // opens on a working form rather than an invitation to pick.
-    const wanted =
-      (currentId
-        ? currentRegistry.tools.find((candidate) => candidate.id === currentId)
-        : undefined) ?? currentRegistry.tools[0];
-    const found = wanted ?? null;
+    // A tool is opened by naming it in the route. Without a name the page is
+    // the index, and no tool is selected.
+    const found = currentId
+      ? (currentRegistry.tools.find((candidate) => candidate.id === currentId) ?? null)
+      : null;
     tool = found;
     result = null;
     error = null;
     values = defaultsFor(found);
-  });
-
-  /**
-   * Moves the form into view after a tool is chosen.
-   *
-   * The index and the form share the page, so a reader who picks a tool from
-   * the list would otherwise stay on the index and not see the form. This
-   * runs only when the route names a tool, which is what a click does.
-   */
-  let form = $state<HTMLElement | null>(null);
-  $effect(() => {
-    if (!id || !form) return;
-    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   /** Runs the selected tool. */
@@ -143,14 +134,105 @@
 </script>
 
 <div bind:this={page} class="page-root">
-<div class="page-header">
-  <h1>{tr('tools.title', lang)}</h1>
-  <p>{tr('tools.intro', lang)}</p>
-</div>
-
 {#if !registry}
   <p class="empty">{tr('tools.loading', lang)}</p>
+{:else if tool}
+  <!-- One tool on its own. The link back is the only way to the index,
+       because the index is not on this page. -->
+  <p class="breadcrumb">
+    <a href="#/tools">← {tr('tools.back', lang)}</a>
+  </p>
+
+  <section class="card tool-form">
+    <header style="display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap;">
+      <h1 style="margin: 0; border: none;">{pick(tool.name, lang)}</h1>
+      <span class="badge">{pick(tool.category, lang)}</span>
+    </header>
+    <p style="color: var(--text-muted)">{pick(tool.description, lang)}</p>
+
+    <form
+      onsubmit={(event) => {
+        event.preventDefault();
+        void run();
+      }}
+    >
+      <div class="form-grid">
+        {#each tool.params as param}
+          {@const invalid = error?.parameter === param.name}
+          <div class="field {param.kind === 'multiline' ? 'wide' : ''} {invalid ? 'invalid' : ''}">
+            <label for={`field-${param.name}`}>
+              {pick(param.label, lang)}{#if param.required}<span style="color: var(--negative)"
+                    > *</span>{/if}
+            </label>
+            {#if param.kind === 'select'}
+              <select id={`field-${param.name}`} bind:value={values[param.name]}>
+                {#each param.constraints.options ?? [] as option}
+                  <option value={option.value}>{pick(option.label, lang)}</option>
+                {/each}
+              </select>
+            {:else if param.kind === 'multiline'}
+              <textarea id={`field-${param.name}`} bind:value={values[param.name]} rows="4"
+              ></textarea>
+            {:else if param.kind === 'number' || param.kind === 'integer'}
+              <input
+                id={`field-${param.name}`}
+                type="number"
+                step={param.kind === 'integer' ? '1' : 'any'}
+                min={param.constraints.min ?? undefined}
+                max={param.constraints.max ?? undefined}
+                bind:value={values[param.name]}
+              />
+            {:else}
+              <input id={`field-${param.name}`} type="text" bind:value={values[param.name]} />
+            {/if}
+            <span class="help">{pick(param.help, lang)}</span>
+            {#if param.constraints.unit}
+              <span class="unit">{tr('tools.unit', lang)}: {param.constraints.unit}</span>
+            {/if}
+          </div>
+        {/each}
+      </div>
+
+      <div style="display: flex; gap: 0.6rem; margin-top: 1rem;">
+        <button type="submit" disabled={running}>
+          {#if running}<span class="spinner"></span>{/if}
+          {running ? tr('tools.running', lang) : tr('tools.run', lang)}
+        </button>
+        <button class="ghost" type="button" onclick={reset}>{tr('tools.reset', lang)}</button>
+      </div>
+    </form>
+
+    {#if tool.api_items.length > 0}
+      <div class="calls">
+        <span class="calls-label">{tr('tools.calls', lang)}</span>
+        {#each tool.api_items as name}
+          <a class="chip" href={`#/api/${name}`}>{name}</a>
+        {/each}
+      </div>
+    {/if}
+  </section>
+
+  {#if error}
+    <div class="notice error" style="margin-top: 1rem;">
+      <p>
+        {#if error.parameter}<strong>{error.parameter}:</strong>{/if}
+        {error.message}
+      </p>
+    </div>
+  {/if}
+
+  {#if result}
+    <div style="margin-top: 1rem;">
+      <ResultView {result} />
+    </div>
+  {/if}
 {:else}
+  <!-- The index. -->
+  <div class="page-header">
+    <h1>{tr('tools.title', lang)}</h1>
+    <p>{tr('tools.intro', lang)}</p>
+  </div>
+
   {#each categories as group}
     <section style="margin-bottom: 2rem;">
       <h3 style="margin-bottom: 0.75rem;">{pick(group.category, lang)}</h3>
@@ -172,98 +254,5 @@
       </div>
     </section>
   {/each}
-
-  {#if !tool}
-    <div class="notice muted">
-      <p>{tr('tools.select', lang)}</p>
-    </div>
-  {:else}
-    <section class="card tool-form" bind:this={form} style="margin-top: 1.5rem;">
-      <header style="display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap;">
-        <h2 style="margin: 0; border: none;">{pick(tool.name, lang)}</h2>
-        <span class="badge">{pick(tool.category, lang)}</span>
-      </header>
-      <p style="color: var(--text-muted);">{pick(tool.description, lang)}</p>
-
-      <form
-        onsubmit={(event) => {
-          event.preventDefault();
-          void run();
-        }}
-      >
-        <div class="form-grid">
-          {#each tool.params as param}
-            {@const invalid = error?.parameter === param.name}
-            <div
-              class="field {param.kind === 'multiline' ? 'wide' : ''} {invalid ? 'invalid' : ''}"
-            >
-              <label for={`field-${param.name}`}>
-                {pick(param.label, lang)}{#if param.required}<span style="color: var(--negative);"
-                    > *</span>{/if}
-              </label>
-              {#if param.kind === 'select'}
-                <select id={`field-${param.name}`} bind:value={values[param.name]}>
-                  {#each param.constraints.options ?? [] as option}
-                    <option value={option.value}>{pick(option.label, lang)}</option>
-                  {/each}
-                </select>
-              {:else if param.kind === 'multiline'}
-                <textarea id={`field-${param.name}`} bind:value={values[param.name]} rows="4"></textarea>
-              {:else if param.kind === 'number' || param.kind === 'integer'}
-                <input
-                  id={`field-${param.name}`}
-                  type="number"
-                  step={param.kind === 'integer' ? '1' : 'any'}
-                  min={param.constraints.min ?? undefined}
-                  max={param.constraints.max ?? undefined}
-                  bind:value={values[param.name]}
-                />
-              {:else}
-                <input id={`field-${param.name}`} type="text" bind:value={values[param.name]} />
-              {/if}
-              <span class="help">{pick(param.help, lang)}</span>
-              {#if param.constraints.unit}
-                <span class="unit">{tr('tools.unit', lang)}: {param.constraints.unit}</span>
-              {/if}
-            </div>
-          {/each}
-        </div>
-
-        <div style="display: flex; gap: 0.6rem; margin-top: 1rem;">
-          <button type="submit" disabled={running}>
-            {#if running}<span class="spinner"></span>{/if}
-            {running ? tr('tools.running', lang) : tr('tools.run', lang)}
-          </button>
-          <button class="ghost" type="button" onclick={reset}>{tr('tools.reset', lang)}</button>
-        </div>
-      </form>
-
-      {#if tool.api_items.length > 0}
-        <div class="calls">
-          <span class="calls-label">{tr('tools.calls', lang)}</span>
-          {#each tool.api_items as name}
-            <a class="chip" href={`#/api/${name}`}>{name}</a>
-          {/each}
-        </div>
-      {/if}
-    </section>
-
-    {#if error}
-      <div class="notice error" style="margin-top: 1rem;">
-        <p>
-          {#if error.parameter}
-            <strong>{error.parameter}:</strong>
-          {/if}
-          {error.message}
-        </p>
-      </div>
-    {/if}
-
-    {#if result}
-      <div style="margin-top: 1rem;">
-        <ResultView {result} />
-      </div>
-    {/if}
-  {/if}
 {/if}
 </div>
