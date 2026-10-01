@@ -120,7 +120,13 @@ impl Router {
             "service" => "apsis-book",
             "version" => env!("CARGO_PKG_VERSION"),
             "documents" => self.state.docs.len(),
-            "chapters" => self.state.docs.chapters().len(),
+            "layers" => self
+                .state
+                .docs
+                .groups()
+                .iter()
+                .map(|group| group.sections.len())
+                .sum::<usize>(),
             "graph_nodes" => self.state.graph.concepts.nodes.len(),
             "api_crates" => self.state.api.crates.len(),
             "api_items" => self.state.api.item_count(),
@@ -463,37 +469,52 @@ fn is_content_hashed(path: &str) -> bool {
 }
 
 /// Builds the document listing payload.
+///
+/// The listing is grouped so that the distinction between the concepts and
+/// the implementation survives to the reader: the concepts are the larger
+/// superset, and the implementation is what one particular library does.
 fn document_index(state: &AppState) -> Value {
-    let chapters: Vec<Value> = state
+    let groups: Vec<Value> = state
         .docs
-        .chapters()
+        .groups()
         .iter()
-        .map(|chapter| {
-            let documents: Vec<Value> = chapter
-                .documents
+        .map(|group| {
+            let sections: Vec<Value> = group
+                .sections
                 .iter()
-                .filter_map(|id| state.docs.document(id))
-                .map(|document| {
+                .map(|section| {
+                    let documents: Vec<Value> = section
+                        .documents
+                        .iter()
+                        .filter_map(|id| state.docs.document(id))
+                        .map(|document| {
+                            json_object! {
+                                "id" => document.id.clone(),
+                                "title" => bilingual("title", document),
+                                "summary" => bilingual("summary", document),
+                                "tags" => tag_lists(document),
+                            }
+                        })
+                        .collect();
                     json_object! {
-                        "id" => document.id.clone(),
-                        "title" => bilingual("title", document),
-                        "summary" => bilingual("summary", document),
-                        "tags" => tag_lists(document),
+                        "id" => section.id.clone(),
+                        "title" => optional_bilingual(&section.title_zh, &section.title),
+                        "summary" => optional_bilingual(&section.summary_zh, &section.summary),
+                        "documents" => documents,
                     }
                 })
                 .collect();
             json_object! {
-                "id" => chapter.id.clone(),
-                "title" => optional_bilingual(&chapter.title_zh, &chapter.title),
-                "summary" => optional_bilingual(&chapter.summary_zh, &chapter.summary),
-                "documents" => documents,
+                "id" => group.id.clone(),
+                "title" => optional_bilingual(&group.title_zh, &group.title),
+                "sections" => sections,
             }
         })
         .collect();
 
     json_object! {
         "document_count" => state.docs.len(),
-        "chapters" => chapters,
+        "groups" => groups,
     }
 }
 
@@ -606,10 +627,16 @@ fn tag_lists(document: &crate::docs::Document) -> Value {
 
 /// Encodes the title of a chapter, in both languages.
 fn chapter_title(state: &AppState, chapter_id: &str) -> Value {
-    let Some(chapter) = state.docs.chapters().iter().find(|c| c.id == chapter_id) else {
-        return Value::string(chapter_id);
-    };
-    optional_bilingual(&chapter.title_zh, &chapter.title)
+    let found = state
+        .docs
+        .groups()
+        .iter()
+        .flat_map(|group| group.sections.iter())
+        .find(|section| section.id == chapter_id);
+    match found {
+        Some(section) => optional_bilingual(&section.title_zh, &section.title),
+        None => Value::string(chapter_id),
+    }
 }
 
 /// Encodes a graph as JSON.
@@ -650,7 +677,7 @@ fn graph_json(graph: &Graph) -> Value {
                 "source" => edge.source.clone(),
                 "target" => edge.target.clone(),
                 "kind" => edge.kind.clone(),
-                "label" => edge.label.clone().map(Value::from).unwrap_or(Value::Null),
+                "label" => optional_bilingual(&edge.label_zh, edge.label.as_deref().unwrap_or("")),
             }
         })
         .collect();
@@ -797,9 +824,14 @@ mod tests {
     fn document_routes_serve_content() {
         let router = router();
         let index = parse(&get(&router, "/api/docs"));
-        let chapters = index.get("chapters").unwrap().as_array();
-        assert!(!chapters.is_empty());
-        let first = chapters[0]
+        let groups = index.get("groups").unwrap().as_array();
+        assert_eq!(groups.len(), 2, "the concepts and the implementation");
+        let first = groups[0]
+            .get("sections")
+            .unwrap()
+            .as_array()
+            .first()
+            .unwrap()
             .get("documents")
             .unwrap()
             .as_array()
@@ -841,10 +873,25 @@ mod tests {
     fn document_listing_carries_bilingual_titles() {
         let router = router();
         let index = parse(&get(&router, "/api/docs"));
-        let chapters = index.get("chapters").unwrap().as_array();
-        let title = chapters[0].get("title").unwrap();
+        let groups = index.get("groups").unwrap().as_array();
+        let title = groups[0].get("title").unwrap();
         assert!(title.get("zh").unwrap().as_str().is_some());
         assert!(title.get("en").unwrap().as_str().is_some());
+        let section = groups[0]
+            .get("sections")
+            .unwrap()
+            .as_array()
+            .first()
+            .unwrap();
+        assert!(
+            section
+                .get("title")
+                .unwrap()
+                .get("zh")
+                .unwrap()
+                .as_str()
+                .is_some()
+        );
     }
 
     #[test]

@@ -120,6 +120,34 @@ curl -s http://127.0.0.1:8080/api/tools/hohmann-transfer/run \
   -d '{"from_radius": 6778, "to_radius": 42164}'
 ```
 
+## Content layout
+
+The content is a superset of what any one library implements. It has two
+groups.
+
+**概念 / Concepts** describes the field. The layers follow the ones the
+library is built in, because that is the order a reader meets the subject:
+
+| Layer | Subject |
+|-------|---------|
+| 导论 Introduction | Scope, organisation, and how to read a page |
+| 基础层 Foundations | Units, dimensions, numerical method, error |
+| 时间与几何 Time and geometry | Time scales, leap seconds, calendars, frames, the Earth rotation angle, the ellipsoid |
+| 轨道层 Orbit | Elements, element formats, perturbations, propagators, manoeuvres |
+| 射频与传播 Radio and propagation | Doppler, link budgets, the medium, interference |
+| 星座与网络 Constellation and network | Constellations, access, topology, handover, routing |
+| 运行层 Operations | Telemetry, tracking, command, planning |
+| 仿真层 Simulation | Scenarios, events, and what a result means |
+
+**实现 / Implementation** describes what one particular library implements
+of the above, including how it is organised and where its algorithms come
+from. Keeping it separate is what makes the concept set independent: a page
+about link budgets does not change when a library changes.
+
+A document belongs to the layer named by the directory it is in, so adding a
+document means creating it under its layer and listing it in
+`chapters.json`.
+
 ## Regenerating the interface catalog
 
 The interface documentation is generated from the ApsisRS sources rather than
@@ -139,17 +167,19 @@ or later. The Rust build does not run it and does not depend on Python.
 
 | Path | Contents |
 |------|----------|
-| `content/concepts/chapters.json` | Chapter list and the reading order of documents, with bilingual titles |
-| `content/concepts/*.md` | Concept documents, with a `key: value` metadata header |
-| `content/concepts/*.zh.md` | Chinese translations; the identifier comes from the file name |
+| `content/concepts/chapters.json` | The groups, their layers, and the reading order, with bilingual titles |
+| `content/concepts/<layer>/*.md` | Documents, one directory per layer; the directory gives the layer, the file name gives the identifier |
+| `content/concepts/<layer>/*.zh.md` | Chinese translations, named for the file they translate |
 | `content/graph/concepts.json` | The concept graph |
 | `content/flows/*.json` | The algorithm flow graphs |
 | `content/api.json` | The generated interface catalog; do not edit by hand |
 | `content/api.zh.json` | Chinese translations of the crate summaries and item doc comments |
 
-A document header declares `id`, `title`, `chapter`, `summary`, `tags`, and
-`prerequisites`. A cross reference is written `[[id]]` or `[[id|label]]` and
-renders as a link that the frontend routes without a page load.
+A document header declares `title`, `summary`, `tags`, and `prerequisites`.
+The identifier and the layer are not declared: the identifier is the file
+name and the layer is the directory, so the two cannot disagree with the
+tree. A cross reference is written `[[id]]` or `[[id|label]]` and renders as
+a link that the frontend routes without a page load.
 
 ## Layout
 
@@ -158,6 +188,7 @@ apsis-book/
 ├── build.rs                  embed the frontend build and the text content
 ├── Cargo.toml                one runtime dependency: apsis-rs
 ├── content/                  authored documents, graphs, and generated catalog
+│   └── concepts/<layer>/     documents, one directory per layer
 ├── frontend/                 Svelte and TypeScript, built by Vite
 │   ├── src/lib/              API client, router, components, formatting
 │   ├── src/pages/            one component per route

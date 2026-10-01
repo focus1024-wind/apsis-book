@@ -37,32 +37,36 @@
 {#if !index}
   <p class="empty">{tr('docs.loading', lang)}</p>
 {:else}
-  {#each index.chapters as chapter}
-    <section style="margin-bottom: 2rem;">
-      <h2 style="margin-top: 1.5rem;">{pick(chapter.title, lang)}</h2>
-      {#if pick(chapter.summary, lang)}
-        <p style="color: var(--text-muted); margin-top: 0">{pick(chapter.summary, lang)}</p>
-      {/if}
-      <div class="grid cards">
-        {#each chapter.documents as document}
-          <article class="card">
-            <h3><a href={`#/docs/${document.id}`}>{pick(document.title, lang)}</a></h3>
-            <p class="card-clamp" style="color: var(--text-muted); margin: 0.4rem 0 0.6rem">
-              {pick(document.summary, lang)}
-            </p>
-            <div class="card-tags">
-              {#each pickList(document.tags, lang) as tag}
-                <span class="tag">{tag}</span>
-              {/each}
-            </div>
-            <button
-              class="ghost card-action"
-              type="button"
-              onclick={() => navigate(`/docs/${document.id}`)}>{tr('docs.read', lang)}</button>
-          </article>
-        {/each}
-      </div>
-
+  {#each index.groups as group (group.id)}
+    <section class="docs-group" style="margin-bottom: 2.5rem;">
+      <h2 class="docs-group-title">{pick(group.title, lang)}</h2>
+      {#each group.sections as section (section.id)}
+        <section style="margin-bottom: 1.75rem;">
+          <h3 style="margin-top: 1.25rem;">{pick(section.title, lang)}</h3>
+          {#if pick(section.summary, lang)}
+            <p style="color: var(--text-muted); margin-top: 0">{pick(section.summary, lang)}</p>
+          {/if}
+          <div class="grid cards">
+            {#each section.documents as document (document.id)}
+              <article class="card">
+                <h3><a href={`#/docs/${document.id}`}>{pick(document.title, lang)}</a></h3>
+                <p class="card-clamp" style="color: var(--text-muted); margin: 0.4rem 0 0.6rem">
+                  {pick(document.summary, lang)}
+                </p>
+                <div class="card-tags">
+                  {#each pickList(document.tags, lang) as tag}
+                    <span class="tag">{tag}</span>
+                  {/each}
+                </div>
+                <button
+                  class="ghost card-action"
+                  type="button"
+                  onclick={() => navigate(`/docs/${document.id}`)}>{tr('docs.read', lang)}</button>
+              </article>
+            {/each}
+          </div>
+        </section>
+      {/each}
     </section>
   {/each}
 {/if}

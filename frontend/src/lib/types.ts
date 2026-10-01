@@ -63,14 +63,35 @@ export interface Document {
   tags: BilingualList;
 }
 
-/** The document listing, grouped by chapter. */
+/** One document in the listing. */
+export interface DocumentSummary {
+  id: string;
+  title: Bilingual;
+  summary: Bilingual;
+  tags: BilingualList;
+}
+
+/** A layer, or section, inside a group. */
+export interface DocumentSection {
+  id: string;
+  title: Bilingual;
+  summary: Bilingual;
+  documents: DocumentSummary[];
+}
+
+/**
+ * The document listing.
+ *
+ * The top level is a group rather than a chapter: the concepts and the
+ * implementation are described in different ways and a reader who needs one
+ * should not have to read past the other.
+ */
 export interface DocumentIndex {
   document_count: number;
-  chapters: {
+  groups: {
     id: string;
     title: Bilingual;
-    summary: Bilingual;
-    documents: { id: string; title: Bilingual; summary: Bilingual; tags: BilingualList }[];
+    sections: DocumentSection[];
   }[];
 }
 

@@ -26,34 +26,43 @@
   --warning: #e8c26a;
   --negative: #f28b82;
 
+  /* One hue per layer, so that a legend with ten entries is readable. The
+     concept graph uses these directly; the flow graphs reuse the earlier
+     stage names. */
   --group-overview: #7fd1ff;
-  --group-time: #b8a2ff;
-  --group-geometry: #5fd39a;
-  --group-elements: #e8c26a;
-  --group-propagation: #f28b82;
-  --group-methods: #93a2b8;
-  --group-input: #93a2b8;
-  --group-prepare: #b8a2ff;
-  --group-branch: #e8c26a;
-  --group-propagate: #7fd1ff;
-  --group-verify: #5fd39a;
-  --group-fields: #5fd39a;
-  --group-crosscheck: #e8c26a;
-  --group-error: #f28b82;
-  --group-output: #5fd39a;
-  --group-validate: #b8a2ff;
-  --group-convert: #7fd1ff;
-  --group-store: #b8a2ff;
-  --group-frames: #5fd39a;
-  --group-rotate: #7fd1ff;
-  --group-geodetic: #e8c26a;
+  --group-foundation: #a3e635;
+  --group-physics: #4ade80;
+  --group-geometry: #34d399;
+  --group-elements: #fbbf24;
+  --group-orbit: #fb923c;
+  --group-propagation: #f87171;
+  --group-rf: #e879f9;
+  --group-network: #c084fc;
+  --group-ops: #818cf8;
+  --group-sim: #38bdf8;
+  --group-methods: #94a3b8;
 
-  --radius: 8px;
-  --radius-small: 5px;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --sidebar-width: 19rem;
-  --toc-width: 15rem;
+  /* Flow stages */
+  --group-input: #94a3b8;
+  --group-parse: #7dd3fc;
+  --group-prepare: #a78bfa;
+  --group-propagate: #38bdf8;
+  --group-verify: #4ade80;
+  --group-fields: #4ade80;
+  --group-crosscheck: #fbbf24;
+  --group-branch: #fbbf24;
+  --group-error: #f87171;
+  --group-output: #4ade80;
+  --group-validate: #a78bfa;
+  --group-convert: #38bdf8;
+  --group-store: #a78bfa;
+  --group-frames: #4ade80;
+  --group-rotate: #38bdf8;
+  --group-geodetic: #fbbf24;
+  --group-time: #a78bfa;
+  --group-general: #94a3b8;
+  --group-damping: #4ade80;
+  --group-frameset: #4ade80;
 }
 
 * {
@@ -214,6 +223,15 @@ hr {
 
 .sidebar-section {
   margin-bottom: 1.5rem;
+}
+
+/* The group separates the concepts from the implementation, so it is
+   written differently from the layers inside it. */
+.sidebar-group-title {
+  color: var(--accent);
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border);
 }
 
 .sidebar-section h2 {
@@ -1092,6 +1110,15 @@ tbody tr:hover {
   margin: 0.5rem 0 0;
   color: var(--text-muted);
   font-size: 0.85rem;
+}
+
+/* The group heading on the document index, which separates the concepts
+   from the implementation. */
+.docs-group-title {
+  padding-bottom: 0.4rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-strong);
+  color: var(--accent);
 }
 
 /* A tool in the tool index. The card is a link, so the whole area is the

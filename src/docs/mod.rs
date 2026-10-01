@@ -41,17 +41,26 @@ pub fn load_documents() -> Vec<Document> {
         std::collections::HashMap::new();
 
     for (path, text) in content::list("concepts/", ".md") {
-        let Some(stem) = path
-            .strip_prefix("concepts/")
-            .and_then(|name| name.strip_suffix(".md"))
+        let Some(relative) = path.strip_prefix("concepts/") else {
+            continue;
+        };
+        // The identifier is the file name; the directory above it is the
+        // layer, which is a separate piece of information.
+        let Some(stem) = relative
+            .rsplit_once('/')
+            .map_or(Some(relative), |(_, name)| Some(name))
         else {
+            continue;
+        };
+        let Some(stem) = stem.strip_suffix(".md") else {
             continue;
         };
         let language = Language::of_file(stem);
         if language != Language::English {
             continue;
         }
-        if let Some(document) = Document::parse(stem, Language::English, text) {
+        let layer = crate::docs::document::layer_of(relative);
+        if let Some(document) = Document::parse(stem, &layer, Language::English, text) {
             order.push(stem.to_string());
             documents.insert(stem.to_string(), document);
         }
@@ -60,6 +69,10 @@ pub fn load_documents() -> Vec<Document> {
     for (path, text) in content::list("concepts/", ".zh.md") {
         let Some(stem) = path
             .strip_prefix("concepts/")
+            .and_then(|name| {
+                name.rsplit_once('/')
+                    .map_or(Some(name), |(_, base)| Some(base))
+            })
             .and_then(|name| name.strip_suffix(".zh.md"))
         else {
             continue;

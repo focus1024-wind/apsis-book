@@ -1,84 +1,80 @@
 ---
-id: overview
 title: Concept overview
-chapter: overview
-summary: The scope of the ApsisRS kernels and how the concept set is organized.
-tags: overview, scope
+tags: overview, scope, how-to-read
+summary: What this documentation covers, how it is organised, and how to read a concept page that describes more than one implementation.
 ---
 
 # Concept overview
 
-ApsisRS is a workspace of computational kernels for commercial spaceflight
-and satellite internet systems. The kernels are written so that they can be
-audited: they depend on nothing outside the Rust standard library, every
-quantity carries its unit in the type system, and every algorithm names the
-public standard it follows.
+This documentation describes spacecraft, orbits, and the measurement and
+communication around them. It is a teaching resource: it explains what the
+quantities are, what units they carry, how they are computed, and where each
+method stops being valid. It is not a manual for one library, and a page here
+usually describes a family of approaches rather than a single one.
 
-This documentation explains the concepts the kernels implement. It is
-written for someone who has the numbers in front of them and needs to know
-what they mean, which units they are in, and where the method stops being
-valid. Each document gives the definition, the mathematical meaning, the
-unit convention, the boundary of applicability, and the public source.
+## What it covers
 
-## The layer order
+The subject is a satellite from launch to link closure:
 
-The workspace is organized into layers with a one way dependency rule. A
-layer may use the layers to its left and never the layers to its right.
+- **Foundations.** Units, dimensions, and the numerical behaviour of a
+  computed number.
+- **Time and geometry.** Time scales, leap seconds, calendars, reference
+  frames, the Earth rotation angle, and the reference ellipsoid.
+- **Orbit.** Orbital elements and their formats, the perturbation sources
+  that move an orbit, the models that propagate it, and the manoeuvres that
+  change it.
+- **Radio and propagation.** How motion changes the received frequency, what
+  makes a link close, what the atmosphere does, and what interference does.
+- **Constellation and network.** How satellites are arranged, when one can
+  be used, and how a session survives the satellite handing it over.
+- **Operations.** The measurement and control chain, and the planning that
+  allocates fuel, contact, and safety.
+- **Simulation.** What a simulation can and cannot establish.
 
-```text
-foundation -> physics -> orbit -> rf -> network -> ops -> sim
-```
+## How it is organised
 
-The layers that this service exposes are the first three:
+The sections follow the layers a spacecraft system is naturally built in,
+from the arithmetic at the bottom to the network at the top. The ordering is
+a reading order, not a dependency: a page on link budgets assumes the orbit
+and the atmosphere, not the other way round.
 
-| Layer | Contents | Examples |
-|-------|----------|----------|
-| foundation | Shared types, units, linear algebra | `Vec3`, `Mat3`, quantity newtypes |
-| physics | Time, frames, geodesy | `Epoch`, `EarthRotationAngle`, `WGS84` |
-| orbit | Elements, propagation, maneuvers | `TwoLineElement`, `Satellite`, `Orbit` |
+Each page follows the same shape, so a reader knows where to look:
 
-The remaining layers cover radio frequency links, constellation networks,
-operations scheduling, and simulation. They are outside the scope of the
-interface catalog this service presents, which is generated from the
-foundation, physics, and orbit crates.
+1. **Definition** of the quantity or the model.
+2. **Mathematics**, with the symbols defined.
+3. **Unit conventions**, including the ones that differ between fields.
+4. **Applicability**, where the method stops being valid.
+5. **Standards**, naming the public source the definition follows.
+6. **See also**, linking the concepts that depend on this one.
 
-## How to read a concept document
+A cross reference names another page; for example the page on
+[[time-scales]] is reached from here, and the page on [[maneuvers]] refers
+back to it.
 
-A concept document answers five questions:
+## How to read a page
 
-1. **Definition.** What the concept is, in one paragraph.
-2. **Mathematical meaning.** The equations, or the description of the
-   operation, with the symbols defined.
-3. **Units.** The unit of every quantity, and the convention for angles.
-4. **Applicability.** Where the method is valid and where it is not.
-5. **Source.** The public standard or paper the implementation follows.
+Two things are worth knowing in advance.
 
-Where more than one method solves the same problem, the document lists them
-side by side in a comparison table with the columns *method*, *accuracy*,
-*computational cost*, *where it applies*, *reference*, and *whether
-`apsis-rs` implements it*.
+A page names more than one implementation wherever more than one is used, and
+says which is which. Where a specific library is relevant, it is named; where
+it is not, the page is about the problem rather than about a product.
 
-## Angle convention
+The **unit conventions** section is not housekeeping. A number without its
+unit and its reference is not a physical quantity, and a large part of the
+practical errors in this field are unit errors rather than concept errors.
 
-Angles in the public interface of `apsis-rs` are in **radians** unless the
-name says otherwise. The element set format is the one exception: the
-orientation angles of a two-line element set are in **degrees**, because
-that is how the format writes them, and the parser keeps them in degrees.
-The conversion to radians happens in the propagator, not in the parser.
+## Where the implementation is
 
-Longitude is positive east. Latitude is geodetic, measured from the
-ellipsoid normal, not geocentric.
+The pages above describe the field. A separate section describes what one
+particular library implements of it, including how it is organised and where
+its algorithms come from. That separation is deliberate: the concepts stand
+on their own, and the implementation is one answer to them rather than their
+definition.
 
-## Time convention
+The online tools exist for the same reason. A reader who has just read about
+a propagation model can run it, which is a stronger check than reading.
 
-An instant is stored as a Modified Julian Date on the International Atomic
-Time scale. Storing one uniform scale makes the difference between two
-instants exact elapsed time. See [[time-scales]].
+## See also
 
-## Where to go next
-
-- The structure of the workspace: [[architecture-apsis-rs]]
-- Time: [[time-scales]], [[leap-seconds]], [[calendar-and-mjd]]
-- Frames and the Earth: [[reference-frames]], [[geodesy-wgs84]]
-- Elements and propagation: [[tle-format]], [[sgp4]], [[keplerian-elements]]
-- How the methods compare: [[propagator-comparison]]
+- [[units-and-dimensions]] for the convention that runs through every page
+- [[numerical-methods]] for what "computed" means on these pages

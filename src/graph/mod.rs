@@ -102,8 +102,10 @@ pub struct Edge {
     pub target: String,
     /// Relationship name, such as `uses`.
     pub kind: String,
-    /// Optional label drawn on the edge.
+    /// Optional label drawn on the edge, in English.
     pub label: Option<String>,
+    /// The same label in Chinese, when one is authored.
+    pub label_zh: Option<String>,
 }
 
 /// A graph, either the concept graph or one flow graph.
@@ -280,6 +282,11 @@ pub fn parse_graph(text: &str) -> Option<Graph> {
                     .to_string(),
                 label: edge
                     .get("label")
+                    .or_else(|| edge.get("label_en"))
+                    .and_then(Value::as_str)
+                    .map(str::to_string),
+                label_zh: edge
+                    .get("label_zh")
                     .and_then(Value::as_str)
                     .map(str::to_string),
             })
@@ -346,6 +353,7 @@ pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
             target: krate.layer.clone(),
             kind: "belongs-to".to_string(),
             label: None,
+            label_zh: None,
         });
         if !present.contains(&krate.layer.as_str()) {
             present.push(match layers.iter().find(|layer| **layer == krate.layer) {
@@ -387,6 +395,7 @@ pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
                 target: upper.to_string(),
                 kind: "depends".to_string(),
                 label: Some(format!("{lower} enables {upper}")),
+                label_zh: Some(format!("{lower} 启用 {upper}")),
             });
         }
     }

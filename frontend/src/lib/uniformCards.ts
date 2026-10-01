@@ -1,10 +1,15 @@
 /**
- * Gives every card in a container the height of the tallest one.
+ * Gives every card in a group the height of the tallest one in that group.
  *
  * A grid makes the cards of one row equal, but each row is measured on its
  * own, so a page built from several grids steps from one row height to the
- * next and the column of cards looks ragged. Measuring the tallest card
- * across every grid and applying it to all of them removes the step.
+ * next and the column of cards looks ragged. Measuring the tallest card and
+ * applying it to all of them removes the step.
+ *
+ * The measurement is per group rather than per page. The document index has
+ * two groups whose cards describe different things and would be taller if
+ * measured together, so a card in the short group would be padded to the
+ * height of the long one.
  *
  * The measurement runs when the content or the language changes, and on a
  * resize, because the number of columns and therefore the natural height of
@@ -16,8 +21,7 @@
  * The cards the measurement covers.
  *
  * The interface page groups its items under a kind and lays them out in its
- * own grid, so both grids take part; a card in either is made the height of
- * the tallest.
+ * own grid, so both grids take part.
  */
 const CARD_SELECTOR = '.grid.cards > .card, .item-grid > .api-item';
 
@@ -40,14 +44,17 @@ export function tallestCardHeight(root: ParentNode): number {
  * inline height when there is no card.
  */
 export function applyUniformHeight(root: ParentNode): void {
-  const cards = [...root.querySelectorAll<HTMLElement>(CARD_SELECTOR)];
-  if (cards.length === 0) {
-    return;
-  }
-  const tallest = tallestCardHeight(root);
-  for (const card of cards) {
-    card.dataset.uniformHeight = '1';
-    card.style.height = `${tallest}px`;
+  // Each group is measured on its own, so that cards in different groups
+  // are not padded to a common height they have no reason to share.
+  const groups = [...root.querySelectorAll('.docs-group')];
+  for (const group of groups.length > 0 ? groups : [root]) {
+    const cards = [...group.querySelectorAll<HTMLElement>(CARD_SELECTOR)];
+    if (cards.length === 0) continue;
+    const tallest = tallestCardHeight(group);
+    for (const card of cards) {
+      card.dataset.uniformHeight = '1';
+      card.style.height = `${tallest}px`;
+    }
   }
 }
 

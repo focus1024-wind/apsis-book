@@ -149,7 +149,11 @@ fn serves_the_document_index_and_a_document() {
 
     let index = service.get("/api/docs");
     assert!(status(&index).contains("200"), "{index}");
-    assert!(body(&index).contains("\"chapters\""), "{}", body(&index));
+    let listing = body(&index);
+    assert!(listing.contains("\"groups\""), "{listing}");
+    // The concepts and the implementation are separate groups.
+    assert!(listing.contains("\"concepts\""), "{listing}");
+    assert!(listing.contains("\"implementation\""), "{listing}");
 
     let document = service.get("/api/docs/sgp4");
     assert!(status(&document).contains("200"), "{document}");

@@ -211,6 +211,166 @@
       "document": "sgp4",
       "api": "Satellite",
       "summary_zh": "SGP4 与 SDP4 解析轨道传播器。"
+    },
+    {
+      "id": "units-and-dimensions",
+      "label": "Units and dimensions",
+      "label_zh": "量纲与单位",
+      "kind": "concept",
+      "group": "foundation",
+      "summary": "How a physical quantity carries its unit, and the conventions that make an answer interpretable.",
+      "summary_zh": "物理量如何携带单位，以及让结果可解释的约定。",
+      "document": "units-and-dimensions"
+    },
+    {
+      "id": "numerical-methods",
+      "label": "Numerical method",
+      "label_zh": "数值方法与误差",
+      "kind": "concept",
+      "group": "foundation",
+      "summary": "Being wrong, being imprecise, and being unstable are three different things.",
+      "summary_zh": "算错、不够精确、不稳定是三件不同的事。",
+      "document": "numerical-methods"
+    },
+    {
+      "id": "maneuvers",
+      "label": "Orbit manoeuvres",
+      "label_zh": "轨道机动",
+      "kind": "concept",
+      "group": "orbit",
+      "summary": "Changing an orbit, what it costs, and why the cheapest transfer is the usual one.",
+      "summary_zh": "改变轨道、代价几何，以及为什么最省的转移是通常那条。",
+      "document": "maneuvers"
+    },
+    {
+      "id": "higher-order-gravity",
+      "label": "Higher order gravity",
+      "label_zh": "高阶引力",
+      "kind": "concept",
+      "group": "orbit",
+      "summary": "The expansion of the gravity field, and where it converges slowly.",
+      "summary_zh": "引力场的展开，以及它在何处收敛缓慢。",
+      "document": "higher-order-gravity"
+    },
+    {
+      "id": "solar-radiation-pressure",
+      "label": "Solar radiation pressure",
+      "label_zh": "太阳光压",
+      "kind": "concept",
+      "group": "orbit",
+      "summary": "Photon momentum on a sunlit surface, and why it shapes a constellation.",
+      "summary_zh": "受照表面的光子动量，以及它如何塑造星座。",
+      "document": "solar-radiation-pressure"
+    },
+    {
+      "id": "atmospheric-drag",
+      "label": "Atmospheric drag",
+      "label_zh": "大气阻力与密度模型",
+      "kind": "concept",
+      "group": "orbit",
+      "summary": "The density model, and why the hardest altitude is the one that matters.",
+      "summary_zh": "密度模型，以及为什么最难的恰是最要紧的高度。",
+      "document": "atmospheric-drag"
+    },
+    {
+      "id": "doppler-and-rate",
+      "label": "Doppler and range rate",
+      "label_zh": "多普勒频移与测距率",
+      "kind": "concept",
+      "group": "rf",
+      "summary": "How motion changes the received frequency, and how that becomes a position.",
+      "summary_zh": "运动如何改变接收频率，以及该频率如何成为位置。",
+      "document": "doppler-and-rate"
+    },
+    {
+      "id": "link-budget",
+      "label": "Link budget",
+      "label_zh": "链路预算",
+      "kind": "concept",
+      "group": "rf",
+      "summary": "The arithmetic of whether a signal arrives strong enough to be used.",
+      "summary_zh": "信号是否强到可用的算术。",
+      "document": "link-budget"
+    },
+    {
+      "id": "atmospheric-propagation",
+      "label": "Atmospheric propagation",
+      "label_zh": "大气传播",
+      "kind": "concept",
+      "group": "rf",
+      "summary": "What the air between satellite and receiver does to the signal.",
+      "summary_zh": "卫星与接收机之间的空气对信号做了什么。",
+      "document": "atmospheric-propagation"
+    },
+    {
+      "id": "interference",
+      "label": "Interference",
+      "label_zh": "干扰",
+      "kind": "concept",
+      "group": "rf",
+      "summary": "Noise degrades a measurement; a coherent source replaces it.",
+      "summary_zh": "噪声使测量劣化，相干源则替换它。",
+      "document": "interference"
+    },
+    {
+      "id": "constellations",
+      "label": "Constellations",
+      "label_zh": "星座与覆盖",
+      "kind": "concept",
+      "group": "network",
+      "summary": "Planes, phasing and shell, and what the arithmetic forces.",
+      "summary_zh": "轨道面、相位与壳层，以及该算术强制了什么。",
+      "document": "constellations"
+    },
+    {
+      "id": "access-and-availability",
+      "label": "Visibility and access",
+      "label_zh": "可见性与接入",
+      "kind": "concept",
+      "group": "network",
+      "summary": "The difference between overhead and usable.",
+      "summary_zh": "在头顶与能用之间的差别。",
+      "document": "access-and-availability"
+    },
+    {
+      "id": "handover-and-routing",
+      "label": "Topology and handover",
+      "label_zh": "拓扑、切换与路由",
+      "kind": "concept",
+      "group": "network",
+      "summary": "Which way across a network whose nodes move.",
+      "summary_zh": "节点在动的网络上选哪条路。",
+      "document": "handover-and-routing"
+    },
+    {
+      "id": "tt-and-c",
+      "label": "Telemetry, tracking and command",
+      "label_zh": "遥测、跟踪与遥控",
+      "kind": "concept",
+      "group": "ops",
+      "summary": "The chain that turns a spacecraft into something flyable.",
+      "summary_zh": "把航天器变成可飞行之物的链路。",
+      "document": "tt-and-c"
+    },
+    {
+      "id": "operations-planning",
+      "label": "Operations planning",
+      "label_zh": "运行规划",
+      "kind": "concept",
+      "group": "ops",
+      "summary": "Allocating fuel, contact and safety across a mission.",
+      "summary_zh": "在燃料、接触与安全之间做分配。",
+      "document": "operations-planning"
+    },
+    {
+      "id": "scenario-simulation",
+      "label": "Scenario and event simulation",
+      "label_zh": "场景与事件仿真",
+      "kind": "concept",
+      "group": "sim",
+      "summary": "What a simulation establishes, and what it does not.",
+      "summary_zh": "仿效能确立什么、不能确立什么。",
+      "document": "scenario-simulation"
     }
   ],
   "edges": [
@@ -399,6 +559,188 @@
       "target": "earth-rotation-angle",
       "kind": "cites",
       "label": "IERS 2010"
+    },
+    {
+      "source": "overview",
+      "target": "units-and-dimensions",
+      "kind": "introduces",
+      "label_en": "Introduces the reading order",
+      "label_zh": "说明阅读顺序"
+    },
+    {
+      "source": "overview",
+      "target": "numerical-methods",
+      "kind": "introduces",
+      "label_en": "Introduces the reading order",
+      "label_zh": "说明阅读顺序"
+    },
+    {
+      "source": "units-and-dimensions",
+      "target": "geodesy-wgs84",
+      "kind": "applies-to",
+      "label_en": "Gives the two measures a height uses",
+      "label_zh": "给出高度的两种基准"
+    },
+    {
+      "source": "numerical-methods",
+      "target": "ephemeris-interpolation",
+      "kind": "applies-to",
+      "label_en": "Bounds the error of a table",
+      "label_zh": "界定了表的误差"
+    },
+    {
+      "source": "keplerian-elements",
+      "target": "maneuvers",
+      "kind": "enables",
+      "label_en": "Is the orbit a manoeuvre changes",
+      "label_zh": "是机动所改变的轨道"
+    },
+    {
+      "source": "sgp4",
+      "target": "maneuvers",
+      "kind": "checks",
+      "label_en": "Follows a manoeuvre",
+      "label_zh": "跟随机动"
+    },
+    {
+      "source": "perturbations",
+      "target": "higher-order-gravity",
+      "kind": "details",
+      "label_en": "Details the oblateness term",
+      "label_zh": "详述扁率项"
+    },
+    {
+      "source": "perturbations",
+      "target": "solar-radiation-pressure",
+      "kind": "details",
+      "label_en": "Details the third body term",
+      "label_zh": "详述三体引力项"
+    },
+    {
+      "source": "perturbations",
+      "target": "atmospheric-drag",
+      "kind": "details",
+      "label_en": "Details the drag term",
+      "label_zh": "详述阻力项"
+    },
+    {
+      "source": "higher-order-gravity",
+      "target": "geodesy-wgs84",
+      "kind": "depends-on",
+      "label_en": "Assumes the second order ellipsoid",
+      "label_zh": "假定二阶椭球"
+    },
+    {
+      "source": "solar-radiation-pressure",
+      "target": "constellations",
+      "kind": "sets-orbit",
+      "label_en": "Fixes the plane of a sun-synchronous shell",
+      "label_zh": "固定太阳同步壳层的轨道面"
+    },
+    {
+      "source": "atmospheric-drag",
+      "target": "operations-planning",
+      "kind": "consumes-budget",
+      "label_en": "Is the largest term in the fuel budget",
+      "label_zh": "是燃料预算中最大的项"
+    },
+    {
+      "source": "maneuvers",
+      "target": "operations-planning",
+      "kind": "consumes-budget",
+      "label_en": "Is what the fuel budget pays for",
+      "label_zh": "是燃料预算所支付的"
+    },
+    {
+      "source": "constellations",
+      "target": "access-and-availability",
+      "kind": "determines",
+      "label_en": "Determines the coverage figure",
+      "label_zh": "决定覆盖数字"
+    },
+    {
+      "source": "access-and-availability",
+      "target": "handover-and-routing",
+      "kind": "hands-over",
+      "label_en": "Is what a handover moves between",
+      "label_zh": "是切换所移动的"
+    },
+    {
+      "source": "handover-and-routing",
+      "target": "constellations",
+      "kind": "depends-on",
+      "label_en": "Follows the geometry of",
+      "label_zh": "依赖于其几何"
+    },
+    {
+      "source": "doppler-and-rate",
+      "target": "tt-and-c",
+      "kind": "measured-by",
+      "label_en": "Is the measurement the chain depends on",
+      "label_zh": "是链路依赖的测量"
+    },
+    {
+      "source": "link-budget",
+      "target": "tt-and-c",
+      "kind": "enables",
+      "label_en": "Decides whether a pass exists",
+      "label_zh": "决定是否存在过境"
+    },
+    {
+      "source": "atmospheric-propagation",
+      "target": "link-budget",
+      "kind": "degrades",
+      "label_en": "Is the largest term in the budget",
+      "label_zh": "是预算中最大的项"
+    },
+    {
+      "source": "interference",
+      "target": "link-budget",
+      "kind": "consumes-margin",
+      "label_en": "Consumes margin the budget left",
+      "label_zh": "消耗预算留下的裕量"
+    },
+    {
+      "source": "interference",
+      "target": "doppler-and-rate",
+      "kind": "corrupts",
+      "label_en": "Corrupts rather than degrades",
+      "label_zh": "腐化而非劣化测量"
+    },
+    {
+      "source": "tt-and-c",
+      "target": "operations-planning",
+      "kind": "bounds-contact",
+      "label_en": "Bounds the contact budget",
+      "label_zh": "限定接触预算"
+    },
+    {
+      "source": "operations-planning",
+      "target": "scenario-simulation",
+      "kind": "rehearsed-by",
+      "label_en": "Is rehearsed by",
+      "label_zh": "由其演练"
+    },
+    {
+      "source": "maneuvers",
+      "target": "scenario-simulation",
+      "kind": "modelled-in",
+      "label_en": "Is the model most simulations use",
+      "label_zh": "是多数仿真使用的模型"
+    },
+    {
+      "source": "link-budget",
+      "target": "access-and-availability",
+      "kind": "raises-mask",
+      "label_en": "Sets the elevation mask",
+      "label_zh": "决定仰角门限"
+    },
+    {
+      "source": "solar-radiation-pressure",
+      "target": "maneuvers",
+      "kind": "budgets",
+      "label_en": "Is a term in the propellant estimate",
+      "label_zh": "是推进剂估算中的一项"
     }
   ],
   "title_zh": "概念图谱",

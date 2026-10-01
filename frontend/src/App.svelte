@@ -186,32 +186,34 @@
       </div>
 
       {#if index}
-        <div class="sidebar-section">
-          <h2>{tr('nav.documents', lang)}</h2>
-          {#each index.chapters as chapter (chapter.id)}
-            <div class="sidebar-chapter" class:collapsed={collapsed.includes(chapter.id)}>
-              <div class="sidebar-chapter-head">
-                <a class="sidebar-chapter-title" href="#/docs" title="{pick(chapter.title, lang)}">
-                  {pick(chapter.title, lang)}
-                </a>
-                <button
-                  class="sidebar-chapter-toggle"
-                  aria-expanded={!collapsed.includes(chapter.id)}
-                  aria-label="{tr('nav.toggleChapter', lang)}: {pick(chapter.title, lang)}"
-                  onclick={() => toggleChapter(chapter.id)}
-                >▾</button>
+        {#each index.groups as group (group.id)}
+          <div class="sidebar-section">
+            <h2 class="sidebar-group-title">{pick(group.title, lang)}</h2>
+            {#each group.sections as section (section.id)}
+              <div class="sidebar-chapter" class:collapsed={collapsed.includes(section.id)}>
+                <div class="sidebar-chapter-head">
+                  <a class="sidebar-chapter-title" href="#/docs" title={pick(section.title, lang)}>
+                    {pick(section.title, lang)}
+                  </a>
+                  <button
+                    class="sidebar-chapter-toggle"
+                    aria-expanded={!collapsed.includes(section.id)}
+                    aria-label="{tr('nav.toggleChapter', lang)}: {pick(section.title, lang)}"
+                    onclick={() => toggleChapter(section.id)}
+                  >▾</button>
+                </div>
+                {#if !collapsed.includes(section.id)}
+                  {#each section.documents as entry (entry.id)}
+                    <a
+                      class="item"
+                      class:active={route.name === 'docs' && route.id === entry.id}
+                      href={`#/docs/${entry.id}`}>{pick(entry.title, lang)}</a>
+                  {/each}
+                {/if}
               </div>
-              {#if !collapsed.includes(chapter.id)}
-                {#each chapter.documents as entry}
-                  <a
-                    class="item"
-                    class:active={route.name === 'docs' && route.id === entry.id}
-                    href={`#/docs/${entry.id}`}>{pick(entry.title, lang)}</a>
-                {/each}
-              {/if}
-            </div>
-          {/each}
-        </div>
+            {/each}
+          </div>
+        {/each}
       {/if}
     </nav>
   </aside>

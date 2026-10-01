@@ -44,7 +44,7 @@
    * letterboxed inside it.
    */
   const WIDTH = 1400;
-  const HEIGHT = 700;
+  const HEIGHT = 760;
 
   let placements = $state<Map<string, Placement>>(new Map());
   let span = $state(1);
@@ -71,8 +71,12 @@
     // Initial placement: nodes are spread on a circle in a deterministic
     // order, with a small jitter so that symmetric graphs do not collapse.
     data.nodes.forEach((node, index) => {
-      const angle = (index / count) * Math.PI * 2 + hash(node.id) * 0.6;
-      const radius = 200 + hash(`${node.id}-r`) * 180;
+      // The seeds are placed on two rings so that a large graph does not
+      // start as a single tight circle.
+      const ring = index % 3;
+      const angle =
+        (index / Math.ceil(count / 3)) * Math.PI * 2 + hash(node.id) * 0.8 + ring * 0.7;
+      const radius = 220 + ring * 165 + hash(`${node.id}-r`) * 120;
       result.set(node.id, {
         x: WIDTH / 2 + Math.cos(angle) * radius,
         y: HEIGHT / 2 + Math.sin(angle) * radius,
@@ -87,8 +91,11 @@
 
     // A small force simulation: repulsion between every pair, attraction
     // along every edge, and a weak pull toward the centre.
-    const iterations = 380;
-    const idealLength = 150;
+    // The spacing grows with the node count: a graph of forty nodes laid out
+    // for a graph of twenty is legible, and the same spacing is crowded.
+    const iterations = 420;
+    const idealLength = 130 + Math.sqrt(count) * 16;
+    const repulsion = 9000 + count * 260;
     for (let step = 0; step < iterations; step += 1) {
       for (const first of result.values()) {
         for (const second of result.values()) {
@@ -96,7 +103,7 @@
           const dx = second.x - first.x;
           const dy = second.y - first.y;
           const distanceSquared = Math.max(64, dx * dx + dy * dy);
-          const force = 5200 / distanceSquared;
+          const force = repulsion / distanceSquared;
           const distance = Math.sqrt(distanceSquared);
           first.vx -= (dx / distance) * force;
           first.vy -= (dy / distance) * force;

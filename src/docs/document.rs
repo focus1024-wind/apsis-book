@@ -96,7 +96,7 @@ impl Document {
     ///
     /// Returns `None` when the mandatory `title` key is absent, because a
     /// document without one cannot be listed.
-    pub fn parse(id: &str, language: Language, text: &str) -> Option<Self> {
+    pub fn parse(id: &str, layer: &str, language: Language, text: &str) -> Option<Self> {
         let variant = DocumentVariant::parse(text)?;
         if language == Language::Chinese {
             // A Chinese file on its own is not a document; it is merged with
@@ -105,7 +105,7 @@ impl Document {
         }
         Some(Self {
             id: id.to_string(),
-            chapter: chapter_of(text),
+            chapter: layer.to_string(),
             tags: list_of(text, "tags"),
             tags_zh: Vec::new(),
             prerequisites: list_of(text, "prerequisites"),
@@ -250,10 +250,18 @@ fn list_of(text: &str, key: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
-/// Returns the chapter a document declares, defaulting to `overview`.
-fn chapter_of(text: &str) -> String {
-    let (header, _) = split_header(text);
-    field_of(header, "chapter").unwrap_or_else(|| "overview".to_string())
+/// Returns the layer a document belongs to, from the path it was loaded
+/// from.
+///
+/// The hierarchy follows the layers of the library, so a document is placed
+/// in the directory named for its layer and the loader reads the layer from
+/// there. A file that sits directly in the concept directory belongs to the
+/// introduction.
+pub fn layer_of(relative: &str) -> String {
+    match relative.split_once('/') {
+        Some((layer, _)) => layer.to_string(),
+        None => "overview".to_string(),
+    }
 }
 
 /// Splits a document into its metadata header and its body.
@@ -387,7 +395,26 @@ fn collect_references(markdown: &str) -> Vec<String> {
     references
 }
 
-/// A chapter of the documentation.
+/// A top level group of the documentation.
+///
+/// The documentation is presented as two groups: the concepts, which describe
+/// the field, and the implementation, which describes what a particular
+/// library does. The concepts are the larger superset; the implementation
+/// exists so that a reader who wants to know what the code does can find it
+/// without it being mixed into the teaching material.
+#[derive(Debug, Clone)]
+pub struct Group {
+    /// Group identifier.
+    pub id: String,
+    /// Display title.
+    pub title: String,
+    /// Display title in Chinese, when the chapter list gives one.
+    pub title_zh: Option<String>,
+    /// The layers or sections of the group, in reading order.
+    pub sections: Vec<Chapter>,
+}
+
+/// A chapter, or layer, of a group.
 #[derive(Debug, Clone)]
 pub struct Chapter {
     /// Chapter identifier.
@@ -408,68 +435,90 @@ pub struct Chapter {
 #[derive(Debug)]
 pub struct Tree {
     documents: HashMap<String, Document>,
-    chapters: Vec<Chapter>,
+    groups: Vec<Group>,
     order: Vec<String>,
 }
 
 impl Tree {
     /// Builds the tree from the embedded content.
     pub fn new(documents: Vec<Document>) -> Self {
-        let mut chapters = load_chapters();
+        let declared = load_groups();
         let mut map: HashMap<String, Document> = HashMap::new();
         for document in documents {
             map.insert(document.id.clone(), document);
         }
 
-        // Documents not listed in a chapter are appended to the chapter
-        // matching their metadata, creating the chapter when needed. This
-        // keeps a newly added document visible before the chapter list is
-        // updated.
-        let mut listed: Vec<String> = chapters
+        // A document whose layer is not declared in the chapter list is
+        // appended to the group that matches, creating the layer when it is
+        // missing, so that a new file is visible before the list is
+        // updated rather than invisible.
+        let mut groups = declared;
+        let mut listed: Vec<String> = groups
             .iter()
-            .flat_map(|chapter| chapter.documents.iter().cloned())
+            .flat_map(|group| group.sections.iter())
+            .flat_map(|section| section.documents.iter().cloned())
             .collect();
         listed.sort();
-        let mut unlisted: Vec<String> = map
+        let unlisted: Vec<String> = map
             .keys()
-            .filter(|id| !listed.binary_search(id).is_ok())
+            .filter(|id| listed.binary_search(id).is_err())
             .cloned()
             .collect();
-        unlisted.sort();
 
         for id in unlisted {
-            let chapter_id = map
+            let layer = map
                 .get(&id)
                 .map(|document| document.chapter.clone())
                 .unwrap_or_else(|| "overview".to_string());
-            match chapters.iter_mut().find(|chapter| chapter.id == chapter_id) {
-                Some(chapter) => chapter.documents.push(id),
-                None => chapters.push(Chapter {
-                    id: chapter_id.clone(),
-                    title: title_case(&chapter_id),
-                    title_zh: None,
-                    summary: String::new(),
-                    summary_zh: None,
-                    documents: vec![id],
-                }),
+            let section = groups
+                .iter_mut()
+                .flat_map(|group| group.sections.iter_mut())
+                .find(|section| section.id == layer);
+            match section {
+                Some(section) => section.documents.push(id),
+                None => {
+                    let section = Chapter {
+                        id: layer.clone(),
+                        title: title_case(&layer),
+                        title_zh: None,
+                        summary: String::new(),
+                        summary_zh: None,
+                        documents: vec![id],
+                    };
+                    match groups.iter_mut().find(|group| group.id == "implementation") {
+                        Some(group) => group.sections.push(section),
+                        None => groups.push(Group {
+                            id: "implementation".to_string(),
+                            title: "Implementation".to_string(),
+                            title_zh: None,
+                            sections: vec![section],
+                        }),
+                    }
+                }
             }
         }
 
-        // A chapter may name a document that does not exist; drop it so that
+        // A section may name a document that does not exist; drop it so that
         // navigation never advertises a missing page.
-        for chapter in &mut chapters {
-            chapter.documents.retain(|id| map.contains_key(id));
+        for group in &mut groups {
+            for section in &mut group.sections {
+                section.documents.retain(|id| map.contains_key(id));
+            }
+            group
+                .sections
+                .retain(|section| !section.documents.is_empty());
         }
-        chapters.retain(|chapter| !chapter.documents.is_empty());
+        groups.retain(|group| !group.sections.is_empty());
 
-        let order: Vec<String> = chapters
+        let order: Vec<String> = groups
             .iter()
-            .flat_map(|chapter| chapter.documents.iter().cloned())
+            .flat_map(|group| group.sections.iter())
+            .flat_map(|section| section.documents.iter().cloned())
             .collect();
 
         Self {
             documents: map,
-            chapters,
+            groups,
             order,
         }
     }
@@ -484,9 +533,9 @@ impl Tree {
         self.order.iter().filter_map(|id| self.documents.get(id))
     }
 
-    /// Returns the chapters.
-    pub fn chapters(&self) -> &[Chapter] {
-        &self.chapters
+    /// Returns the groups, each holding its layers.
+    pub fn groups(&self) -> &[Group] {
+        &self.groups
     }
 
     /// Returns the number of documents.
@@ -554,54 +603,84 @@ fn title_case(id: &str) -> String {
     text
 }
 
-/// Loads the chapter list from `content/concepts/chapters.json`.
-fn load_chapters() -> Vec<Chapter> {
+/// Loads the groups and their layers from `content/concepts/chapters.json`.
+///
+/// The file is the single place that says what exists and in what order. The
+/// directory tree says which layer a document belongs to, so the two are
+/// cross-checked rather than repeated: a document listed under one layer and
+/// stored in another is a mistake the reader would not see.
+fn load_groups() -> Vec<Group> {
     let Some(text) = crate::docs::content::get("concepts/chapters.json") else {
         return Vec::new();
     };
     let Ok(value) = json::parse(text) else {
         return Vec::new();
     };
-    let Some(chapters) = value.get("chapters").map(Value::as_array) else {
-        return Vec::new();
-    };
-    chapters
+    value
+        .get("groups")
+        .map(Value::as_array)
+        .unwrap_or_default()
         .iter()
-        .filter_map(|chapter| {
-            let id = chapter.get("id")?.as_str()?.to_string();
-            let title = chapter
-                .get("title")
-                .and_then(Value::as_str)
-                .unwrap_or(&id)
-                .to_string();
-            let summary = chapter
-                .get("summary")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_string();
-            let documents = chapter
-                .get("documents")
-                .map(Value::as_array)
-                .unwrap_or_default()
-                .iter()
-                .filter_map(|document| document.as_str().map(str::to_string))
-                .collect();
-            Some(Chapter {
-                id,
-                title,
-                title_zh: chapter
-                    .get("title_zh")
-                    .and_then(Value::as_str)
-                    .map(str::to_string),
-                summary,
-                summary_zh: chapter
-                    .get("summary_zh")
-                    .and_then(Value::as_str)
-                    .map(str::to_string),
-                documents,
-            })
-        })
+        .filter_map(parse_group)
         .collect()
+}
+
+/// Parses one group and its layers.
+fn parse_group(value: &Value) -> Option<Group> {
+    let id = value.get("id")?.as_str()?.to_string();
+    let sections = value
+        .get("sections")
+        .map(Value::as_array)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(parse_section)
+        .collect();
+    Some(Group {
+        id: id.clone(),
+        title: value
+            .get("title")
+            .and_then(Value::as_str)
+            .unwrap_or(&id)
+            .to_string(),
+        title_zh: value
+            .get("title_zh")
+            .and_then(Value::as_str)
+            .map(str::to_string),
+        sections,
+    })
+}
+
+/// Parses one layer of a group.
+fn parse_section(value: &Value) -> Option<Chapter> {
+    let id = value.get("id")?.as_str()?.to_string();
+    Some(Chapter {
+        title: value
+            .get("title")
+            .and_then(Value::as_str)
+            .unwrap_or(&id)
+            .to_string(),
+        title_zh: value
+            .get("title_zh")
+            .and_then(Value::as_str)
+            .map(str::to_string),
+        summary: value
+            .get("summary")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string(),
+        summary_zh: value
+            .get("summary_zh")
+            .and_then(Value::as_str)
+            .map(str::to_string),
+        documents: value
+            .get("documents")
+            .map(Value::as_array)
+            .unwrap_or_default()
+            .iter()
+            .filter_map(|document| document.as_str().map(str::to_string))
+            .collect(),
+        id,
+    })
 }
 
 /// One document in the search index.
@@ -907,9 +986,12 @@ summary: 平均元素的解析传播。
 BSTAR 项。
 ";
 
+    /// The layer the sample documents declare in the tests.
+    const LAYER: &str = "orbit";
+
     /// Parses the English sample under the given identifier.
     fn sample(id: &str) -> Document {
-        Document::parse(id, Language::English, SAMPLE).expect("the sample must parse")
+        Document::parse(id, LAYER, Language::English, SAMPLE).expect("the sample must parse")
     }
 
     #[test]
@@ -968,8 +1050,11 @@ BSTAR 项。
 
     #[test]
     fn rejects_a_document_without_a_title() {
-        assert!(Document::parse("x", Language::English, "---\nchapter: x\n---\nbody").is_none());
-        assert!(DocumentVariant::parse("---\nchapter: x\n---\nbody").is_none());
+        // Without a title the document cannot be listed.
+        assert!(
+            Document::parse("x", LAYER, Language::English, "---\nsummary: s\n---\nbody").is_none()
+        );
+        assert!(DocumentVariant::parse("---\nsummary: s\n---\nbody").is_none());
     }
 
     #[test]
@@ -984,6 +1069,7 @@ BSTAR 项。
             sample("sgp4"),
             Document::parse(
                 "tle",
+                LAYER,
                 Language::English,
                 "---\ntitle: Two line elements\nchapter: orbit\n---\n\nElement sets.\n",
             )
@@ -1033,12 +1119,14 @@ BSTAR 项。
         let documents = vec![
             Document::parse(
                 "a",
+                LAYER,
                 Language::English,
                 "---\ntitle: Orbits\nsummary: s\n---\n\n本条论述轨道坐标的转换。\n",
             )
             .expect("must parse"),
             Document::parse(
                 "b",
+                LAYER,
                 Language::English,
                 "---\ntitle: Time\nsummary: s\n---\n\n这里讨论时间尺度。\n",
             )
@@ -1062,12 +1150,14 @@ BSTAR 项。
         let documents = vec![
             Document::parse(
                 "a",
+                LAYER,
                 Language::English,
                 "---\ntitle: Redshift\nsummary: x\n---\n\ntext about orbits\n",
             )
             .expect("must parse"),
             Document::parse(
                 "b",
+                LAYER,
                 Language::English,
                 "---\ntitle: Orbits\nsummary: y\n---\n\ntext about redshift\n",
             )
