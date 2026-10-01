@@ -30,7 +30,9 @@
         <div class="scalar">
           <span class="label">{pick(scalar.label, lang)}</span>
           <span class="value" style={scalar.monospace ? '' : 'font-family: var(--sans)'}>
-            {scalar.value}{#if scalar.unit}<span class="unit">{scalar.unit}</span>{/if}
+            {scalar.value}{#if scalar.unit}<span class="unit"
+              >{#if scalar.unit_html}{@html scalar.unit_html}{:else}{scalar.unit}{/if}</span
+            >{/if}
           </span>
         </div>
       {/each}
@@ -48,7 +50,9 @@
           <tr>
             {#each result.table.columns as column}
               <th class={column.numeric ? 'numeric' : ''}>
-                {pick(column.label, lang)}{#if column.unit}<span class="unit"> [{column.unit}]</span>{/if}
+                {pick(column.label, lang)}{#if column.unit}<span class="unit"
+                  > [{#if column.unit_html}{@html column.unit_html}{:else}{column.unit}{/if}]</span
+                >{/if}
               </th>
             {/each}
           </tr>
@@ -58,7 +62,18 @@
             <tr>
               {#each row as cell, index}
                 <td class={result.table.columns[index]?.numeric ? 'numeric' : ''}>
-                  {formatCell(cell, result.table.columns[index]?.numeric ?? false)}
+                  {#if typeof cell === 'object' && cell !== null && cell.html}
+                    <!-- A cell written as notation, such as a unit with a
+                         power in it. The HTML is rendered by the backend and
+                         every text node is escaped there. -->
+                    {@html cell.html}
+                  {:else}
+                    {formatCell(
+                      cell,
+                      result.table.columns[index]?.numeric ?? false,
+                      lang,
+                    )}
+                  {/if}
                 </td>
               {/each}
             </tr>
@@ -69,9 +84,11 @@
   {/if}
 
   {#if result.notes.length > 0}
-    <div class="notice muted">
-      {#each result.notes as note}
-        <p>{pick(note, lang)}</p>
+    <div class="notice muted doc-body">
+      {#each result.notes as note, index (index)}
+        <!-- The HTML is rendered by the backend from the note, and every text
+             node is escaped there. -->
+        {@html pick(result.notes_html?.[index] ?? { zh: note.zh, en: note.en }, lang)}
       {/each}
     </div>
   {/if}

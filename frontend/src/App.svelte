@@ -17,7 +17,12 @@
     SearchResponse,
   } from './lib/types';
   import { getJson, queryString } from './lib/api';
-  import { currentRoute, onRouteChange, navigate } from './lib/router';
+  import {
+    currentRoute,
+    navigate,
+    onRouteChange,
+    scrollToTopOnNavigation,
+  } from './lib/router';
   import { language, pick, setLanguage, tr, type Language } from './lib/i18n';
   import { theme, toggleTheme } from './lib/theme';
   import { untrack } from 'svelte';
@@ -134,10 +139,15 @@
 
   $effect(() => {
     void loadShared();
+    // A new page starts at the top; going back keeps the position.
+    const stopNavigation = scrollToTopOnNavigation();
     const stop = onRouteChange(() => {
       route = currentRoute();
     });
-    return stop;
+    return () => {
+      stop();
+      stopNavigation();
+    };
   });
 
   $effect(() => {

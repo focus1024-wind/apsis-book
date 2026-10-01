@@ -112,6 +112,14 @@ impl Table {
         self.rows.push(row);
     }
 
+    /// Returns the column at a position, if there is one.
+    ///
+    /// A row is written by the handler, which may add or leave out a cell, so
+    /// a position is not guaranteed to name a column.
+    pub fn column(&self, index: usize) -> Option<&Column> {
+        self.columns.get(index)
+    }
+
     /// Returns `true` when the table has no rows.
     #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
@@ -177,14 +185,48 @@ pub fn table_response(
                 "key" => column.key.clone(),
                 "label" => labels::label(&column.label).json(),
                 "unit" => column.unit.clone(),
+                "unit_html" => unit_html(&column.unit),
                 "numeric" => column.numeric,
             }
         })
         .collect();
+    // A text cell may hold a fixed phrase rather than data: the meaning of a
+    // field, for instance. Those are looked up so that a reader of either
+    // language sees prose in that language. A cell holding data was written
+    // by the reader rather than by this table, so the lookup gives it back
+    // unchanged in both languages, which is what it should show.
     let rows: Vec<Value> = table
         .rows
         .iter()
-        .map(|row| Value::Array(row.clone()))
+        .map(|row| {
+            Value::Array(
+                row.iter()
+                    .enumerate()
+                    .map(|(index, cell)| match cell {
+                        Value::String(text)
+                            if !table.column(index).is_some_and(|column| column.numeric) =>
+                        {
+                            let mut encoded = labels::label(text).json();
+                            // A unit is written with a power in it, as in
+                            // `rev/day^2`, and a unit is the one kind of text a
+                            // table shows that is notation rather than prose.
+                            // Only notation is rendered, so a sentence is never
+                            // set as a formula and read as a row of variables.
+                            if is_notation(text) {
+                                if let Value::Object(fields) = &mut encoded {
+                                    fields.push((
+                                        "html".to_string(),
+                                        Value::from(crate::docs::mathml::render(text, false)),
+                                    ));
+                                }
+                            }
+                            encoded
+                        }
+                        other => other.clone(),
+                    })
+                    .collect(),
+            )
+        })
         .collect();
     let scalar_values: Vec<Value> = scalars.iter().map(scalar_json).collect();
     let series_values: Vec<Value> = series.iter().map(series_json).collect();
@@ -195,8 +237,49 @@ pub fn table_response(
         "scalars" => scalar_values,
         "table" => json_object! { "columns" => columns, "rows" => rows },
         "series" => series_values,
+        // A note is written in Markdown, so it is sent as the source and as
+        // HTML in both languages; a formula in a note is set the same way as
+        // one in a document.
         "notes" => notes.iter().map(Text::json).collect::<Vec<Value>>(),
+        "notes_html" => notes.iter().map(note_html).collect::<Vec<Value>>(),
     }
+}
+
+/// Renders one note to HTML in both languages.
+fn note_html(note: &Text) -> Value {
+    json_object! {
+        "zh" => crate::docs::markdown::render(note.zh),
+        "en" => crate::docs::markdown::render(note.en),
+    }
+}
+
+/// Reports whether a piece of text is notation that should be set.
+///
+/// Only a unit qualifies. A unit is a single token carrying a power, such as
+/// `rev/day^2`, and a power is what a reader needs to see raised.
+///
+/// Three things are deliberately excluded. A sentence such as `Mean motion`
+/// is prose, and a formula sets its letters as variables, so a sentence read
+/// that way stops being a sentence. An identifier such as `mean_motion` is a
+/// field name, and it is already written the way the field is spelled; setting
+/// it as a formula would split it into letters and turn the underscore into a
+/// subscript. And a unit written with a space is prose with a caret in it,
+/// which is not a unit.
+fn is_notation(text: &str) -> bool {
+    text.contains('^') && !text.contains(' ')
+}
+
+/// Renders a unit as HTML, so that a power reads as a power.
+///
+/// A unit is notation rather than prose: `rev/day^2` is a name, and the only
+/// mark-up it ever needs is the exponent. It is rendered by the same
+/// mathematics renderer as a formula so that the two agree on how a power
+/// looks, and so that a unit written with a subscript is set correctly too.
+fn unit_html(unit: &str) -> Value {
+    if unit.is_empty() {
+        return Value::string(String::new());
+    }
+    Value::from(crate::docs::mathml::render(unit, false))
 }
 
 /// Returns a note written as a literal in the label table.
@@ -224,6 +307,7 @@ fn scalar_json(scalar: &Scalar) -> Value {
         "label" => labels::label(&scalar.label).json(),
         "value" => scalar.value.clone(),
         "unit" => scalar.unit.clone(),
+        "unit_html" => unit_html(&scalar.unit),
         "monospace" => scalar.monospace,
     }
 }
@@ -245,6 +329,63 @@ fn series_json(series: &Series) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The first cell of the first row of a shaped response.
+    fn first_cell(value: &Value) -> Value {
+        let rows = value
+            .get("table")
+            .and_then(|table| table.get("rows"))
+            .expect("the response carries a table")
+            .as_array();
+        rows.first()
+            .and_then(|row| row.as_array().first())
+            .expect("the table carries a row")
+            .clone()
+    }
+
+    #[test]
+    fn a_text_cell_is_shown_in_either_language() {
+        // The meaning of a field is a fixed phrase, so it is looked up rather
+        // than written twice.
+        let mut table = Table::new(vec![Column::text("meaning", "Meaning")]);
+        table.push(vec![Value::from("Mean motion")]);
+        let value = table_response(
+            "kind",
+            "Title",
+            Vec::new(),
+            &table,
+            Vec::new(),
+            vec![labels::label("Mean motion")],
+        );
+        let cell = first_cell(&value);
+        assert_eq!(cell.get("zh").and_then(Value::as_str), Some("平均运动"));
+        assert_eq!(cell.get("en").and_then(Value::as_str), Some("Mean motion"));
+    }
+
+    #[test]
+    fn an_identifier_is_not_set_as_a_formula() {
+        // `mean_motion` is a field name. Set as a formula it would come out as
+        // separate letters with a subscript, which is not the field name.
+        let mut table = Table::new(vec![Column::text("field", "Field")]);
+        table.push(vec![Value::from("mean_motion")]);
+        let value = table_response("kind", "Title", Vec::new(), &table, Vec::new(), Vec::new());
+        let cell = first_cell(&value);
+        assert!(
+            cell.get("html").is_none(),
+            "an identifier should not be rendered: {cell:?}"
+        );
+    }
+
+    #[test]
+    fn a_unit_with_a_power_is_rendered() {
+        // `rev/day^2` is a unit, and the power is what a reader needs raised.
+        let mut table = Table::new(vec![Column::text("unit", "Unit")]);
+        table.push(vec![Value::from("rev/day^2")]);
+        let value = table_response("kind", "Title", Vec::new(), &table, Vec::new(), Vec::new());
+        let cell = first_cell(&value);
+        let html = cell.get("html").and_then(Value::as_str).unwrap_or_default();
+        assert!(html.contains("<msup>"), "the power was not raised: {html}");
+    }
 
     #[test]
     fn table_response_carries_the_shape() {

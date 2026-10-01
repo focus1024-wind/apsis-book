@@ -119,6 +119,35 @@
     return names ? pick(names, language) : kind;
   }
 
+  /**
+   * The crates of the index, grouped by the layer they belong to.
+   *
+   * The index is organized by layer for the same reason the concept
+   * documentation is: a reader looking for a type is looking for the subject
+   * it belongs to, and one flat list of fifteen crates gives no hint of where
+   * to look. The layers come from the concept documentation, so the order and
+   * the titles are the same in both.
+   *
+   * A layer the catalog names but the documentation does not declare would
+   * leave its crates with no heading, so those are collected at the end.
+   */
+  const layers = $derived.by(() => {
+    const current = index;
+    if (!current) return [];
+    const declared = current.layers ?? [];
+    const grouped = declared
+      .map((layer) => ({
+        ...layer,
+        crates: current.crates.filter((krate) => krate.layer === layer.id),
+      }))
+      .filter((layer) => layer.crates.length > 0);
+    const placed = new Set(declared.map((layer) => layer.id));
+    const rest = current.crates.filter((krate) => !placed.has(krate.layer));
+    return rest.length > 0
+      ? [...grouped, { id: '', title: { zh: '其他', en: 'Others' }, summary: { zh: '', en: '' }, crates: rest }]
+      : grouped;
+  });
+
   /** Opens an item route. */
   function openItem(name: string) {
     navigate(`/api/${name}`);
@@ -263,18 +292,28 @@
     {/if}
   </section>
 
-  <div class="crate-grid">
-    {#each index.crates as candidate}
-      <a class="crate-card" href={`#/api/${candidate.name}`}>
-        <header>
-          <span class="name">{candidate.name}</span>
-          <span class="badge">{candidate.layer}</span>
-          <span class="badge">{candidate.items} {tr('api.itemCount', lang)}</span>
-        </header>
-        <p class="card-clamp">{pick(candidate.summary.plain, lang)}</p>
-      </a>
-    {/each}
-  </div>
+  {#each layers as layer (layer.id)}
+    <h3 class="api-layer-heading" id={`layer-${layer.id}`}>
+      <a href={`#/docs`}>{pick(layer.title, lang)}</a>
+      <span class="badge">{layer.crates.length}</span>
+    </h3>
+    {#if pick(layer.summary, lang)}
+      <p class="api-layer-summary">{pick(layer.summary, lang)}</p>
+    {/if}
+    <div class="crate-grid">
+      {#each layer.crates as candidate (candidate.name)}
+        <a class="crate-card" href={`#/api/${candidate.name}`}>
+          <header>
+            <span class="name">{candidate.name}</span>
+            <span class="badge">{candidate.items} {tr('api.itemCount', lang)}</span>
+          </header>
+          <p class="card-clamp">
+            {pick(candidate.summary.brief ?? candidate.summary.plain, lang)}
+          </p>
+        </a>
+      {/each}
+    </div>
+  {/each}
 
 {/if}
 </div>

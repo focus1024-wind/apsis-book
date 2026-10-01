@@ -148,7 +148,12 @@
       <h1 style="margin: 0; border: none;">{pick(tool.name, lang)}</h1>
       <span class="badge">{pick(tool.category, lang)}</span>
     </header>
-    <p style="color: var(--text-muted)">{pick(tool.description, lang)}</p>
+    <!-- The HTML is rendered by the backend from Markdown, and every text node
+       is escaped there. A formula written between dollar signs is set the same
+       way as one in a concept document. -->
+  <div class="doc-body" style="color: var(--text-muted)">
+    {@html pick(tool.description_html ?? { zh: tool.description.zh, en: tool.description.en }, lang)}
+  </div>
 
     <form
       onsubmit={(event) => {
@@ -185,7 +190,14 @@
             {:else}
               <input id={`field-${param.name}`} type="text" bind:value={values[param.name]} />
             {/if}
-            <span class="help">{pick(param.help, lang)}</span>
+            <!-- The HTML is rendered by the backend from Markdown, and every
+                 text node is escaped there. -->
+            <span class="help doc-body"
+              >{@html pick(
+                param.help_html ?? { zh: param.help.zh, en: param.help.en },
+                lang,
+              )}</span
+            >
             {#if param.constraints.unit}
               <span class="unit">{tr('tools.unit', lang)}: {param.constraints.unit}</span>
             {/if}

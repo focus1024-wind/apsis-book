@@ -653,6 +653,44 @@ button.ghost:hover:not(:disabled) {
   overflow-wrap: anywhere;
 }
 
+/*
+ * A card on the interface index shows what a crate is, in one or two lines.
+ *
+ * The cards there are in a grid with three columns on a wide screen, so a
+ * single long summary made every card in its row as tall as the longest one.
+ * The text is cut rather than the card stretched, because the rest of the
+ * summary is on the page the card leads to.
+ */
+.crate-grid .card-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  margin: 0.4rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* A layer heading on the interface index. */
+.api-layer-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 1.75rem 0 0;
+  font-size: 1.05rem;
+}
+
+.api-layer-heading a {
+  color: var(--text);
+}
+
+.api-layer-summary {
+  margin: 0.25rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 .grid {
   display: grid;
   gap: 1rem;

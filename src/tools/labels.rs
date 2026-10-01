@@ -90,6 +90,9 @@ const PAIRS: &[(&str, &str)] = &[
     ),
     ("Semi-major axis estimate", "半长轴估计"),
     ("Unit", "单位"),
+    ("first", "第一次"),
+    ("Two-line element set", "两行元素集"),
+    ("second", "第二次"),
     // Propagation
     ("Branch", "分支"),
     ("Minutes from epoch", "距历元分钟数"),

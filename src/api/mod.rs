@@ -274,6 +274,10 @@ impl Router {
             "generated_from" => catalog.generated_from.iter().map(|path| Value::from(path.as_str())).collect::<Vec<Value>>(),
             "crate_count" => catalog.crates.len(),
             "item_count" => catalog.item_count(),
+            // The layers the crates belong to, in reading order, so that the
+            // index is organized the same way as the concept documentation
+            // rather than as one flat list.
+            "layers" => api_layers(&self.state.docs),
             "crates" => crates,
             "items" => items,
         };
@@ -566,6 +570,12 @@ fn crate_texts(krate: &crate::docs::ApiCrate, items: &std::collections::HashSet<
             "zh" => crate_summary_plain(zh),
             "en" => crate_summary_plain(&krate.summary),
         },
+        // The index card takes the opening sentence; the crate page shows the
+        // whole summary under `html`.
+        "brief" => json_object! {
+            "zh" => crate_summary_brief(zh),
+            "en" => crate_summary_brief(&krate.summary),
+        },
         "html" => json_object! {
             "zh" => crate::docs::markdown::render_with(zh, Some(items)),
             "en" => crate::docs::markdown::render_with(&krate.summary, Some(items)),
@@ -579,6 +589,78 @@ fn crate_texts(krate: &crate::docs::ApiCrate, items: &std::collections::HashSet<
 /// a list or a heading is reduced to its prose.
 fn crate_summary_plain(summary: &str) -> String {
     crate::docs::markdown::to_plain_text(summary)
+}
+
+/// Returns the first sentence of a summary, for a card that links onward.
+///
+/// Returns the layers of the concept documentation, in reading order.
+///
+/// The interface catalog records which layer each crate belongs to. The index
+/// groups the crates by that layer, so it needs the layer's title and its
+/// place in the reading order, both of which the concept documentation
+/// already declares.
+fn api_layers(docs: &crate::docs::Tree) -> Value {
+    let layers: Vec<Value> = docs
+        .groups()
+        .iter()
+        .flat_map(|group| group.sections.iter())
+        .map(|section| {
+            json_object! {
+                "id" => section.id.clone(),
+                "title" => optional_bilingual(&section.title_zh, &section.title),
+                "summary" => optional_bilingual(&section.summary_zh, &section.summary),
+            }
+        })
+        .collect();
+    Value::Array(layers)
+}
+
+/// Returns the first sentence of a summary, for a card that links onward.
+///
+/// The crate summary is the whole of the crate documentation, which runs to
+/// several paragraphs and a list of what the crate holds. A card on the index
+/// shows what a crate is, and the crate page shows the rest, so the card takes
+/// the opening sentence only. Without this the index cards are as tall as the
+/// longest crate document and the page reads as a wall.
+fn crate_summary_brief(summary: &str) -> String {
+    let text = crate_summary_plain(summary);
+    let text = text.trim();
+    // A sentence ends at the first full stop that is not part of a number or
+    // an abbreviation, which keeps `1.5` and `e.g.` from cutting a sentence
+    // in half.
+    let mut end = None;
+    for (index, character) in text.char_indices() {
+        // A Chinese sentence ends at its own full stop and is not followed by
+        // a space, so those three end a sentence wherever they fall.
+        if matches!(character, '\u{3002}' | '\u{ff01}' | '\u{ff1f}') {
+            end = Some(index + character.len_utf8());
+            break;
+        }
+        if character == '.' {
+            let before = text[..index].chars().next_back();
+            let after = text[index + 1..].chars().next();
+            let ends_number = before.is_some_and(|c| c.is_ascii_digit())
+                && after.is_some_and(|c| c.is_ascii_digit());
+            let next_is_space = after.is_none_or(|c| c.is_whitespace());
+            if !ends_number && next_is_space {
+                end = Some(index + 1);
+                break;
+            }
+        }
+    }
+    let first = match end {
+        Some(index) => &text[..index],
+        None => text,
+    };
+    let first = first.trim();
+    // A summary with no full stop would otherwise put a whole paragraph on a
+    // card, so the length is capped as well.
+    if first.chars().count() <= 160 {
+        return first.to_string();
+    }
+    let mut cut: String = first.chars().take(157).collect();
+    cut.push('…');
+    cut
 }
 
 /// Encodes a document title or summary in both languages.
@@ -1038,5 +1120,33 @@ mod tests {
             post(&router, "/api/docs", "{}").status,
             Status::MethodNotAllowed
         );
+    }
+
+    #[test]
+    fn a_crate_card_takes_the_first_sentence_only() {
+        // The index shows what a crate is; the crate page shows the rest.
+        assert_eq!(
+            crate_summary_brief(
+                "ApsisRS \u{7684}\u{5171}\u{4eab}\u{57fa}\u{7840}\u{7c7b}\u{578b}\u{3002}\u{672c} crate \u{4f4d}\u{4e8e}\u{4f9d}\u{8d56}\u{56fe}\u{7684}\u{5e95}\u{5c42}\u{3002}"
+            ),
+            "ApsisRS \u{7684}\u{5171}\u{4eab}\u{57fa}\u{7840}\u{7c7b}\u{578b}\u{3002}"
+        );
+    }
+
+    #[test]
+    fn a_number_is_not_a_sentence_end() {
+        // A version or a measurement must not cut a sentence in half.
+        assert_eq!(
+            crate_summary_brief("Reads version 1.5 of the format. Then it checksums."),
+            "Reads version 1.5 of the format."
+        );
+    }
+
+    #[test]
+    fn a_summary_without_a_full_stop_is_capped() {
+        let long = "word ".repeat(80);
+        let brief = crate_summary_brief(&long);
+        assert!(brief.chars().count() <= 158, "the brief is too long");
+        assert!(brief.ends_with('\u{2026}'), "it should be marked as cut");
     }
 }

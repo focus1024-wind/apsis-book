@@ -5,6 +5,9 @@
  * number is written the same way everywhere.
  */
 
+import type { Bilingual } from './types';
+import { pick, type Language } from './i18n';
+
 /** Formats a number with a sensible number of decimals for its magnitude. */
 export function formatNumber(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
@@ -21,10 +24,20 @@ export function formatNumber(value: number | null | undefined): string {
 }
 
 /** Formats a table cell according to the column type. */
-export function formatCell(value: string | number | null, numeric: boolean): string {
+export function formatCell(
+  value: string | number | Bilingual | null,
+  numeric: boolean,
+  lang: Language,
+): string {
   if (value === null || value === undefined) return '—';
   if (typeof value === 'number') {
     return numeric ? formatNumber(value) : String(value);
+  }
+  if (typeof value === 'object') {
+    // A text cell may carry a translation of a fixed phrase, such as the
+    // meaning of a field. A cell holding data rather than prose carries the
+    // same string in both languages and needs no lookup.
+    return pick(value, lang);
   }
   return value;
 }

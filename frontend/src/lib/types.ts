@@ -202,6 +202,11 @@ export interface BilingualSummary {
   en: string;
   plain: Bilingual;
   html: Bilingual;
+  /**
+   * The opening sentence, for a card that links onward. The rest of the
+   * summary belongs on the page the card leads to.
+   */
+  brief?: Bilingual;
 }
 
 /** One interface item. */
@@ -214,11 +219,20 @@ export interface ApiItem {
   associated: boolean;
 }
 
+/** One layer of the library, used to organize the interface index. */
+export interface ApiLayer {
+  id: string;
+  title: Bilingual;
+  summary: Bilingual;
+}
+
 /** The interface catalog index. */
 export interface ApiIndex {
   generated_from: string[];
   crate_count: number;
   item_count: number;
+  /** The layers, in reading order, that the crates are grouped by. */
+  layers: ApiLayer[];
   crates: ApiCrateSummary[];
   items: { name: string; kind: string; crate: string }[];
 }
@@ -244,6 +258,8 @@ export interface ToolParam {
   name: string;
   label: Bilingual;
   help: Bilingual;
+  /** The help rendered from Markdown, so that a formula in it is set. */
+  help_html?: Bilingual;
   kind: 'number' | 'integer' | 'text' | 'multiline' | 'select';
   required: boolean;
   default: string | null;
@@ -256,6 +272,8 @@ export interface Tool {
   name: Bilingual;
   summary: Bilingual;
   description: Bilingual;
+  /** The description rendered from Markdown, so that a formula in it is set. */
+  description_html?: Bilingual;
   category: Bilingual;
   params: ToolParam[];
   api_items: string[];
@@ -272,13 +290,36 @@ export interface ResultScalar {
   label: Bilingual;
   value: string;
   unit: string;
+  /** The unit rendered, so that a power in it reads as a power. */
+  unit_html?: string;
   monospace: boolean;
 }
 
+/** A column of a result table. */
+export interface ResultColumn {
+  key: string;
+  label: Bilingual;
+  unit: string;
+  /** The unit rendered, so that a power in it reads as a power. */
+  unit_html?: string;
+  numeric: boolean;
+}
+
+/**
+ * One cell of a result table.
+ *
+ * A cell is usually a number. A text cell may carry a translation, because a
+ * cell holding a fixed phrase, such as the meaning of a field, is written
+ * once and shown in the reader's language. Such a cell may also carry the
+ * text rendered, which is how a unit written with a power in it, such as
+ * `rev/day^2`, is shown as a power.
+ */
+export type ResultCell = string | number | (Bilingual & { html?: string }) | null;
+
 /** A result table. */
 export interface ResultTable {
-  columns: { key: string; label: Bilingual; unit: string; numeric: boolean }[];
-  rows: (string | number | null)[][];
+  columns: ResultColumn[];
+  rows: ResultCell[][];
 }
 
 /** A numeric series. */
@@ -296,6 +337,8 @@ export interface ToolResult {
   table: ResultTable;
   series: ResultSeries[];
   notes: Bilingual[];
+  /** The notes rendered from Markdown, which is how a formula in one is set. */
+  notes_html?: Bilingual[];
   axis?: { name: Bilingual; unit: string; values: number[] };
 }
 

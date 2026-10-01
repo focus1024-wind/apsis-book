@@ -501,6 +501,13 @@ fn emit(node: &Node) -> String {
                 (Some(single), None) if single.is_alphabetic() => {
                     format!("<mi>{}</mi>", escape(text))
                 }
+                // An operator is written as one rather than as bare text. A
+                // browser sets text inside a row as ordinary glyphs with no
+                // spacing around it, so `rev/day` came out as `revday`; an
+                // operator carries its own spacing and cannot be swallowed.
+                (Some(single), None) if single.is_ascii_punctuation() => {
+                    format!("<mo>{}</mo>", escape(text))
+                }
                 _ => escape(text),
             }
         }
@@ -600,10 +607,11 @@ mod tests {
     #[test]
     fn a_comma_is_kept() {
         // The command is the spacing one, so dropping it would run a list of
-        // symbols together.
+        // symbols together. It is written as an operator so that it keeps its
+        // space, which is what a comma is for.
         assert_eq!(
             mathml("\\alpha, \\beta"),
-            "<mrow><mi>α</mi>, <mi>β</mi></mrow>"
+            "<mrow><mi>α</mi><mo>,</mo> <mi>β</mi></mrow>"
         );
     }
 

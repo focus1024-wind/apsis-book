@@ -61,6 +61,43 @@ export function onRouteChange(listener: () => void): () => void {
 }
 
 /**
+ * Returns the page to the top when the route changes.
+ *
+ * A hash change does not move the scroll position, so a reader who has
+ * scrolled to the bottom of a long document and follows a link lands in the
+ * middle of the next page, with nothing to show that it is a different one.
+ *
+ * The scroll follows the path rather than the fragment, so that a search or a
+ * filter applied to the page a reader is already on leaves them where they
+ * are. Only a move to another page starts at the top.
+ *
+ * Going back also starts at the top rather than where the reader left. The
+ * browser would restore that position itself, but it cannot be told apart
+ * from an ordinary link: a fragment navigation creates a history entry, and
+ * the browser fires `popstate` for it as well as for a traversal, so there is
+ * no event that means "this was a traversal" on its own. Restoring the
+ * position by watching the path would mean keeping a history of positions,
+ * which is more machinery than the gain is worth here.
+ */
+export function scrollToTopOnNavigation(): () => void {
+  let previous: string | null = null;
+
+  const onChange = () => {
+    const path = window.location.hash.split('?')[0];
+    if (path === previous) return;
+    previous = path;
+    window.scrollTo(0, 0);
+  };
+
+  // The first page is already at the top, but the position is recorded so
+  // that moving away and back is treated as two changes rather than one.
+  previous = window.location.hash.split('?')[0];
+
+  window.addEventListener('hashchange', onChange);
+  return () => window.removeEventListener('hashchange', onChange);
+}
+
+/**
  * Intercepts clicks on internal links so that the router handles them.
  *
  * A link with a `data-concept` attribute names a concept, which is turned

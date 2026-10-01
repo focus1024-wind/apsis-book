@@ -755,8 +755,8 @@ const TOOL_TABLE: &[ToolSpec] = &[
             "Compute the two burns of a transfer between coplanar circular orbits.",
         ),
         description: Text::new(
-            "返回将卫星在两个共面圆轨道之间转移的两次速度增量、两次点火之间的滑行时间以及总速度增量。正点火抬升轨道，负点火降低轨道。",
-            "Returns the two velocity changes that move a satellite between two circular coplanar orbits, the coast time between them, and the total velocity change. A positive burn raises the orbit and a negative one lowers it.",
+            "返回将卫星在两个共面圆轨道之间转移的两次速度增量、两次点火之间的滑行时间以及总速度增量。正点火抬升轨道，负点火降低轨道。\n\n每次点火的大小由齐奥科夫斯基方程给出：$\\Delta v = v_e \\ln(m_0 / m_f)$，其中 $v_e$ 是排气速度，$m_0$ 与 $m_f$ 分别是点火前后的质量。总速度增量是两次点火大小之和的绝对值。",
+            "Returns the two velocity changes that move a satellite between two circular coplanar orbits, the coast time between them, and the total velocity change. A positive burn raises the orbit and a negative one lowers it.\n\nThe size of each burn follows the Tsiolkovsky equation, $\\Delta v = v_e \\ln(m_0 / m_f)$, where $v_e$ is the exhaust velocity and $m_0$ and $m_f$ are the masses before and after the burn. The total is the absolute value of the sum of the two.",
         ),
         category: Text::new("轨道", "Orbits"),
         params: &[
@@ -1094,6 +1094,12 @@ pub fn registry_json(registry: &Registry) -> Value {
 }
 
 /// Encodes one tool as JSON.
+///
+/// A description and a parameter help are written in Markdown, so they are
+/// sent twice: as the source, which a reader of the JSON needs, and as HTML,
+/// which is what the page shows. The HTML comes from the same renderer as
+/// the concept documentation, so a formula written between dollar signs is
+/// set the same way in both places.
 fn tool_json(tool: &ToolSpec) -> Value {
     let params: Vec<Value> = tool.params.iter().map(param_json).collect();
     json_object! {
@@ -1101,9 +1107,18 @@ fn tool_json(tool: &ToolSpec) -> Value {
         "name" => tool.name.json(),
         "summary" => tool.summary.json(),
         "description" => tool.description.json(),
+        "description_html" => rendered_text(&tool.description),
         "category" => tool.category.json(),
         "params" => params,
         "api_items" => tool.api_items.iter().map(|name| Value::from(*name)).collect::<Vec<Value>>(),
+    }
+}
+
+/// Renders both languages of a piece of Markdown to HTML.
+fn rendered_text(text: &Text) -> Value {
+    json_object! {
+        "zh" => crate::docs::markdown::render(text.zh),
+        "en" => crate::docs::markdown::render(text.en),
     }
 }
 
@@ -1140,6 +1155,7 @@ fn param_json(param: &ParamSpec) -> Value {
         "name" => param.name,
         "label" => param.label.json(),
         "help" => param.help.json(),
+        "help_html" => rendered_text(&param.help),
         "kind" => kind,
         "required" => param.required,
         "default" => param.default.map(Value::from).unwrap_or(Value::Null),
