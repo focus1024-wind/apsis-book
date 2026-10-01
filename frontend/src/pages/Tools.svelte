@@ -10,6 +10,7 @@
   import type { Tool, ToolRegistry, ToolResult, ToolRunResponse } from '../lib/types';
   import { postJson, ApiError } from '../lib/api';
   import { language, pick, tr } from '../lib/i18n';
+  import { uniformCards } from '../lib/uniformCards';
   import ResultView from '../lib/ResultView.svelte';
 
   interface Props {
@@ -21,6 +22,14 @@
 
   /** The current language, read so that the text re-renders on a switch. */
   let lang = $derived($language);
+
+  /**
+   * The page root, measured so that every tool card shares one height. The
+   * cards are spread over one grid per category, so the measurement has to
+   * start from the element that contains all of them.
+   */
+  let page = $state<HTMLElement | null>(null);
+  $effect(() => uniformCards(page));
 
   let tool = $state<Tool | null>(null);
   let values = $state<Record<string, string>>({});
@@ -120,6 +129,7 @@
   });
 </script>
 
+<div bind:this={page} class="page-root">
 <div class="page-header">
   <h1>{tr('tools.title', lang)}</h1>
   <p>{tr('tools.intro', lang)}</p>
@@ -239,3 +249,4 @@
     {/if}
   {/if}
 {/if}
+</div>

@@ -8,6 +8,7 @@
   import type { DocumentIndex } from '../lib/types';
   import { navigate } from '../lib/router';
   import { language, pick, pickList, tr } from '../lib/i18n';
+  import { uniformCards } from '../lib/uniformCards';
 
   interface Props {
     index: DocumentIndex | null;
@@ -17,8 +18,17 @@
 
   /** The current language, read so that the text re-renders on a switch. */
   let lang = $derived($language);
+
+  /**
+   * The page root, measured so that every card shares one height. The cards
+   * of a page are spread over several grids, so the measurement has to start
+   * from the element that contains all of them.
+   */
+  let page = $state<HTMLElement | null>(null);
+  $effect(() => uniformCards(page));
 </script>
 
+<div bind:this={page} class="page-root">
 <div class="page-header">
   <h1>{tr('docs.title', lang)}</h1>
   <p>{tr('docs.intro', lang)}</p>
@@ -52,6 +62,8 @@
           </article>
         {/each}
       </div>
+
     </section>
   {/each}
 {/if}
+</div>

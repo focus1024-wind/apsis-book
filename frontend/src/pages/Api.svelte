@@ -16,6 +16,7 @@
   import { getJson } from '../lib/api';
   import { navigate } from '../lib/router';
   import { language, pick, tr } from '../lib/i18n';
+  import { uniformCards } from '../lib/uniformCards';
   import { KIND_GROUPS } from '../lib/i18n';
   import Signature from '../lib/Signature.svelte';
 
@@ -30,6 +31,14 @@
 
   /** The current language, read so that the text re-renders on a switch. */
   let lang = $derived($language);
+
+  /**
+   * The page root, measured so that every card shares one height. The cards
+   * of a page are spread over several grids, so the measurement has to start
+   * from the element that contains all of them.
+   */
+  let page = $state<HTMLElement | null>(null);
+  $effect(() => uniformCards(page));
 
   let crate = $state<ApiCrate | null>(null);
   let item = $state<(ApiItem & { crate: string; layer: string }) | null>(null);
@@ -135,6 +144,7 @@
 
 </script>
 
+<div bind:this={page} class="page-root">
 <div class="page-header">
   <h1>{tr('api.title', lang)}</h1>
   <p>{tr('api.intro', lang)}</p>
@@ -265,4 +275,6 @@
       </a>
     {/each}
   </div>
+
 {/if}
+</div>

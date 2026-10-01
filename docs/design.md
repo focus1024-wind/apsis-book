@@ -287,10 +287,25 @@ contents beside the text; the width of the pair is capped so the two stay
 together. A graph is the exception and uses the whole width, because a wide
 screen should show more of the graph rather than more margin.
 
-A grid of cards **stretches every card in a row** to the height of the
-tallest. A card is therefore a column, its action is pushed to the bottom,
-and its summary is clamped, so the actions of a row line up and one long
-paragraph cannot stretch a card past its neighbours.
+A grid of cards has **one card size on the whole page**, not one per row.
+
+A grid makes the cards of a single row equal, which is not enough: each row is
+measured on its own, so a page built from several grids steps from one row
+height to the next and the column of cards looks ragged. The tallest card
+across every grid is therefore measured in the browser and applied to all of
+them, with a `ResizeObserver` so that the measurement follows the column
+count and the language.
+
+The columns are **a fixed count rather than as many as fit**. Sizing columns
+with `auto-fill` makes the column width depend on how many cards are in the
+row, so a section of three and a section of four produce different card
+widths on the same page. A fixed count keeps one rhythm down the page; a
+section that does not fill a row leaves the gap at the end instead of
+stretching its cards.
+
+A card is a column, so its **action sits on the bottom line of every card**
+whatever the length of the text above it. The summary is not truncated: a
+uniform height means a card with a longer summary simply carries more lines.
 
 The sidebar is **a sticky element inside a frame**. The frame carries the
 surface and the rule so the column is drawn for the whole page; the sidebar

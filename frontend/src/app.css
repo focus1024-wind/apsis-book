@@ -420,6 +420,12 @@ button.ghost:hover:not(:disabled) {
   margin-top: 0;
 }
 
+/* The root of a page that renders cards. It carries no style of its own;
+   it exists so that the cards under it can be measured together. */
+.page-root {
+  display: block;
+}
+
 /* A grid of cards stretches every card in a row to the height of the
    tallest. The card is a column so that its action sits at the bottom of
    every card rather than floating at the height of the text above it. */
@@ -451,11 +457,10 @@ button.ghost:hover:not(:disabled) {
 /* A summary is clamped so that one long paragraph does not stretch its card
    far past the cards beside it. */
 .card-clamp {
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  /* The text is not truncated: the card height is uniform across the page,
+     so a card with a longer summary simply carries more lines and the
+     action stays on the bottom line of every card. */
+  overflow-wrap: anywhere;
 }
 
 .grid {
@@ -463,8 +468,19 @@ button.ghost:hover:not(:disabled) {
   gap: 1rem;
 }
 
+/*
+ * A card grid has a fixed number of columns rather than as many as fit.
+ *
+ * `auto-fill` sizes the columns to the width available *and* to the number
+ * of cards in the row, so a section of three cards and a section of four end
+ * up with different card widths on the same page. A fixed column count keeps
+ * one rhythm down the page: every card is the same width, and a section that
+ * does not fill a row leaves the gap at the end rather than widening the
+ * cards. The columns collapse on a narrow screen, where a fluid width is the
+ * right answer.
+ */
 .grid.cards {
-  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .grid.metrics {
@@ -1157,6 +1173,18 @@ tbody tr:hover {
 }
 
 /* Responsive */
+
+@media (max-width: 1180px) {
+  .grid.cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .grid.cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 
 @media (max-width: 700px) {
   /* The counters are a summary, not navigation, so they are the first
