@@ -142,9 +142,18 @@
       }))
       .filter((layer) => layer.crates.length > 0);
     const placed = new Set(declared.map((layer) => layer.id));
-    const rest = current.crates.filter((krate) => !placed.has(krate.layer));
+    // A crate that belongs to no layer is the workspace facade, which only
+    // re-exports what the crates of the layers already define. It is shown
+    // nowhere: a listing of it would repeat every item of the layers under a
+    // second name, and it is not a subject a reader is looking for.
+    const rest = current.crates.filter(
+      (krate) => krate.layer !== '' && !placed.has(krate.layer),
+    );
     return rest.length > 0
-      ? [...grouped, { id: '', title: { zh: '其他', en: 'Others' }, summary: { zh: '', en: '' }, crates: rest }]
+      ? [
+          ...grouped,
+          { id: '', title: { zh: '其他', en: 'Others' }, summary: { zh: '', en: '' }, crates: rest },
+        ]
       : grouped;
   });
 

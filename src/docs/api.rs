@@ -183,7 +183,25 @@ fn translated(table: Option<&Value>, key: &str) -> Option<String> {
 /// Several types have an associated `new`, so the qualified key is the one
 /// that disambiguates them; the bare key is kept as a fallback for a
 /// translation that is the same for every owner.
-fn item_translation(item_texts: Option<&Value>, owner: Option<&str>, name: &str) -> Option<String> {
+/// Returns the Chinese text of an item.
+///
+/// Three keys are tried, most specific first. A name such as `new` is used
+/// by many crates and several of them mean different things by it, so a
+/// translation filed under the name alone would be shown against the wrong
+/// documentation. The crate qualified key names one item exactly. The owner
+/// qualified key names a method of one type, which separates two items of
+/// the same crate that share a name, such as the `new` of two types. The
+/// bare key is the last resort and is only correct for a name that one crate
+/// uses for one thing.
+fn item_translation(
+    item_texts: Option<&Value>,
+    krate: &str,
+    owner: Option<&str>,
+    name: &str,
+) -> Option<String> {
+    if let Some(text) = translated(item_texts, &format!("{krate}::{name}")) {
+        return Some(text);
+    }
     if let Some(owner) = owner {
         if let Some(text) = translated(item_texts, &format!("{owner}::{name}")) {
             return Some(text);
@@ -233,7 +251,12 @@ fn parse_crate(
         .iter()
         .enumerate()
         .filter_map(|(index, item)| {
-            parse_item(item, item_texts, owner_of(raw_items, index).as_deref())
+            parse_item(
+                item,
+                item_texts,
+                &name,
+                owner_of(raw_items, index).as_deref(),
+            )
         })
         .collect();
     let summary_zh = translated(crate_texts, &name);
@@ -247,7 +270,12 @@ fn parse_crate(
 }
 
 /// Parses one item.
-fn parse_item(value: &Value, item_texts: Option<&Value>, owner: Option<&str>) -> Option<ApiItem> {
+fn parse_item(
+    value: &Value,
+    item_texts: Option<&Value>,
+    krate: &str,
+    owner: Option<&str>,
+) -> Option<ApiItem> {
     let name = value.get("name")?.as_str()?.to_string();
     let kind = value.get("kind")?.as_str()?.to_string();
     let signature = value
@@ -264,7 +292,7 @@ fn parse_item(value: &Value, item_texts: Option<&Value>, owner: Option<&str>) ->
         .get("associated")
         .and_then(Value::as_bool)
         .unwrap_or(false);
-    let doc_zh = item_translation(item_texts, owner, &name);
+    let doc_zh = item_translation(item_texts, krate, owner, &name);
     Some(ApiItem {
         kind,
         name,
@@ -311,5 +339,42 @@ mod tests {
     fn malformed_input_yields_an_empty_catalog() {
         assert!(parse("not json").is_empty());
         assert!(parse("{}").is_empty());
+    }
+
+    #[test]
+    fn a_translation_filed_under_the_crate_beats_the_bare_name() {
+        // `new` means something different in each crate, so a translation
+        // filed under the name alone would be shown against the wrong
+        // documentation.
+        let item = r#"{"kind":"fn","name":"new","doc":"English.",
+            "signature":"pub fn new()"}"#;
+        let texts = r#"{
+            "new":"裸译。",
+            "apsis-core::new":"属于 apsis-core 的译文。"}"#;
+        let parsed = parse_item(
+            &crate::json::parse(item).expect("an item"),
+            Some(&crate::json::parse(texts).expect("the translations")),
+            "apsis-core",
+            None,
+        )
+        .expect("an item");
+        assert_eq!(parsed.doc_zh.as_deref(), Some("属于 apsis-core 的译文。"));
+    }
+
+    #[test]
+    fn a_translation_filed_under_the_owner_separates_two_items_of_one_crate() {
+        // Two types of one crate each have a `new`; the owner tells them
+        // apart.
+        let item = r#"{"kind":"fn","name":"new","doc":"English.",
+            "signature":"pub fn new()"}"#;
+        let texts = r#"{"Inertial::new":"惯性系的新建。"}"#;
+        let parsed = parse_item(
+            &crate::json::parse(item).expect("an item"),
+            Some(&crate::json::parse(texts).expect("the translations")),
+            "apsis-coord",
+            Some("Inertial"),
+        )
+        .expect("an item");
+        assert_eq!(parsed.doc_zh.as_deref(), Some("惯性系的新建。"));
     }
 }

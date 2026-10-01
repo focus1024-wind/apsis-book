@@ -267,6 +267,12 @@ def main():
         if not os.path.isdir(os.path.join(workspace, directory)):
             sys.stderr.write("skipping %s: no such directory\n" % directory)
             continue
+        if layer is None:
+            # The facade sits directly in `crates` and re-exports every layer.
+            # It defines nothing of its own, so listing it would repeat every
+            # item of the layers under a second name without adding anything.
+            sys.stderr.write("skipping %s: the workspace facade\n" % name)
+            continue
         entry = collect_crate(workspace, name, directory)
         entry["layer"] = layer
         crates.append(entry)
