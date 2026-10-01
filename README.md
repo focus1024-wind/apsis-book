@@ -204,9 +204,13 @@ apsis-book/
 │   ├── http/                 request, response, and server
 │   ├── tools/                the tool registry, the handlers, the result shape
 │   ├── json.rs               the JSON codec
+│   ├── lib.rs               the modules, as a library
+│   ├── testkit.rs           the few internals the tests reach
 │   ├── main.rs               the process entry point
 │   └── state.rs              the parsed content, shared by every worker
-└── tests/service.rs          end to end tests against the built binary
+└── tests/                   every test; `src/` holds none
+    ├── service.rs            end to end tests against the built binary
+    └── <module>.rs           the module tests
 ```
 
 ## Testing

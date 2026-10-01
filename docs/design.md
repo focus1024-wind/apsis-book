@@ -408,9 +408,24 @@ tools takes two round trips through the index.
 
 ## Testing
 
-Unit tests live beside the code they test and cover the parser, the codec,
-the Markdown renderer, the document model, the search ranking, the graph
-parsing, the router, and every tool handler.
+No test code lives in `src/`. Every test is an integration test in `tests/`,
+as it is in `apsis-rs`.
+
+The service is a library with a thin binary over it, which is what makes that
+possible: an integration test is a separate crate and reaches only what the
+library makes public, so the modules are in `src/lib.rs` and `main.rs` is
+just the entry point. The tests cover the parser, the codec, the Markdown
+renderer, the formula renderer, the document model, the search tokenizer, the
+graph parsing, the router, and every tool handler.
+
+A handful of items are internal to a module and a test reaches them
+nonetheless. Those stay `pub(crate)` where they are defined and are offered
+through `src/testkit.rs`, which is the one place a caller is expected to look
+for them. A wrapper there is also the only way to offer a private thing
+outward at all: Rust does not let visibility be widened twice, so a
+`pub(crate)` item cannot be re-exported as `pub`. That keeps the seams in one
+file instead of scattering them through the modules being tested, and it
+leaves the internals free to change shape behind the wrapper.
 
 The end to end tests in `tests/service.rs` start the built binary on an
 ephemeral port and make plain TCP requests against it. They exercise the

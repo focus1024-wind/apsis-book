@@ -38,19 +38,3 @@ pub fn list(prefix: &str, suffix: &str) -> Vec<(&'static str, &'static str)> {
 pub fn is_populated() -> bool {
     !CONTENT.is_empty()
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn concept_documents_are_embedded() {
-        let documents = list("concepts/", ".md");
-        assert!(documents.len() >= 10, "expected a populated concept set");
-    }
-
-    #[test]
-    fn graph_data_is_embedded() {
-        assert!(get("graph/concepts.json").is_some());
-    }
-}

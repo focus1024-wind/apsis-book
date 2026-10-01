@@ -21,6 +21,10 @@ license = "GPL-3.0-or-later"
 description = "Web service for the ApsisRS computational kernels."
 publish = false
 
+[lib]
+name = "apsis_book"
+path = "src/lib.rs"
+
 [[bin]]
 name = "apsis-book"
 path = "src/main.rs"

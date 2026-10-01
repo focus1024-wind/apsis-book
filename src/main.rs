@@ -16,23 +16,14 @@
 //! The `--host` and `--port` options bind the listener, and the language of
 //! the user interface is selected in the browser and defaults to Chinese.
 
-mod api;
-mod docs;
-mod embedded;
-mod graph;
-mod http;
-mod i18n;
-mod json;
-mod state;
-mod tools;
+use apsis_book::api::Router;
+use apsis_book::embedded;
+use apsis_book::http::{Server, ServerConfig};
+use apsis_book::state::AppState;
 
 use std::net::SocketAddr;
 use std::process::ExitCode;
 use std::sync::Arc;
-
-use crate::api::Router;
-use crate::http::{Server, ServerConfig};
-use crate::state::AppState;
 
 /// Default bind host, which accepts connections from the local machine
 /// only.

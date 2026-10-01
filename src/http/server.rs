@@ -170,7 +170,7 @@ fn serve_connection<H: Handler>(mut stream: TcpStream, handler: &H, config: Serv
 ///
 /// The body describes the class of failure without repeating the input, so
 /// that a malformed request cannot be used to reflect arbitrary text.
-fn error_response(error: RequestError) -> Response {
+pub(crate) fn error_response(error: RequestError) -> Response {
     match error {
         RequestError::TooLarge(detail) => Response::error(Status::ContentTooLarge, detail),
         RequestError::Malformed(detail) => Response::error(Status::BadRequest, detail),
@@ -190,54 +190,4 @@ fn dispatch<H: Handler>(handler: &H, request: &Request, peer: SocketAddr) -> Res
         handler.handle(request, peer)
     }))
     .unwrap_or_else(|_| Response::error(Status::InternalServerError, "internal server error"))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::io::{Read, Write};
-
-    #[test]
-    fn serves_a_request_over_a_real_socket() {
-        let server = Server::bind_address(
-            "127.0.0.1:0"
-                .parse()
-                .expect("the literal address must parse"),
-            ServerConfig {
-                workers: 2,
-                ..ServerConfig::default()
-            },
-        )
-        .unwrap();
-        let address = server.local_address().unwrap();
-
-        let handler =
-            Arc::new(|_request: &Request, _peer: SocketAddr| Response::json("{}".to_string()));
-        let running = thread::spawn(move || server.run(handler));
-
-        let mut stream = TcpStream::connect(address).unwrap();
-        stream
-            .write_all(b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
-            .unwrap();
-        let mut response = String::new();
-        stream.read_to_string(&mut response).unwrap();
-        assert!(response.starts_with("HTTP/1.1 200 OK\r\n"));
-        assert!(response.ends_with("{}"));
-
-        drop(stream);
-        // The accept loop ends when the listener is dropped with the thread.
-        let _ = running;
-    }
-
-    #[test]
-    fn converts_parse_failures_into_statuses() {
-        assert_eq!(
-            error_response(RequestError::Malformed("x")).status,
-            Status::BadRequest
-        );
-        assert_eq!(
-            error_response(RequestError::TooLarge("x")).status,
-            Status::ContentTooLarge
-        );
-    }
 }

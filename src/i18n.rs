@@ -40,18 +40,3 @@ impl Text {
         json_object! { "zh" => self.zh, "en" => self.en }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::json;
-
-    #[test]
-    fn encodes_both_languages() {
-        let value = Text::new("轨道", "orbit").json();
-        assert_eq!(value.get("zh").unwrap().as_str(), Some("轨道"));
-        assert_eq!(value.get("en").unwrap().as_str(), Some("orbit"));
-        let encoded = json::to_string(&value);
-        assert!(json::parse(&encoded).is_ok());
-    }
-}
