@@ -223,6 +223,9 @@ apsis-book/
 ├── Dockerfile                发布镜像，分三个阶段
 ├── Dockerfile.dockerignore   镜像构建不接收的内容
 ├── docker-compose.yml        以长期运行所需的设置来运行镜像
+├── docs/                     设计说明
+│   ├── design.md             服务为何如此构建
+│   └── design.zh.md          同上，中文
 ├── frontend/                 Svelte 与 TypeScript，由 Vite 构建
 │   ├── src/lib/              API 客户端、路由器、组件、格式化
 │   ├── src/pages/            每个路由一个组件
@@ -237,8 +240,8 @@ apsis-book/
 │   ├── http/                 请求、响应与服务器
 │   ├── tools/                工具注册表、处理函数、结果形状
 │   ├── json.rs               JSON 编解码器
-│   ├── lib.rs               各模块，以库的形式
-│   ├── testkit.rs           测试所需的少数内部项
+│   ├── lib.rs                各模块，以库的形式
+│   ├── testkit.rs            测试所需的少数内部项
 │   ├── main.rs               进程入口
 │   └── state.rs              解析后的内容，供每个工作线程共享
 └── tests/                   全部测试；`src/` 中没有

@@ -9,8 +9,8 @@
 //!   offset of the first problem.
 //! - [`to_string`] encodes a value in compact form and [`to_string_pretty`]
 //!   encodes it with indentation for readability.
-//! - The [`object`] macro builds an object literal without repeating the
-//!   `Value` constructors.
+//! - The [`json_object`](crate::json_object) macro builds an object literal
+//!   without repeating the `Value` constructors.
 //!
 //! Numbers are held as `f64`. Integers that need the full `i64` range are
 //! decoded exactly as long as they can be represented as an `f64` without
@@ -30,7 +30,7 @@
 //! - [`parse`] 解码一份文档，并以 [`JsonError`] 报告第一个问题的字节偏移。
 //! - [`to_string`] 以紧凑形式编码一个值，[`to_string_pretty`] 以缩进编码以便
 //!   阅读。
-//! - [`object`] 宏构造对象字面量，无需重复 `Value` 的构造函数。
+//! - [`json_object`](crate::json_object) 宏构造对象字面量，无需重复 `Value` 的构造函数。
 //!
 //! 数字以 `f64` 持有。需要完整 `i64` 范围的整数，只要能无损地表示为 `f64`，
 //! 就会被精确解码，这在上限 `2^53` 之内成立；服务只交换该范围内的量与标识。

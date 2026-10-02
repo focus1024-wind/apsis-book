@@ -22,3 +22,11 @@ apsis-book.html
 # Diagnostics dropped beside the project while working on it, such as the
 # screenshots of a page under inspection.
 /tmp
+
+# The release notes. They are the annotation of a tag rather than part of the
+# project, and a tag carries one message, so the file is kept beside the
+# source to make the tag with and is not itself committed.
+#
+# 发布说明是标签的注释，而不是项目的一部分；一个标签只承载一条消息，因此该文件
+# 放在源码旁边供打标签使用，本身不提交。
+/docs/releases

@@ -257,6 +257,9 @@ apsis-book/
 ├── Dockerfile                the release image, in three stages
 ├── Dockerfile.dockerignore   what the image build is not sent
 ├── docker-compose.yml        runs the image with the settings it wants
+├── docs/                     the design notes
+│   ├── design.md             why the service is built the way it is
+│   └── design.zh.md          the same in Chinese
 ├── frontend/                 Svelte and TypeScript, built by Vite
 │   ├── src/lib/              API client, router, components, formatting
 │   ├── src/pages/            one component per route
@@ -271,8 +274,8 @@ apsis-book/
 │   ├── http/                 request, response, and server
 │   ├── tools/                the tool registry, the handlers, the result shape
 │   ├── json.rs               the JSON codec
-│   ├── lib.rs               the modules, as a library
-│   ├── testkit.rs           the few internals the tests reach
+│   ├── lib.rs                the modules, as a library
+│   ├── testkit.rs            the few internals the tests reach
 │   ├── main.rs               the process entry point
 │   └── state.rs              the parsed content, shared by every worker
 └── tests/                   every test; `src/` holds none
