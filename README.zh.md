@@ -179,6 +179,7 @@ apsis-book/
 │   ├── src/pages/            每个路由一个组件
 │   └── dist/                 构建产物，由 build.rs 嵌入
 ├── scripts/extract_api.sh    接口目录生成器
+├── scripts/render_audit.mjs  渲染每条路由并报告问题
 ├── src/
 │   ├── api/                  路由器与 JSON 载荷
 │   ├── docs/                 内容、Markdown、文档、接口目录
@@ -204,6 +205,11 @@ cargo clippy --all-targets
 cargo fmt --check
 cd frontend && npm run check
 ```
+
+发版还会渲染界面来检查：`node scripts/render_audit.mjs` 会在两种语言、两种主题与
+两种宽度下打开每一条路由，并报告页面未加载、正文近乎空白、横向溢出，或公式丢字符
+这四类问题。它需要 Chrome 与一份发布构建，把发现写入 `/tmp/matrix.jsonl`，且被
+中断后会续跑而不是从头再来。
 
 端到端测试在一个临时端口上启动构建出的二进制，并以普通 TCP 请求与之通信。
 

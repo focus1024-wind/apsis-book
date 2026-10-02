@@ -203,6 +203,7 @@ apsis-book/
 │   ├── src/pages/            one component per route
 │   └── dist/                 build output, embedded by build.rs
 ├── scripts/extract_api.sh    interface catalog generator
+├── scripts/render_audit.mjs  renders every route and reports what is wrong
 ├── src/
 │   ├── api/                  the router and the JSON payloads
 │   ├── docs/                 content, Markdown, documents, interface catalog
@@ -228,6 +229,14 @@ cargo clippy --all-targets
 cargo fmt --check
 cd frontend && npm run check
 ```
+
+A release is also checked by rendering the interface: `node
+scripts/render_audit.mjs` opens every route in both languages, both themes,
+and two widths, and reports a page that does not load, a page with almost no
+text, a page that scrolls sideways, or a formula that loses a character. It
+needs a Chrome and a release build, writes what it finds to
+`/tmp/matrix.jsonl`, and resumes rather than starting over if it is
+interrupted.
 
 The end to end tests start the built binary on an ephemeral port and make
 plain TCP requests against it.

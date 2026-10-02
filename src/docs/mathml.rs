@@ -131,17 +131,14 @@ pub(crate) fn normalize(latex: &str) -> Vec<Token> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Token {
     /// A single character.
-
     ///
     /// 单个字符。
     Symbol(char),
     /// A backslash command, without the backslash.
-
     ///
     /// 一个反斜杠命令，不含反斜杠。
     Command(String),
     /// An opening or closing brace; which one is taken from the position.
-
     ///
     /// 一个开括号或闭括号；具体是哪一个由位置决定。
     Group,
@@ -153,68 +150,55 @@ pub(crate) enum Token {
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Node {
     /// Text, already escaped.
-
     ///
     /// 文本，已转义。
     Text(String),
     /// A row of children.
-
     ///
     /// 一行子节点。
     Row(Vec<Node>),
     /// A fraction.
-
     ///
     /// 一个分式。
     Fraction(Box<Node>, Box<Node>),
     /// A root.
-
     ///
     /// 一个根式。
     Root(Box<Node>, Option<Box<Node>>),
     /// A superscript.
-
     ///
     /// 一个上标。
     Superscript(Box<Node>, Box<Node>),
     /// A subscript.
-
     ///
     /// 一个下标。
     Subscript(Box<Node>, Box<Node>),
     /// A subscript and a superscript on one base.
-
     ///
     /// 同一个基上的下标与上标。
     Scripts(Box<Node>, Box<Node>, Box<Node>),
     /// A named function such as `sin`.
-
     ///
     /// 一个具名函数，例如 `sin`。
     Function(String),
     /// A mark written above its argument, as in `\dot\Omega`.
-
     ///
     /// 写在参数上方的一个符号，例如 `\dot\Omega`。
     Overscript(Box<Node>, String),
     /// Words that stand as they are written, as in `\text{km}`.
-
     ///
     /// 按书写原样保留的词，例如 `\text{km}`。
     Verbatim(String),
     /// A matrix, with the delimiters its environment asks for.
-
     ///
     /// 一个矩阵，带其环境所要求的定界符。
     Matrix {
         /// The opening and closing delimiters, which may be empty.
-
         ///
         /// 开定界符与闭定界符，可以为空。
         open: &'static str,
         close: &'static str,
         /// The cells, one row at a time.
-
         ///
         /// 各单元格，一次一行。
         rows: Vec<Vec<Node>>,
