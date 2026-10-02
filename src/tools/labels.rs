@@ -9,24 +9,43 @@
 //! A label that is absent from the table is shown in English in both
 //! languages. That is the correct behaviour for a value that is a symbol
 //! rather than prose, such as `position.x`, `BSTAR`, or a unit name.
+//!
+//! 工具结果的中文标签。
+//!
+//! 工具处理函数以英文书写其标签，因为英文是接口标识与 `apsis-rs` 文档所用的语言。
+//! 本表把每个标签与其中文形式配对，使结果可以以任一语言显示，而处理函数无须为
+//! 每条字符串携带两份副本。
+//!
+//! 表中没有的标签在两种语言中都显示英文。对一个符号而非散文的值而言，这是正确的
+//! 行为，例如 `position.x`、`BSTAR` 或单位名。
 
 use crate::i18n::Text;
 
 /// Returns the bilingual form of a result label.
+///
+/// 返回结果标签的双语形式。
 pub fn label(english: &str) -> Text {
     // The lookup is a linear scan over a static table. The table is small
     // and a result carries at most a few dozen labels, so a scan is simpler
     // than a map that would need to be built at startup.
+
+    // 查找是对静态表的线性扫描。表很小，而一个结果至多携带几十个标签，因此扫描
+    // 比在启动时构建映射更简单。
     for (key, zh) in PAIRS {
         if *key == english {
             // Both members are borrowed from the static table, so the
             // result is `'static`.
+
+            // 两个成员都借自静态表，因此结果是 `'static` 的。
             return Text::new(zh, key);
         }
     }
     // A label that is not in the table is a symbol. It is shown as it is in
     // both languages, which is what a reader of either language expects for
     // a name.
+
+    // 不在表中的标签是一个符号。它在两种语言中都按原样显示，对一个名字而言，
+    // 这正是两种语言的读者所期望的。
     Text::new(own(english), own(english))
 }
 
@@ -36,6 +55,12 @@ pub fn label(english: &str) -> Text {
 /// label is a literal written in a handler, so the leaks are bounded and
 /// happen once per distinct label. This keeps [`Text`] a `Copy` type with
 /// static fields, which is what the registry and the result shape rely on.
+///
+/// 泄漏一个运行期字符串，使它能被 [`Text`] 承载。
+///
+/// 不同标签的数量受工具表限制，且每个标签都是处理函数中书写的字面量，因此泄漏是
+/// 有界的，且每个不同标签只发生一次。这让 [`Text`] 保持为带静态字段的 `Copy`
+/// 类型，注册表与结果形状正依赖于此。
 fn own(text: &str) -> &'static str {
     use std::collections::HashSet;
     use std::sync::Mutex;
@@ -56,6 +81,8 @@ fn own(text: &str) -> &'static str {
 }
 
 /// The label pairs, ordered as the labels appear in the results.
+///
+/// 标签对，按标签在结果中出现的顺序排列。
 const PAIRS: &[(&str, &str)] = &[
     // Element set parsing
     ("Name", "名称"),

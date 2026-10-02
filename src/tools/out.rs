@@ -5,6 +5,12 @@
 //! scalars that the frontend shows beside them. Keeping the shape in one
 //! place means a tool describes what it computed rather than how it is
 //! drawn, and the frontend needs one renderer for every tool.
+//!
+//! 塑造工具结果的辅助构件。
+//!
+//! 工具返回一个已整形的值，含表格的各列、供绘图用的数值序列、文档的各记录，以及
+//! 前端在其旁显示的带标签标量。把形状集中在一处，意味着工具描述的是它算出了什么，
+//! 而不是它如何被画出；前端也只需为所有工具准备一个渲染器。
 
 use crate::i18n::Text;
 use crate::json::Value;
@@ -12,21 +18,29 @@ use crate::json_object;
 use crate::tools::labels;
 
 /// A named scalar with a unit, rendered as a definition pair.
+///
+/// 一个带单位的具名标量，以「名—值」对的形式呈现。
 #[derive(Debug, Clone)]
 pub struct Scalar {
     /// Human readable name.
+    /// 供人阅读的名字。
     pub label: String,
     /// Formatted value.
+    /// 已格式化的取值。
     pub value: String,
     /// Unit, or an empty string.
+    /// 单位，或空字符串。
     pub unit: String,
     /// True when the value should be shown in a monospaced font, which is
     /// used for identifiers and angles written in degrees and minutes.
+    ///
+    /// 当该值应以等宽字体显示时为真，用于标识符与以度分表示的角。
     pub monospace: bool,
 }
 
 impl Scalar {
     /// Creates a scalar with a unit.
+    /// 创建一个带单位的标量。
     pub fn with_unit(label: impl Into<String>, value: impl ToString, unit: &str) -> Self {
         Self {
             label: label.into(),
@@ -37,6 +51,7 @@ impl Scalar {
     }
 
     /// Creates a scalar without a unit.
+    /// 创建一个不带单位的标量。
     pub fn plain(label: impl Into<String>, value: impl ToString) -> Self {
         Self {
             label: label.into(),
@@ -47,6 +62,7 @@ impl Scalar {
     }
 
     /// Marks the scalar as monospaced.
+    /// 把该标量标记为等宽显示。
     pub fn monospace(mut self, monospace: bool) -> Self {
         self.monospace = monospace;
         self
@@ -54,21 +70,29 @@ impl Scalar {
 }
 
 /// A table column.
+///
+/// 表格的一列。
 #[derive(Debug, Clone)]
 pub struct Column {
     /// Machine name, used as the record member name.
+    /// 机器名，用作记录的成员名。
     pub key: String,
     /// Column heading.
+    /// 列标题。
     pub label: String,
     /// Unit shown in the heading, or an empty string.
+    /// 显示在标题中的单位，或空字符串。
     pub unit: String,
     /// True when the column holds numbers, which right aligns it and lets
     /// the frontend format it.
+    ///
+    /// 当该列存放数值时为真：这使它右对齐，并让前端负责格式化。
     pub numeric: bool,
 }
 
 impl Column {
     /// Creates a numeric column with a unit.
+    /// 创建一个带单位的数值列。
     pub fn number(key: &str, label: &str, unit: &str) -> Self {
         Self {
             key: key.to_string(),
@@ -79,6 +103,7 @@ impl Column {
     }
 
     /// Creates a text column.
+    /// 创建一个文本列。
     pub fn text(key: &str, label: &str) -> Self {
         Self {
             key: key.to_string(),
@@ -90,16 +115,21 @@ impl Column {
 }
 
 /// A table of records.
+///
+/// 一张记录表。
 #[derive(Debug, Clone, Default)]
 pub struct Table {
     /// Columns, in display order.
+    /// 各列，按显示顺序。
     pub columns: Vec<Column>,
     /// Rows, each holding one value per column.
+    /// 各行，每行对每一列持有一个值。
     pub rows: Vec<Vec<Value>>,
 }
 
 impl Table {
     /// Creates a table with the given columns.
+    /// 以给定的列创建一张表。
     pub fn new(columns: Vec<Column>) -> Self {
         Self {
             columns,
@@ -108,6 +138,7 @@ impl Table {
     }
 
     /// Appends a row.
+    /// 追加一行。
     pub fn push(&mut self, row: Vec<Value>) {
         self.rows.push(row);
     }
@@ -116,11 +147,17 @@ impl Table {
     ///
     /// A row is written by the handler, which may add or leave out a cell, so
     /// a position is not guaranteed to name a column.
+    ///
+    /// 返回某个位置上的列，若有。
+    ///
+    /// 行由处理函数书写，它可能多写或少写一个单元格，因此一个位置并不保证对应
+    /// 某一列。
     pub fn column(&self, index: usize) -> Option<&Column> {
         self.columns.get(index)
     }
 
     /// Returns `true` when the table has no rows.
+    /// 当表中没有行时返回 `true`。
     #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.rows.is_empty()

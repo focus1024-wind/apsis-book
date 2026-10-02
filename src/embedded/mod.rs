@@ -8,10 +8,21 @@
 //! When no frontend has been built, the table is empty and
 //! [`placeholder`] supplies a self-contained page that explains the state of
 //! the build. The service therefore always answers something useful.
+//!
+//! 对内嵌在二进制中的前端资源的访问。
+//!
+//! 资源表由 `build.rs` 生成并作为 `$OUT_DIR/embedded_assets.rs` 引入。每个条目
+//! 把相对前端输出目录的路径映射到其字节，因此服务无需读取文件系统即可回应静态
+//! 文件请求。
+//!
+//! 尚未构建前端时，该表为空，[`placeholder`] 提供一个自足页面说明构建状态。
+//! 因此服务总能给出有用的回应。
 
 include!(concat!(env!("OUT_DIR"), "/embedded_assets.rs"));
 
 /// A built-in page served when no frontend build is embedded.
+///
+/// 未嵌入前端构建时提供的内置页面。
 const PLACEHOLDER: &str = r#"<!doctype html>
 <html lang="en">
 <head>
@@ -52,6 +63,11 @@ cargo build --release</code></pre>
 /// The path is the request path with the leading slash removed, for example
 /// `assets/index-abc123.js`. A directory request such as `/` is mapped to
 /// `index.html` by the caller.
+///
+/// 返回登记在 `path` 之下的内嵌资源，若有。
+///
+/// 路径是去掉前导斜杠后的请求路径，例如 `assets/index-abc123.js`。诸如 `/`
+/// 这样的目录请求由调用方映射到 `index.html`。
 pub fn get(path: &str) -> Option<&'static [u8]> {
     ASSETS
         .iter()
@@ -60,11 +76,15 @@ pub fn get(path: &str) -> Option<&'static [u8]> {
 }
 
 /// Returns `true` when at least one asset is embedded.
+///
+/// 当至少有一个资源被嵌入时返回 `true`。
 pub fn is_populated() -> bool {
     !ASSETS.is_empty()
 }
 
 /// Returns the placeholder page served when nothing is embedded.
+///
+/// 返回未嵌入任何内容时提供的占位页面。
 pub fn placeholder() -> &'static [u8] {
     PLACEHOLDER.as_bytes()
 }
@@ -74,6 +94,11 @@ pub fn placeholder() -> &'static [u8] {
 /// Text assets carry their charset so that a browser renders them without
 /// guessing. An unknown extension is served as `application/octet-stream`,
 /// which the browser will download rather than execute.
+///
+/// 依据扩展名返回某个资源路径的媒体类型。
+///
+/// 文本类资源带字符集，浏览器无须猜测即可渲染。未知扩展名按
+/// `application/octet-stream` 提供，浏览器会下载它而不是执行它。
 pub fn content_type(path: &str) -> &'static str {
     let extension = path.rsplit('.').next().unwrap_or_default();
     match extension {

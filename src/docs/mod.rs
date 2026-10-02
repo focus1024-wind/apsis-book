@@ -15,6 +15,21 @@
 //! translation is the file `concepts/<id>.zh.md`, whose metadata and body
 //! replace the English ones for a reader whose language is Chinese. A
 //! document without a translation is served in English to every reader.
+//!
+//! 概念文档，以及从 `apsis-rs` 提取的接口目录。
+//!
+//! 服务关于文档所知的一切都归本模块所有：
+//!
+//! - [`content`] 使内嵌的 `content/` 文件可用。
+//! - [`markdown`] 把文档正文转为 HTML。
+//! - [`document`] 为文档、章节树与搜索索引建模。
+//! - [`api`] 为从 `apsis-rs` 源码提取的接口目录建模。
+//!
+//! [`load_documents`] 与 [`load_api_catalog`] 在启动时从内嵌内容组装这两个集合。
+//!
+//! 一篇文档以英文写一次，为 `concepts/<id>.md`。中文译文是
+//! `concepts/<id>.zh.md`，其元数据与正文对语言为中文的读者取代英文部分。没有译文
+//! 的文档对所有读者都以英文提供。
 
 pub mod api;
 pub mod content;
@@ -33,10 +48,18 @@ pub use document::{Document, DocumentVariant, Language, SearchIndex, Tree};
 /// A file that fails to parse is skipped; the service reports the remaining
 /// documents and the document route answers with a not found status for the
 /// missing one.
+///
+/// 解析每一篇内嵌概念文档，并合并译文。
+///
+/// 解析失败的文件被跳过；服务报告其余文档，而对缺失的那一篇，文档路由以「未找到」
+/// 状态作答。
 pub fn load_documents() -> Vec<Document> {
     // The English files are the base of the collection. The identifier is
     // the file stem with the language suffix removed, so a translation and
     // its original meet on the same key.
+
+    // 英文文件是集合的基础。标识是去掉语言后缀的文件名主干，因此译文与其原文
+    // 在同一个键上相遇。
     let mut order: Vec<String> = Vec::new();
     let mut documents: std::collections::HashMap<String, Document> =
         std::collections::HashMap::new();
@@ -47,6 +70,8 @@ pub fn load_documents() -> Vec<Document> {
         };
         // The identifier is the file name; the directory above it is the
         // layer, which is a separate piece of information.
+
+        // 标识即文件名；其上一级目录是层，那是另一份信息。
         let Some(stem) = relative
             .rsplit_once('/')
             .map_or(Some(relative), |(_, name)| Some(name))
@@ -81,6 +106,9 @@ pub fn load_documents() -> Vec<Document> {
         // A translation without an English original is ignored rather than
         // served on its own, so that the collection always has one entry per
         // identifier.
+
+        // 没有英文原文的译文被忽略，而不单独提供，这样集合中每个标识始终只有
+        // 一个条目。
         if !documents.contains_key(stem) {
             continue;
         }
@@ -102,6 +130,8 @@ pub fn load_documents() -> Vec<Document> {
 
 /// Parses the embedded interface catalog, applying the translation when
 /// one is embedded.
+///
+/// 解析内嵌的接口目录。
 pub fn load_api_catalog() -> ApiCatalog {
     let Some(text) = content::get("api.json") else {
         return ApiCatalog {
