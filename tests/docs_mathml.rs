@@ -25,7 +25,7 @@ fn a_power_becomes_a_superscript() {
 fn a_group_holds_several_tokens() {
     assert_eq!(
         mathml("x^{12}"),
-        "<msup><mrow><mi>x</mi></mrow><mrow>12</mrow></msup>"
+        "<msup><mrow><mi>x</mi></mrow><mrow><mn>12</mn></mrow></msup>"
     );
 }
 
@@ -45,7 +45,9 @@ fn a_greek_letter_is_translated() {
 #[test]
 fn an_unknown_command_is_kept_as_written() {
     // Losing part of a formula would be worse than showing it plainly.
-    assert_eq!(mathml("\\notacommand"), "\\notacommand");
+    // Text is given an element even when it is not understood, because text
+    // without one is not drawn at all.
+    assert_eq!(mathml("\\notacommand"), "<mtext>\\notacommand</mtext>");
 }
 
 #[test]
@@ -55,7 +57,7 @@ fn a_comma_is_kept() {
     // space, which is what a comma is for.
     assert_eq!(
         mathml("\\alpha, \\beta"),
-        "<mrow><mi>α</mi><mo>,</mo> <mi>β</mi></mrow>"
+        "<mrow><mi>α</mi><mo>,</mo><mspace width=\"0.25em\"/><mi>β</mi></mrow>"
     );
 }
 
@@ -186,7 +188,7 @@ fn an_absolute_value_may_hold_a_product() {
     // `| f'(x) | * | x| / | f(x) |` is one expression: a bar inside it
     // opens the next factor rather than closing the one before.
     let html = render_plain("kappa = | f'(x) | * | x| / | f(x) |").expect("a formula");
-    assert!(!html.contains("<mtext"), "a note was read: {html}");
+    assert!(!html.contains("math-note"), "a note was read: {html}");
 }
 
 #[test]
@@ -200,7 +202,7 @@ fn a_trailing_bracket_of_the_equation_is_not_a_note() {
     // `(cos theta)` is part of the equation even though it holds only
     // words; the whole line reads out, so there is no note.
     let html = render_plain("gamma = k * R^alpha / (cos theta)").expect("a formula");
-    assert!(!html.contains("<mtext"), "a note was read: {html}");
+    assert!(!html.contains("math-note"), "a note was read: {html}");
 }
 
 #[test]
@@ -209,7 +211,7 @@ fn a_bracketed_group_is_not_mistaken_for_a_note() {
     // is a phrase and has none.
     let html = render_plain("H = k * T / (m * g)").expect("a formula");
     assert!(html.contains("<mfrac"), "{html}");
-    assert!(!html.contains("<mtext"), "a note was read: {html}");
+    assert!(!html.contains("math-note"), "a note was read: {html}");
 }
 
 #[test]
@@ -241,4 +243,56 @@ fn an_equals_between_two_equations_is_kept() {
     let html = render_plain("r = p / (1 + e cos nu),  p = a (1 - e^2)").expect("a formula");
     assert!(html.contains("<mo>=</mo>"), "{html}");
     assert!(html.contains("<mo>\u{2212}</mo>"), "{html}");
+}
+#[test]
+fn a_number_of_several_digits_is_kept() {
+    // Only single digits were given an element, and text without one is
+    // dropped by the browser, so `14`, `4800` and `32045` vanished from
+    // every formula that held them.
+    let html = render_plain("JDN = day + floor((153 m + 2) / 5) + 365 y").expect("a formula");
+    for number in ["153", "2", "5", "365"] {
+        assert!(
+            html.contains(&format!("<mn>{number}</mn>")),
+            "{number} has no element: {html}"
+        );
+    }
+    // Each number is inside an element; text without one is not drawn.
+    assert!(html.matches("<mn>").count() >= 4, "{html}");
+}
+
+#[test]
+fn a_decimal_and_an_exponent_are_single_numbers() {
+    let html = render_plain("x = 2400000.5 + 1.5e-3").expect("a formula");
+    assert!(html.contains("<mn>2400000.5</mn>"), "{html}");
+    assert!(html.contains("<mn>1.5e-3</mn>"), "{html}");
+}
+
+#[test]
+fn a_row_holds_elements_rather_than_text() {
+    // Bare text inside a row is dropped by the browser, so a number or a name
+    // has to be given an element. The end to end check compares the
+    // characters the reader sees against the source; this one states the
+    // shape that makes that true, so a failure points at the cause.
+    let html = render_plain("a = floor((14 - month) / 12)").expect("a formula");
+    let body = html.split("<mtable").nth(1).unwrap_or_default();
+    // A run of text is drawn only when the element just opened holds text.
+    // A container such as a row or a cell does not, so text there is lost.
+    for piece in body.split('<').skip(1) {
+        let mut parts = piece.splitn(2, '>');
+        let tag = parts.next().unwrap_or_default();
+        let after = parts.next().unwrap_or_default();
+        let text: String = after.chars().take_while(|c| *c != '<').collect();
+        if text.is_empty() {
+            continue;
+        }
+        let name = tag
+            .trim_start_matches('/')
+            .split(' ')
+            .next()
+            .unwrap_or_default();
+        assert!(
+            matches!(name, "mi" | "mo" | "mn" | "mtext"),
+            "text {text:?} sits in <{name}>, which does not draw it: {html}"
+        );
+    }
 }

@@ -490,42 +490,63 @@ fn parse_command(name: &str, tokens: &[Token], cursor: &mut usize) -> Vec<Node> 
     }
 }
 
+/// Writes a piece of text as the MathML element its kind calls for.
+///
+/// Every branch produces an element, and the last one produces `<mtext>`.
+/// Text left bare inside a row is dropped by the browser, which loses part of
+/// a formula without any sign that something is missing: a multi-digit number
+/// such as the 4800 in `year + 4800` simply did not appear, and neither did
+/// the name `delta_v` before it was given an element.
+fn classify(text: &str) -> String {
+    if text.is_empty() {
+        return String::new();
+    }
+    let first = text.chars().next().unwrap_or(' ');
+    let all = |predicate: fn(char) -> bool| text.chars().all(predicate);
+
+    // A space is a space. It is written as an explicit one rather than as
+    // text, because a run of spaces between two elements carries no glyph.
+    if all(char::is_whitespace) {
+        return "<mspace width=\"0.25em\"/>".to_string();
+    }
+    // A variable is one letter, whatever script it is written in. Greek is
+    // set as an identifier so that it is drawn as a variable rather than as
+    // upright text.
+    if text.chars().count() == 1 && first.is_alphabetic() {
+        return format!("<mi>{}</mi>", escape(text));
+    }
+
+    // A number starts with a digit. It may hold a decimal point or an
+    // exponent, as in `1.5` or `1e-3`.
+    if first.is_ascii_digit()
+        && all(|c| c.is_ascii_digit() || c == '.' || c == 'e' || c == 'E' || c == '-' || c == '+')
+    {
+        return format!("<mn>{}</mn>", escape(text));
+    }
+    // A name of Latin letters is an identifier, whether it is one letter or
+    // several, as in `a` or `delta_v`.
+    if all(|c| c.is_ascii_alphabetic()) {
+        return format!("<mi>{}</mi>", escape(text));
+    }
+    // An operator, including one written with its spacing, as in ` = `.
+    // The spaces are the operator's own width, so they are trimmed before
+    // the test rather than counted against it.
+    let trimmed = text.trim();
+    if !trimmed.is_empty() && trimmed.chars().all(|c| !c.is_alphanumeric()) {
+        return format!("<mo>{}</mo>", escape(trimmed));
+    }
+    // Anything else is text: a label in another script, or a phrase. It is
+    // set upright and kept whole rather than being read as variables.
+    format!("<mtext>{}</mtext>", escape(text))
+}
+
 /// Writes a node as MathML.
 fn emit(node: &Node) -> String {
     match node {
         // MathML distinguishes an identifier, a number and operators, and a
         // browser uses the element to choose the font: an upright digit in a
         // serif face reads as a number rather than as a variable.
-        Node::Text(text) => {
-            let mut characters = text.chars();
-            match (characters.next(), characters.next()) {
-                (Some(single), None) if single.is_numeric() => {
-                    format!("<mn>{}</mn>", escape(text))
-                }
-                // A name of more than one letter is an identifier too. Bare
-                // text inside a row is dropped by the browser, which is why
-                // a left-hand side such as `delta_v` was showing as nothing at
-                // all rather than as its name.
-                _ if text.chars().all(|c| c.is_alphabetic()) => {
-                    format!("<mi>{}</mi>", escape(text))
-                }
-                // An operator is written as one rather than as bare text. A
-                // browser sets text inside a row as ordinary glyphs with no
-                // spacing around it, so `rev/day` came out as `revday`; an
-                // operator carries its own spacing and cannot be swallowed.
-                (Some(single), None) if single.is_ascii_punctuation() => {
-                    format!("<mo>{}</mo>", escape(text))
-                }
-                // An operator written with its spaces, as the ` - ` between
-                // two terms. It is dropped by the browser for the same reason
-                // as a single one, which loses the sign of a difference: `1 -
-                // e^2` came out as `1e^2`.
-                _ if is_operator_text(text) => {
-                    format!("<mo>{}</mo>", escape(text.trim()))
-                }
-                _ => escape(text),
-            }
-        }
+        Node::Text(text) => classify(text),
         Node::Function(label) => format!("<mi>{}</mi>", escape(label)),
         Node::Row(children) => match children.len() {
             // A row of one is the child itself; an extra pair of brackets
@@ -806,20 +827,6 @@ fn tokenize_ascii(text: &str) -> Vec<Ascii> {
         index += 1;
     }
     tokens
-}
-
-/// Reports whether a piece of text is an operator written with its spacing.
-///
-/// The reader builds these for the operators between two terms, so they hold
-/// spaces around a punctuation mark and nothing else.
-fn is_operator_text(text: &str) -> bool {
-    let trimmed = text.trim();
-    // The minus the reader writes is the typographic one, U+2212, so the
-    // test is for anything that is neither a letter, a digit nor a space.
-    !trimmed.is_empty()
-        && trimmed
-            .chars()
-            .all(|character| !character.is_alphanumeric() && !character.is_whitespace())
 }
 
 /// The functions the documents write in plain ASCII.
