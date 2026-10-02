@@ -12,6 +12,17 @@ The service builds to a single binary that embeds every asset it serves. It
 does not read a content directory or a frontend build at run time, and it
 does not need either to be present next to the binary.
 
+## The running service
+
+The service is deployed at <https://apsis.focus1024.com/>. It serves this
+project: the same documents, graphs, interface catalogue, and tools, from the
+same build. Nothing about it is particular to a deployment, because
+everything it serves is inside the binary, so a copy built from the source is
+the same service.
+
+The deployed instance opens in Chinese and can be switched to English from
+the top bar.
+
 ## What it serves
 
 | Section | Content | Route prefix |

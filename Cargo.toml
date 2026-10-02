@@ -18,7 +18,10 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
 license = "GPL-3.0-or-later"
-description = "Web service for the ApsisRS computational kernels."
+description = "The documentation and tool service for the ApsisRS computational kernels."
+homepage = "https://apsis.focus1024.com/"
+repository = "https://git.focus1024.com/ApsisRS/apsis-book"
+readme = "README.md"
 publish = false
 
 [lib]
