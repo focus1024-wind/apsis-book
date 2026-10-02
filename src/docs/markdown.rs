@@ -30,8 +30,38 @@
 //!
 //! Every text node is escaped, so a document cannot inject markup. The only
 //! HTML the renderer emits is the markup it generates itself.
+//!
+//! 面向概念文档的小型 Markdown 渲染器。
+//!
+//! 该渲染器覆盖内容所用的 Markdown 子集。它不是 CommonMark 规范的通用实现；
+//! 它是能表达这些文档的最小渲染器，之所以写在这里，是因为服务不得依赖任何
+//! crate。
+//!
+//! 支持的构造：
+//!
+//! - ATX 标题，`#` 至 `######`
+//! - 段落，软换行以空格连接
+//! - 以三个反引号界定的围栏代码块，可带语言名
+//! - 带分隔行的竖线表格，单元格可以 `^` 结尾表示右对齐
+//! - 以 `-` 标记的无序列表与以 `1.` 标记的有序列表
+//! - 以 `>` 标记的块引用
+//! - 写作 `---` 的主题分隔线
+//! - 行内强调 `*text*` 与加粗强调 `**text**`
+//! - 以反引号界定的行内代码片段
+//! - 写作 `[text](url)` 的链接
+//! - 概念交叉引用，写作 `[[id]]` 或 `[[id|label]]`，渲染为带 `data-concept`
+//!   属性的链接，使前端无须整页加载即可路由
+//!
+//! 目标为 Rust 路径的链接，例如 `[Epoch](crate::Epoch)`，指的是库中的一个条目
+//! 而不是网址。这类链接渲染为指向该条目接口页的链接，使文档注释能像 `rustdoc`
+//! 那样交叉引用另一个条目。
+//!
+//! 每个文本节点都被转义，因此文档无法注入标记。渲染器输出的 HTML 只有它自己
+//! 生成的标记。
 
 /// Renders a Markdown document to HTML.
+///
+/// 把一篇 Markdown 文档渲染为 HTML。
 pub fn render(markdown: &str) -> String {
     render_with(markdown, None)
 }
@@ -41,10 +71,18 @@ pub fn render(markdown: &str) -> String {
 /// `items` is the set of item names the interface catalog contains. A
 /// shortcut link whose name is not in the set is left as a code span, so a
 /// doc comment can write `[`0, 1`]` without producing a link to nothing.
+///
+/// 渲染一篇 Markdown 文档，并解析指向库条目的链接。
+///
+/// `items` 是接口目录所含条目名的集合。名字不在集合中的简写链接保持为代码片段，
+/// 因此文档注释可以写 `[`0, 1`]` 而不会产生一个指向空处的链接。
 pub fn render_with(markdown: &str, items: Option<&std::collections::HashSet<String>>) -> String {
     // Anchors must be unique within the document: two headings that reduce
     // to the same text would otherwise share one anchor, and the second
     // entry of a table of contents would scroll to the first.
+
+    // 锚点必须在文档内唯一：否则归约为同一文本的两个标题会共用一个锚点，目录的
+    // 第二个条目会滚到第一个上。
     let mut seen: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     let lines: Vec<&str> = markdown.lines().collect();
     let mut output = String::with_capacity(markdown.len() + markdown.len() / 2);
@@ -77,6 +115,9 @@ pub fn render_with(markdown: &str, items: Option<&std::collections::HashSet<Stri
             // Two headings that reduce to the same text must not share one
             // anchor, or every later entry of a table of contents scrolls
             // to the first of them.
+
+            // 归约为同一文本的两个标题不得共用一个锚点，否则目录中后来的每个
+            // 条目都会滚到它们中的第一个。
             let base = slug(text);
             let count = seen.entry(base.clone()).or_insert(0);
             *count += 1;
@@ -138,6 +179,8 @@ pub fn render_with(markdown: &str, items: Option<&std::collections::HashSet<Stri
         }
 
         // A paragraph runs until a blank line or the start of another block.
+
+        // 段落一直延伸到空行或另一个块的开始。
         let (block, next) = collect_while(&lines, index, |line| {
             let trimmed = line.trim_end();
             !trimmed.trim().is_empty()
@@ -163,6 +206,8 @@ pub fn render_with(markdown: &str, items: Option<&std::collections::HashSet<Stri
 
 /// Returns the language of a fence line, or `None` when the line is not a
 /// fence.
+///
+/// 返回围栏行的语言；该行不是围栏时返回 `None`。
 fn fence_language(line: &str) -> Option<&str> {
     let trimmed = line.trim_start();
     let rest = trimmed.strip_prefix("```")?;
@@ -170,6 +215,8 @@ fn fence_language(line: &str) -> Option<&str> {
 }
 
 /// Returns the heading level of a line, or `None` when it is not a heading.
+///
+/// 返回某一行的标题层级；它不是标题时返回 `None`。
 fn heading_level(line: &str) -> Option<usize> {
     let mut level = 0;
     for character in line.chars() {
@@ -187,18 +234,24 @@ fn heading_level(line: &str) -> Option<usize> {
 }
 
 /// Returns `true` when a line is a thematic break.
+///
+/// 当某一行是主题分隔线时返回 `true`。
 fn is_thematic_break(line: &str) -> bool {
     let trimmed = line.trim();
     trimmed.len() >= 3 && trimmed.chars().all(|character| character == '-')
 }
 
 /// Returns `true` when a line opens an unordered list item.
+///
+/// 当某一行开启一个无序列表项时返回 `true`。
 fn is_unordered_item(line: &str) -> bool {
     let trimmed = line.trim_start();
     trimmed.starts_with("- ") || trimmed == "-"
 }
 
 /// Returns `true` when a line opens an ordered list item.
+///
+/// 当某一行开启一个有序列表项时返回 `true`。
 fn is_ordered_item(line: &str) -> bool {
     let trimmed = line.trim_start();
     let digits: String = trimmed.chars().take_while(char::is_ascii_digit).collect();
@@ -206,6 +259,8 @@ fn is_ordered_item(line: &str) -> bool {
 }
 
 /// Collects lines while `predicate` holds.
+///
+/// 在 `predicate` 成立期间收集各行。
 fn collect_while<'a, F>(lines: &[&'a str], start: usize, predicate: F) -> (Vec<&'a str>, usize)
 where
     F: Fn(&str) -> bool,
@@ -220,6 +275,8 @@ where
 }
 
 /// Collects the lines of a table, which includes the delimiter row.
+///
+/// 收集一张表格的各行，其中包含分隔行。
 fn collect_table<'a>(lines: &[&'a str], start: usize) -> (Vec<&'a str>, usize) {
     collect_while(lines, start, |line| {
         let trimmed = line.trim_end();
@@ -228,6 +285,8 @@ fn collect_table<'a>(lines: &[&'a str], start: usize) -> (Vec<&'a str>, usize) {
 }
 
 /// Renders a fenced code block.
+///
+/// 渲染一个围栏代码块。
 fn render_code_block(language: &str, code: &str) -> String {
     let class = if language.is_empty() {
         String::new()
@@ -251,6 +310,11 @@ fn render_code_block(language: &str, code: &str) -> String {
 /// The first row is the header, the second row is the delimiter that marks
 /// the table, and the remaining rows are the body. A cell whose content ends
 /// with `^` is aligned to the right, which is used for numeric columns.
+///
+/// 渲染一张竖线表格。
+///
+/// 第一行是表头，第二行是标示该表格的分隔行，其余各行是表体。内容以 `^` 结尾的
+/// 单元格右对齐，用于数值列。
 fn render_table(block: &[&str], items: Option<&std::collections::HashSet<String>>) -> String {
     if block.len() < 2 {
         return String::new();
@@ -292,12 +356,16 @@ fn render_table(block: &[&str], items: Option<&std::collections::HashSet<String>
 }
 
 /// Splits a table row into its cells.
+///
+/// 把一行表格拆分为它的各个单元格。
 fn split_row(row: &str) -> Vec<String> {
     let trimmed = row.trim().trim_start_matches('|').trim_end_matches('|');
     trimmed.split('|').map(str::to_string).collect()
 }
 
 /// Renders a list.
+///
+/// 渲染一个列表。
 fn render_list(
     block: &[&str],
     ordered: bool,
@@ -324,6 +392,11 @@ fn render_list(
 /// The scan is single pass. A backtick span ends at the next backtick, a
 /// link ends at its closing parenthesis, and a cross reference ends at its
 /// closing bracket; anything unmatched is left as literal text.
+///
+/// 渲染一段文本内的行内标记。
+///
+/// 扫描是一趟式的。反引号片段在下一个反引号处结束，链接在收尾圆括号处结束，
+/// 交叉引用在收尾方括号处结束；任何未配对的内容都按字面文本保留。
 #[allow(dead_code)]
 fn inline(text: &str) -> String {
     inline_items(text, None)
@@ -334,11 +407,21 @@ fn inline(text: &str) -> String {
 /// The formula is found before any other inline markup, because a dollar
 /// sign is otherwise ordinary text and a formula may itself contain the
 /// characters that the other rules act on.
+///
+/// 渲染写在美元符号之间的公式。
+///
+/// 公式在任何其他行内标记之前被找出，因为美元符号本身只是普通文本，而公式内部
+/// 可能含有其他规则会作用的字符。
 /// Reports whether a position falls inside a code span.
 ///
 /// The span is found by counting the backticks before this position: an odd
 /// number means the last one opened a span that has not been closed. Code
 /// spans do not nest, so the count alone settles it.
+///
+/// 报告某个位置是否落在代码片段之内。
+///
+/// 该片段通过数此位置之前的反引号来判定：奇数个意味着最后一个开启了一个尚未闭合
+/// 的片段。代码片段不嵌套，因此这个计数就足以定论。
 fn inside_code_span(characters: &[char], index: usize) -> bool {
     let mut backticks = 0;
     let mut cursor = index;
@@ -349,6 +432,8 @@ fn inside_code_span(characters: &[char], index: usize) -> bool {
         }
         // A span ends at a line break, so a backtick on an earlier line
         // cannot pair with one on this one.
+
+        // 片段在换行处结束，因此前一行上的反引号不能与本行上的配对。
         if characters[cursor] == '\n' {
             break;
         }
@@ -358,6 +443,8 @@ fn inside_code_span(characters: &[char], index: usize) -> bool {
 
 /// Finds a formula at `start`, if there is one.
 ///
+/// 在 `start` 处查找一个公式，若有。
+///
 /// Returns the source, whether it stands on its own line, and the position
 /// just past it.
 ///
@@ -366,17 +453,29 @@ fn inside_code_span(characters: &[char], index: usize) -> bool {
 /// the second dollar has a space before it, so the pair is not a formula and
 /// both dollars are text. Without the rule a sentence mentioning two prices
 /// would be read as a formula between them.
+///
+/// 返回源码、它是否独占一行，以及紧接其后位置。
+///
+/// 行内公式不得以空格开始或结束。正是这条规则把公式与价格或 shell 提示符区分
+/// 开来：在 `$5 和 `$HOME` 中第二个美元符号前有空格，因此这一对不是公式，两个
+/// 美元符号都是文本。没有这条规则，一句提到两个价格的话会被读成它们之间的公式。
 fn find_formula(characters: &[char], start: usize) -> Option<(String, bool, usize)> {
     // Two dollars open a formula that stands on its own line; a single one
     // opens a formula within the sentence.
+
+    // 两个美元符号开启独占一行的公式；一个则开启句内的公式。
     let display = characters.get(start + 1) == Some(&'$');
     let open = if display { start + 2 } else { start + 1 };
 
     if display {
         // A display formula runs to the closing pair and may span lines.
+
+        // 独占一行的公式一直延伸到收尾的一对，且可以跨行。
         let mut cursor = open;
         while cursor + 1 < characters.len() {
             // A code span is stepped over, for the same reason as below.
+
+            // 代码片段被跳过，理由与下文相同。
             if characters[cursor] == '`' {
                 match find(characters, cursor + 1, '`') {
                     Some(end) => {
@@ -402,6 +501,8 @@ fn find_formula(characters: &[char], start: usize) -> Option<(String, bool, usiz
     }
 
     // An inline formula must not open on a space, and must not close on one.
+
+    // 行内公式不得以空格开启，也不得以空格结束。
     match characters.get(open) {
         Some(character) if character.is_whitespace() => return None,
         None => return None,
@@ -412,6 +513,9 @@ fn find_formula(characters: &[char], start: usize) -> Option<(String, bool, usiz
         // A code span is stepped over rather than read, so that a dollar
         // inside one cannot close the formula. This is what keeps
         // `` `$HOME` `` from being read as the end of one.
+
+        // 代码片段被跳过而不是读取，使其中的美元符号无法闭合公式。正是这一点
+        // 使 `` `$HOME` `` 不会被读作某个公式的结尾。
         if characters[cursor] == '`' {
             match find(characters, cursor + 1, '`') {
                 Some(end) => {
@@ -419,6 +523,8 @@ fn find_formula(characters: &[char], start: usize) -> Option<(String, bool, usiz
                     continue;
                 }
                 // An unmatched backtick is ordinary text.
+
+                // 未配对的反引号是普通文本。
                 None => {
                     cursor += 1;
                     continue;
@@ -433,6 +539,8 @@ fn find_formula(characters: &[char], start: usize) -> Option<(String, bool, usiz
             return Some((source, false, cursor + 1));
         }
         // A newline ends the sentence, and a formula does not cross one.
+
+        // 换行结束句子，而公式不跨行。
         if characters[cursor] == '\n' {
             return None;
         }
@@ -442,6 +550,8 @@ fn find_formula(characters: &[char], start: usize) -> Option<(String, bool, usiz
 }
 
 /// Renders inline markup, resolving a shortcut link against `items`.
+///
+/// 渲染行内标记，并针对 `items` 解析简写链接。
 fn inline_items(text: &str, items: Option<&std::collections::HashSet<String>>) -> String {
     let characters: Vec<char> = text.chars().collect();
     let mut output = String::with_capacity(text.len());
@@ -453,6 +563,10 @@ fn inline_items(text: &str, items: Option<&std::collections::HashSet<String>>) -
         // otherwise ordinary text and the characters inside a formula are
         // not escaped. A dollar inside a code span is left to the code rule,
         // which is the older one and the more specific of the two.
+
+        // 公式在其他一切之前被读取，因为美元符号本身只是普通文本，而公式内部的
+        // 字符不被转义。代码片段内的美元符号交给代码规则处理，那是更早、也更
+        // 具体的规则。
         if character == '$' && !inside_code_span(&characters, index) {
             match find_formula(&characters, index) {
                 Some((source, display, next)) => {
@@ -461,6 +575,8 @@ fn inline_items(text: &str, items: Option<&std::collections::HashSet<String>>) -
                     continue;
                 }
                 // An unpaired dollar is a dollar.
+
+                // 未配对的美元符号就是美元符号。
                 None => {
                     output.push('$');
                     index += 1;
@@ -492,6 +608,9 @@ fn inline_items(text: &str, items: Option<&std::collections::HashSet<String>>) -
         // A shortcut link, `[`Name`]`, is how a doc comment refers to
         // another item without repeating the path. It is rendered as a link
         // to the item page when the inner text names a plausible item.
+
+        // 简写链接 `[`Name`]` 是文档注释引用另一个条目而不重复路径的方式。当内部
+        // 文本指名一个像样的条目时，它渲染为指向该条目页面的链接。
         if character == '[' && characters.get(index + 1) == Some(&'`') {
             if let Some((label, end)) = parse_shortcut_link(&characters, index) {
                 if let Some(item) = shortcut_item(&label, items) {
@@ -513,6 +632,9 @@ fn inline_items(text: &str, items: Option<&std::collections::HashSet<String>>) -
                     // A link to a library item becomes a link to the item
                     // page, which is where the reader can see the signature
                     // and the rest of the documentation.
+
+                    // 指向库条目的链接变成指向该条目页面的链接，读者在那里能看到
+                    // 签名与其余的文档。
                     Some(item) => output.push_str(&format!(
                         "<a class=\"api-link\" data-api=\"{}\" href=\"#/api/{}\">{}</a>",
                         escape_attr(&item),
@@ -565,17 +687,23 @@ fn inline_items(text: &str, items: Option<&std::collections::HashSet<String>>) -
 }
 
 /// Finds the next occurrence of `needle` at or after `start`.
+///
+/// 在 `start` 处或其后查找 `needle` 的下一次出现。
 fn find(characters: &[char], start: usize, needle: char) -> Option<usize> {
     (start..characters.len()).find(|index| characters[*index] == needle)
 }
 
 /// Finds the next `]]` at or after `start`.
+///
+/// 在 `start` 处或其后查找下一个 `]]`。
 fn find_pair(characters: &[char], start: usize) -> Option<usize> {
     (start..characters.len().saturating_sub(1))
         .find(|index| characters[*index] == ']' && characters[*index + 1] == ']')
 }
 
 /// Finds the next `**` at or after `start`.
+///
+/// 在 `start` 处或其后查找下一个 `**`。
 fn find_double(characters: &[char], start: usize) -> Option<usize> {
     (start..characters.len().saturating_sub(1))
         .find(|index| characters[*index] == '*' && characters[*index + 1] == '*')
@@ -585,6 +713,10 @@ fn find_double(characters: &[char], start: usize) -> Option<usize> {
 ///
 /// Returns the text between the backticks and the index just past the
 /// closing bracket.
+///
+/// 从 `start` 开始解析一个简写链接 `[`text`]`。
+///
+/// 返回反引号之间的文本，以及紧接收尾方括号之后的位置。
 fn parse_shortcut_link(characters: &[char], start: usize) -> Option<(String, usize)> {
     if characters.get(start) != Some(&'[') || characters.get(start + 1) != Some(&'`') {
         return None;
@@ -604,6 +736,12 @@ fn parse_shortcut_link(characters: &[char], start: usize) -> Option<(String, usi
 /// routes on the item name, so the last segment is used. A label that is
 /// not a plausible item name, such as `0, 1` or `-pi/2, pi/2`, is not a
 /// link and returns `None`.
+///
+/// 返回简写链接所指的条目名。
+///
+/// 简写链接指名一个条目，可带模块路径或方法，例如 `Epoch::mjd` 或
+/// `apsis_time::Epoch`。条目页面以条目名路由，因此取最后一段。不像样的条目名
+/// ——例如 `0, 1` 或 `-pi/2, pi/2`——不是链接，返回 `None`。
 fn shortcut_item<'a>(
     label: &'a str,
     items: Option<&std::collections::HashSet<String>>,
@@ -621,6 +759,10 @@ fn shortcut_item<'a>(
     // becoming a link. Without it, a name that starts with an upper case
     // letter is taken as an item, which is the correct guess for a doc
     // comment that names another item.
+
+    // 目录可用时，名字必须是库中的一个条目，这正是使 `0, 1` 这样的标签或一个
+    // 短语不会变成链接的原因。没有目录时，以大写字母开头的名字被当作条目，对
+    // 指名另一个条目的文档注释而言，这是正确的猜测。
     match items {
         Some(items) => items.contains(name).then_some(name),
         None => name
@@ -643,6 +785,17 @@ fn shortcut_item<'a>(
 /// such as `crate::PropagationErrorKind::Decayed`. The resolver walks the
 /// path from the right and returns the first segment that is a known item,
 /// so such a link points at the enum or the trait that declares it.
+///
+/// 返回写作链接目标的 Rust 路径的条目名。
+///
+/// 文档注释用 Rust 路径链接到库条目，例如 `crate::Epoch`、
+/// `core::result::Result` 或 `f64::rem_euclid`。接口页面路由所用的名字是该路径
+/// 的最后一段，并去掉任何泛型实参。目标若是网址或片段，就不是 Rust 路径，返回
+/// `None`，链接按原样保留。
+///
+/// 路径可以以变体或方法结尾而不是条目本身，例如
+/// `crate::PropagationErrorKind::Decayed`。解析器从右往左走这条路径，返回第一个
+/// 已知条目的片段，因此这样的链接指向声明它的枚举或 trait。
 fn rust_path_target(
     url: &str,
     items: Option<&std::collections::HashSet<String>>,
@@ -685,6 +838,9 @@ fn rust_path_target(
 
 /// Parses a `[label](url)` link starting at `start`, returning the label,
 /// the URL, and the index just past the link.
+///
+/// 从 `start` 开始解析 `[label](url)` 链接，返回标签、URL 与紧接链接之后的
+/// 位置。
 fn parse_link(characters: &[char], start: usize) -> Option<(String, String, usize)> {
     if characters.get(start) != Some(&'[') {
         return None;
@@ -704,6 +860,11 @@ fn parse_link(characters: &[char], start: usize) -> Option<(String, String, usiz
 /// The argument is either `id` or `id|label`. An identifier that is not a
 /// plausible identifier is rendered as literal text, so a stray `[[` in the
 /// prose cannot produce a broken link.
+///
+/// 渲染一个概念交叉引用。
+///
+/// 实参或为 `id`，或为 `id|label`。不像样的标识按字面文本渲染，因此正文中一个
+/// 走失的 `[[` 不会产生断链。
 fn render_concept_link(inner: &str, items: Option<&std::collections::HashSet<String>>) -> String {
     let (id, label) = match inner.split_once('|') {
         Some((id, label)) => (id.trim(), label.trim()),
@@ -725,6 +886,8 @@ fn render_concept_link(inner: &str, items: Option<&std::collections::HashSet<Str
 }
 
 /// Escapes text for use in an HTML text node.
+///
+/// 转义文本，供 HTML 文本节点使用。
 pub(crate) fn escape(text: &str) -> String {
     let mut output = String::with_capacity(text.len());
     for character in text.chars() {
@@ -745,11 +908,18 @@ pub(crate) fn escape(text: &str) -> String {
 /// Only the characters that can end the attribute or start an entity are
 /// escaped; the value never contains a quote because identifiers are
 /// restricted by [`render_concept_link`] and links are escaped here too.
+///
+/// 转义文本，供双引号属性内部使用。
+///
+/// 只转义那些能结束属性或开启实体的字符；该值绝不包含引号，因为标识受
+/// [`render_concept_link`] 限制，链接在此也被转义。
 pub(crate) fn escape_attr(text: &str) -> String {
     escape(text)
 }
 
 /// Returns a URL friendly slug for a heading.
+///
+/// 返回标题的 URL 友好短名。
 fn slug(text: &str) -> String {
     let mut slug = String::with_capacity(text.len());
     let mut last_dash = true;
@@ -758,6 +928,10 @@ fn slug(text: &str) -> String {
         // characters instead of collapsing to the fallback. Keeping only the
         // ASCII ones gave every Chinese heading the same anchor, so the
         // table of contents pointed every entry at the first section.
+
+        // 保留任何文字系统的字母，因此中文标题保留自己的字符，而不会塌缩到回退值。
+        // 只保留 ASCII 字母曾使每个中文标题得到同一个锚点，目录的每一条都指向
+        // 第一节。
         if character.is_alphanumeric() {
             for lowered in character.to_lowercase() {
                 slug.push(lowered);
@@ -782,6 +956,11 @@ fn slug(text: &str) -> String {
 /// This is used to build the search index, where markup would only add
 /// noise. Cross references keep their label, links keep their text, and
 /// code spans keep their content.
+///
+/// 从文本中剥去 Markdown 标记，留下可读的纯文本。
+///
+/// 用于构建搜索索引，那里标记只会带来噪声。交叉引用保留其标签，链接保留其文本，
+/// 代码片段保留其内容。
 pub fn to_plain_text(markdown: &str) -> String {
     let mut output = String::with_capacity(markdown.len());
     for line in markdown.lines() {
@@ -809,6 +988,8 @@ pub fn to_plain_text(markdown: &str) -> String {
 }
 
 /// Removes inline markup from a single line.
+///
+/// 从单独一行中移除行内标记。
 fn strip_inline(text: &str) -> String {
     let characters: Vec<char> = text.chars().collect();
     let mut output = String::with_capacity(text.len());
@@ -839,6 +1020,9 @@ fn strip_inline(text: &str) -> String {
             // another item. The plain text keeps the item name so that a
             // summary still names what it is about, and the brackets never
             // reach the reader.
+
+            // rustdoc 简写引用 `[`Epoch`]` 是对另一个条目的引用。纯文本保留条目
+            // 名，使摘要仍然指名它讲的是什么，而方括号绝不会到达读者眼前。
             if let Some((label, end)) = parse_shortcut_link(&characters, index) {
                 let name = label.rsplit("::").next().unwrap_or(&label);
                 output.push_str(name.trim());
