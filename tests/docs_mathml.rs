@@ -296,3 +296,38 @@ fn a_row_holds_elements_rather_than_text() {
         );
     }
 }
+
+#[test]
+fn a_bracketed_group_takes_the_power_that_follows_it() {
+    // The bracket branches returned before the scripts were attached, so the
+    // caret was set as an ordinary symbol and the exponent sat beside the
+    // group: `(a + b)^2` showed its own caret.
+    for latex in [
+        r"(a + b)^2",
+        r"\left( \frac{x_{ke}}{n_0} \right)^{2/3}",
+        r"\left[ a \right]^2",
+        r"\{a\}_2",
+    ] {
+        let html = render_plain_of(latex);
+        assert!(
+            html.contains("<msup>") || html.contains("<msub>"),
+            "{latex} kept its script marker: {html}"
+        );
+        assert!(
+            !html.contains("<mo>^</mo>") && !html.contains("<mo>_</mo>"),
+            "{latex} left a script marker in the output: {html}"
+        );
+    }
+}
+
+/// The MathML of a formula written in LaTeX.
+fn render_plain_of(latex: &str) -> String {
+    apsis_book::docs::mathml::render(latex, false)
+        .split("display=\"inline\">")
+        .nth(1)
+        .unwrap_or("")
+        .split("</math>")
+        .next()
+        .unwrap_or("")
+        .to_string()
+}

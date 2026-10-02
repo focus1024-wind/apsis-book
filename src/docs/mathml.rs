@@ -524,32 +524,35 @@ fn parse_symbol(symbol: char, tokens: &[Token], cursor: &mut usize, _depth: &mut
             Node::Text(text)
         }
         // An opening bracket stretches to the height of what it contains.
+        //
+        // A bracketed group is a base like any other, so it is given its
+        // scripts by the same call at the end of this function. Returning
+        // the group from here instead left `(a + b)^2` with the caret set as
+        // an ordinary symbol and the exponent beside it, and inside a
+        // fraction the exponent escaped the fraction altogether.
         '(' => {
             let inner = parse_row(tokens, cursor, Some(&[',', ')']));
             if matches!(tokens.get(*cursor), Some(Token::Symbol(')'))) {
                 *cursor += 1;
             }
-            return vec![Node::Row(vec![
+            Node::Row(vec![
                 Node::Text("(".to_string()),
                 Node::Row(inner),
                 Node::Text(")".to_string()),
-            ])];
+            ])
         }
         '[' => {
             let inner = parse_row(tokens, cursor, Some(&[',', ']']));
             if matches!(tokens.get(*cursor), Some(Token::Symbol(']'))) {
                 *cursor += 1;
             }
-            return vec![Node::Row(vec![
+            Node::Row(vec![
                 Node::Text("[".to_string()),
                 Node::Row(inner),
                 Node::Text("]".to_string()),
-            ])];
+            ])
         }
-        '{' => {
-            let inner = parse_row(tokens, cursor, Some(&['}']));
-            return vec![Node::Row(inner)];
-        }
+        '{' => Node::Row(parse_row(tokens, cursor, Some(&['}']))),
         '_' | '^' => Node::Text(symbol.to_string()),
         // The spaces are kept between words and dropped elsewhere, which is
         // what keeps `a b` apart without leaving gaps after a bracket.
@@ -629,6 +632,18 @@ fn parse_command(name: &str, tokens: &[Token], cursor: &mut usize) -> Vec<Node> 
             };
             vec![Node::Text(symbol.to_string())]
         }
+        // A vertical bar names an absolute value or a norm. Written as a
+        // command it is a delimiter like any other, and was being shown as
+        // the letters of its own name.
+        "lvert" | "rvert" | "vert" => {
+            vec![attach_scripts(Node::Text("|".to_string()), tokens, cursor)]
+        }
+        "lVert" | "rVert" | "Vert" => {
+            vec![attach_scripts(Node::Text("‖".to_string()), tokens, cursor)]
+        }
+        "lbrace" | "rbrace" => {
+            vec![attach_scripts(Node::Text("{".to_string()), tokens, cursor)]
+        }
         "bmod" => vec![Node::Text(" mod ".to_string())],
         "pmod" => {
             let argument = parse_argument(tokens, cursor);
@@ -686,12 +701,15 @@ fn parse_command(name: &str, tokens: &[Token], cursor: &mut usize) -> Vec<Node> 
         // `\text{...}` holds words as they are written. Read as variables
         // they would be set one letter at a time, so `km` became `k m`.
         "text" | "mathrm" | "operatorname" | "mbox" => {
-            vec![Node::Verbatim(parse_raw_text(tokens, cursor))]
+            let words = Node::Verbatim(parse_raw_text(tokens, cursor));
+            vec![attach_scripts(words, tokens, cursor)]
         }
-        // A style command keeps its argument set as mathematics.
+        // A style command keeps its argument set as mathematics. The group
+        // it holds is a base, so it takes the scripts that follow it: the
+        // `_central` of `\mathbf{a}_{\text{central}}` belongs to the `a`.
         "mathsf" | "mathtt" | "mathbf" | "mathit" | "mathcal" | "mathfrak" => {
             let inner = parse_argument(tokens, cursor);
-            vec![Node::Row(vec![inner])]
+            vec![attach_scripts(Node::Row(vec![inner]), tokens, cursor)]
         }
         // An unknown command is shown as written, so that a formula that
         // uses one still reads rather than losing part of itself.

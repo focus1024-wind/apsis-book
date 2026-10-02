@@ -173,6 +173,17 @@ fn every_formula_shows_every_character_it_was_written_with() {
                     .chars()
                     .filter(|c| c.is_alphanumeric())
                     .collect();
+                // A caret and an underscore are notation: they say what to
+                // raise or lower, and neither is drawn. One that reaches the
+                // output is a script that was never attached, which leaves a
+                // formula that has every character in it and is still wrong.
+                let body = &html[start..end];
+                for marker in ["<mo>^</mo>", "<mo>_</mo>"] {
+                    assert!(
+                        !body.contains(marker),
+                        "{id} 渲染结果里留下了记法符号 {marker}：{body}"
+                    );
+                }
                 let missing: String = written.chars().filter(|c| !shown.contains(*c)).collect();
                 if !missing.is_empty() {
                     failures.push(format!(
