@@ -18,3 +18,7 @@
 # Session exports dropped into the project directory by tooling that runs
 # alongside it. They are large and unrelated to the service.
 apsis-book.html
+
+# Diagnostics dropped beside the project while working on it, such as the
+# screenshots of a page under inspection.
+/tmp
