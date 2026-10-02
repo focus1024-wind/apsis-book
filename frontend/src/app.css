@@ -1542,6 +1542,31 @@ tbody tr:hover {
   line-height: 1.5;
 }
 
+/*
+ * The MathML is taken out of text selection and the source is offered in its
+ * place.
+ *
+ * A formula is one element per token, and a browser copying a selection walks
+ * those elements one at a time: copying `a_1 = (x_ke / n_0)^{2/3}` from the
+ * page gave one character per line, 132 lines for 132 characters. What a
+ * reader wants on the clipboard is the formula, so the source is what can be
+ * selected and the markup cannot.
+ */
+.math math {
+  user-select: none;
+}
+
+/* Kept out of the layout but not out of a selection, so that a copy finds it
+   where the formula is. */
+.math-source {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .math-display {
   display: block;
   margin: 1.1rem 0;

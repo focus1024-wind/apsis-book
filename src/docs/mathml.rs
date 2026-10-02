@@ -23,14 +23,21 @@ use crate::docs::markdown::{escape, escape_attr};
 /// `display` is set when the formula stands on its own line, which makes it
 /// larger and centred.
 pub fn render(latex: &str, display: bool) -> String {
+    // The delimiters of a display formula are on their own lines, so the
+    // source arrives with the newline that followed the opening pair.
+    let latex = latex.trim();
     let body = to_mathml(&normalize(latex));
     let class = if display { "math math-display" } else { "math" };
     // The original source is kept in a data attribute so that the formula
     // can be recovered from the page, for copying and for the tests.
+    // The MathML is one element per token, and a browser copying a selection
+    // walks them one at a time: a formula copied from the page arrives as one
+    // character per line. The source is therefore carried beside it in an
+    // element a reader can select, and the MathML is taken out of selection
+    // so that what a copy yields is the formula as it was written.
     format!(
-        "<span class=\"{class}\" data-tex=\"{}\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" \
-         display=\"{display}\">{body}</math></span>",
-        escape_attr(latex),
+        "<span class=\"{class}\" data-tex=\"{source}\"><math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"{display}\">{body}</math><span class=\"math-source\">{source}</span></span>",
+        source = escape_attr(latex),
         display = if display { "block" } else { "inline" }
     )
 }
