@@ -105,6 +105,36 @@ English to every reader, with a note saying so.
 ./target/release/apsis-book --address 127.0.0.1:8080
 ```
 
+### Docker
+
+The image carries the binary and nothing else, because the binary carries
+everything it serves. The build context is the directory above this one,
+because the crate depends on `apsis-rs` by path:
+
+```sh
+# From the workspace root.
+docker build -f apsis-book/Dockerfile -t apsis-book:0.1.0 .
+docker run --rm -p 8080:8080 apsis-book:0.1.0
+```
+
+The command names the host explicitly. The program defaults to the loopback
+address, where it answers only itself, so a container started without it would
+serve nothing to anyone.
+
+There is no `HEALTHCHECK`. Probing `GET /health` is what an orchestrator
+should do, and a probe inside the container would mean adding an HTTP client
+to an image that needs no other tool. A Kubernetes probe says the same thing
+without one:
+
+```yaml
+livenessProbe:
+  httpGet: { path: /health, port: 8080 }
+```
+
+The image is built for the architecture it is built on. A multi-architecture
+image would need a builder per architecture; the `ARG`s at the top of the
+Dockerfile are the versions, and `--build-arg RUST_VERSION=` changes one.
+
 Open `http://127.0.0.1:8080`. The JSON interfaces are available without the
 frontend:
 
@@ -198,6 +228,8 @@ apsis-book/
 ├── Cargo.toml                one runtime dependency: apsis-rs
 ├── content/                  authored documents, graphs, and generated catalog
 │   └── concepts/<layer>/     documents, one directory per layer
+├── Dockerfile                the release image, in three stages
+├── Dockerfile.dockerignore   what the image build is not sent
 ├── frontend/                 Svelte and TypeScript, built by Vite
 │   ├── src/lib/              API client, router, components, formatting
 │   ├── src/pages/            one component per route

@@ -91,6 +91,32 @@ apsis-book --address 0.0.0.0:8080
 ./target/release/apsis-book --address 127.0.0.1:8080
 ```
 
+### Docker
+
+镜像只携带二进制，别无其他，因为二进制携带了它所提供的一切。构建上下文是本目录
+的上一级，因为该 crate 以路径依赖引用 `apsis-rs`：
+
+```sh
+# 在工作区根目录执行。
+docker build -f apsis-book/Dockerfile -t apsis-book:0.1.0 .
+docker run --rm -p 8080:8080 apsis-book:0.1.0
+```
+
+命令中显式给出主机。程序的默认值是回环地址，那里它只回应自己，因此不带这一项启动
+的容器不会向任何人提供服务。
+
+镜像没有 `HEALTHCHECK`。探测 `GET /health` 是编排系统应当做的事，而在容器内部
+探测意味着给一个不需要其他工具的体积里加上 HTTP 客户端。Kubernetes 的探针无须
+它即可表达同一件事：
+
+```yaml
+livenessProbe:
+  httpGet: { path: /health, port: 8080 }
+```
+
+镜像为其构建所在的架构而构建。多架构镜像需要每个架构各一个构建器；Dockerfile
+顶部的 `ARG` 就是各版本号，用 `--build-arg RUST_VERSION=` 可更改其中之一。
+
 打开 `http://127.0.0.1:8080`。JSON 接口不依赖前端即可访问：
 
 - `GET /health`
@@ -174,6 +200,8 @@ apsis-book/
 ├── Cargo.toml                一个运行时依赖：apsis-rs
 ├── content/                  撰写的文档、图谱与生成的目录
 │   └── concepts/<layer>/     文档，每层一个目录
+├── Dockerfile                发布镜像，分三个阶段
+├── Dockerfile.dockerignore   镜像构建不接收的内容
 ├── frontend/                 Svelte 与 TypeScript，由 Vite 构建
 │   ├── src/lib/              API 客户端、路由器、组件、格式化
 │   ├── src/pages/            每个路由一个组件
