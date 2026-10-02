@@ -110,6 +110,5 @@ pub fn load_api_catalog() -> ApiCatalog {
             item_names: std::collections::HashSet::new(),
         };
     };
-    let translation = content::get("api.zh.json").and_then(|text| crate::json::parse(text).ok());
-    api::parse_with(text, translation.as_ref())
+    api::parse(text)
 }

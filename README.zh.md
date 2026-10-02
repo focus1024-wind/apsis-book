@@ -134,7 +134,9 @@ curl -s http://127.0.0.1:8080/api/tools/hohmann-transfer/run \
 
 ## 重新生成接口目录
 
-接口文档由 ApsisRS 源码生成，而非手工撰写。源码变化时在本目录运行提取脚本，
+接口文档由 ApsisRS 源码生成，而非手工撰写。那里的文档注释先写英文、再写中文，
+提取器把两半拆开，因此两种语言都来自代码旁的同一段注释，谁也不会落后于它所描述的
+代码。源码变化时在本目录运行提取脚本，
 然后重新构建：
 
 ```sh
@@ -154,8 +156,7 @@ cargo build --release
 | `content/concepts/<layer>/*.zh.md` | 中文译文，文件名对应其所译的文件 |
 | `content/graph/concepts.json` | 概念图谱 |
 | `content/flows/*.json` | 算法流程图 |
-| `content/api.json` | 生成的接口目录；不要手工编辑 |
-| `content/api.zh.json` | crate 概要与条目文档注释的中文译文 |
+| `content/api.json` | 生成的接口目录，含两种语言；不要手工编辑 |
 
 文档头部声明 `title`、`summary`、`tags` 与 `prerequisites`。标识与层不由头部
 声明：标识即文件名，层即目录，二者无法与目录结构相抵触。交叉引用写作

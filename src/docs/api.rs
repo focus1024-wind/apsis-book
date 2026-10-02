@@ -27,9 +27,9 @@ pub struct ApiItem {
     pub doc: String,
     /// The documentation comment in Chinese, when a translation exists.
     ///
-    /// The translation lives in `content/api.zh.json`, keyed by the item
-    /// name. Interface documentation is long, and a reader of the Chinese
-    /// interface should not have to read English to understand a function.
+    /// The author writes the doc comment in English and then in Chinese, and
+    /// the extractor splits the two halves, so both languages come from the
+    /// one comment beside the code.
     pub doc_zh: Option<String>,
     /// `true` when the item is an associated item rather than a module
     /// level one.
@@ -122,18 +122,14 @@ impl ApiCatalog {
 /// A malformed member is skipped rather than failing the whole document, so
 /// that a partially generated catalog still serves the items it contains.
 #[allow(dead_code)]
-pub fn parse(text: &str) -> ApiCatalog {
-    parse_with(text, None)
-}
-
-/// Parses the catalog and applies a Chinese translation when one is given.
+/// Parses the catalogue.
 ///
-/// `translation` is the parsed content of `content/api.zh.json`, which maps
-/// a crate name to its summary and an item name to its documentation. The
-/// two are kept in separate files because the catalog is generated from the
-/// source while the translation is authored, so regenerating the catalog
-/// must not discard the translation.
-pub fn parse_with(text: &str, translation: Option<&Value>) -> ApiCatalog {
+/// The catalogue carries both languages, because `apsis-rs` writes its doc
+/// comments in English and then in Chinese. `scripts/extract_api.sh` splits
+/// the two halves while it reads the sources, so no separate translation
+/// file is needed and a translation cannot fall behind the source it
+/// describes.
+pub fn parse(text: &str) -> ApiCatalog {
     let Ok(value) = json::parse(text) else {
         return ApiCatalog {
             crates: Vec::new(),
@@ -141,8 +137,6 @@ pub fn parse_with(text: &str, translation: Option<&Value>) -> ApiCatalog {
             item_names: std::collections::HashSet::new(),
         };
     };
-    let crate_texts = translation.and_then(|value| value.get("crates"));
-    let item_texts = translation.and_then(|value| value.get("items"));
     let generated_from = value
         .get("generated_from")
         .map(Value::as_array)
@@ -155,7 +149,7 @@ pub fn parse_with(text: &str, translation: Option<&Value>) -> ApiCatalog {
         .map(Value::as_array)
         .unwrap_or_default()
         .iter()
-        .filter_map(|krate| parse_crate(krate, crate_texts, item_texts))
+        .filter_map(parse_crate)
         .collect();
     let item_names = crates
         .iter()
@@ -168,46 +162,13 @@ pub fn parse_with(text: &str, translation: Option<&Value>) -> ApiCatalog {
     }
 }
 
-/// Returns a translated member of a table, when the key is present.
-fn translated(table: Option<&Value>, key: &str) -> Option<String> {
-    table
-        .and_then(|table| table.get(key))
+/// Returns a string member of an object, when it is present and not empty.
+fn string_member(value: &Value, key: &str) -> Option<String> {
+    value
+        .get(key)
         .and_then(Value::as_str)
         .filter(|text| !text.is_empty())
         .map(str::to_string)
-}
-
-/// Returns the Chinese documentation of an item.
-///
-/// An associated item is looked up as `Type::name` first, then as `name`.
-/// Several types have an associated `new`, so the qualified key is the one
-/// that disambiguates them; the bare key is kept as a fallback for a
-/// translation that is the same for every owner.
-/// Returns the Chinese text of an item.
-///
-/// Three keys are tried, most specific first. A name such as `new` is used
-/// by many crates and several of them mean different things by it, so a
-/// translation filed under the name alone would be shown against the wrong
-/// documentation. The crate qualified key names one item exactly. The owner
-/// qualified key names a method of one type, which separates two items of
-/// the same crate that share a name, such as the `new` of two types. The
-/// bare key is the last resort and is only correct for a name that one crate
-/// uses for one thing.
-fn item_translation(
-    item_texts: Option<&Value>,
-    krate: &str,
-    owner: Option<&str>,
-    name: &str,
-) -> Option<String> {
-    if let Some(text) = translated(item_texts, &format!("{krate}::{name}")) {
-        return Some(text);
-    }
-    if let Some(owner) = owner {
-        if let Some(text) = translated(item_texts, &format!("{owner}::{name}")) {
-            return Some(text);
-        }
-    }
-    translated(item_texts, name)
 }
 
 /// Returns the name of the type an item is associated with.
@@ -227,11 +188,7 @@ fn owner_of(items: &[Value], index: usize) -> Option<String> {
 }
 
 /// Parses one crate.
-fn parse_crate(
-    value: &Value,
-    crate_texts: Option<&Value>,
-    item_texts: Option<&Value>,
-) -> Option<ApiCrate> {
+fn parse_crate(value: &Value) -> Option<ApiCrate> {
     let name = value.get("name")?.as_str()?.to_string();
     // A crate that belongs to no layer, which is the facade that re-exports
     // every layer, is left empty. Defaulting it to a layer would file it
@@ -250,16 +207,11 @@ fn parse_crate(
     let items = raw_items
         .iter()
         .enumerate()
-        .filter_map(|(index, item)| {
-            parse_item(
-                item,
-                item_texts,
-                &name,
-                owner_of(raw_items, index).as_deref(),
-            )
-        })
+        .filter_map(|(index, item)| parse_item(item, &name, owner_of(raw_items, index).as_deref()))
         .collect();
-    let summary_zh = translated(crate_texts, &name);
+    // The module documentation is written in English and then in Chinese;
+    // the extractor separated the two.
+    let summary_zh = string_member(value, "summary_zh");
     Some(ApiCrate {
         name,
         layer,
@@ -270,12 +222,7 @@ fn parse_crate(
 }
 
 /// Parses one item.
-pub(crate) fn parse_item(
-    value: &Value,
-    item_texts: Option<&Value>,
-    krate: &str,
-    owner: Option<&str>,
-) -> Option<ApiItem> {
+pub(crate) fn parse_item(value: &Value, _krate: &str, _owner: Option<&str>) -> Option<ApiItem> {
     let name = value.get("name")?.as_str()?.to_string();
     let kind = value.get("kind")?.as_str()?.to_string();
     let signature = value
@@ -292,7 +239,7 @@ pub(crate) fn parse_item(
         .get("associated")
         .and_then(Value::as_bool)
         .unwrap_or(false);
-    let doc_zh = item_translation(item_texts, krate, owner, &name);
+    let doc_zh = string_member(value, "doc_zh");
     Some(ApiItem {
         kind,
         name,

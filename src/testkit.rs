@@ -40,14 +40,9 @@ pub fn crate_summary_brief(summary: &str) -> String {
     crate::api::crate_summary_brief(summary)
 }
 
-/// Parses one interface item, looking its translation up by crate.
-pub fn parse_item(
-    value: &Value,
-    item_texts: Option<&Value>,
-    krate: &str,
-    owner: Option<&str>,
-) -> Option<ApiItem> {
-    crate::docs::api::parse_item(value, item_texts, krate, owner)
+/// Parses one interface item of the catalogue.
+pub fn parse_item(value: &Value, krate: &str, owner: Option<&str>) -> Option<ApiItem> {
+    crate::docs::api::parse_item(value, krate, owner)
 }
 
 /// Splits text into the tokens the search index is built from.

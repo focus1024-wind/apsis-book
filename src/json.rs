@@ -224,6 +224,22 @@ impl std::error::Error for JsonError {}
 ///
 /// Whitespace is allowed around every token. Trailing content after the
 /// first complete value is rejected.
+/// Returns the length in bytes of the UTF-8 sequence starting with `byte`.
+///
+/// The leading byte states the length; the continuation bytes are checked
+/// when the sequence itself is validated.
+fn utf8_length(byte: u8) -> usize {
+    match byte {
+        0x00..=0x7f => 1,
+        0xc0..=0xdf => 2,
+        0xe0..=0xef => 3,
+        0xf0..=0xf7 => 4,
+        // A continuation or an invalid leading byte; one byte is taken so
+        // that the validation reports it as invalid rather than looping.
+        _ => 1,
+    }
+}
+
 pub fn parse(input: &str) -> Result<Value, JsonError> {
     let mut parser = Parser {
         bytes: input.as_bytes(),
@@ -466,15 +482,22 @@ impl Parser<'_> {
                     ));
                 }
                 _ => {
-                    // Decode one UTF-8 scalar from the remaining bytes.
-                    let rest = std::str::from_utf8(&self.bytes[self.position..])
+                    // Decode one UTF-8 scalar from the bytes at this position.
+                    //
+                    // Only the sequence itself is validated. Validating the
+                    // whole remaining buffer instead would be correct and
+                    // quadratic, because it repeats for every character in
+                    // the document: a catalogue of seven hundred kilobytes
+                    // spent half a minute in this one line.
+                    let length = utf8_length(byte);
+                    let end = self.position + length;
+                    if end > self.bytes.len() {
+                        return Err(JsonError::new(self.position, "truncated utf-8 in string"));
+                    }
+                    let sequence = std::str::from_utf8(&self.bytes[self.position..end])
                         .map_err(|_| JsonError::new(self.position, "invalid utf-8 in string"))?;
-                    let character = rest
-                        .chars()
-                        .next()
-                        .ok_or_else(|| JsonError::new(self.position, "unterminated string"))?;
-                    output.push(character);
-                    self.position += character.len_utf8();
+                    output.push_str(sequence);
+                    self.position = end;
                 }
             }
         }

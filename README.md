@@ -153,7 +153,9 @@ document means creating it under its layer and listing it in
 ## Regenerating the interface catalog
 
 The interface documentation is generated from the ApsisRS sources rather than
-written by hand. Run the extractor from this directory when the sources
+written by hand. The doc comments there are written in English and then in
+Chinese, and the extractor splits the two halves, so both languages come from
+the comment beside the code and neither can fall behind what it describes. Run the extractor from this directory when the sources
 change, then rebuild:
 
 ```sh
@@ -174,8 +176,7 @@ or later. The Rust build does not run it and does not depend on Python.
 | `content/concepts/<layer>/*.zh.md` | Chinese translations, named for the file they translate |
 | `content/graph/concepts.json` | The concept graph |
 | `content/flows/*.json` | The algorithm flow graphs |
-| `content/api.json` | The generated interface catalog; do not edit by hand |
-| `content/api.zh.json` | Chinese translations of the crate summaries and item doc comments |
+| `content/api.json` | The generated interface catalog, in both languages; do not edit by hand |
 
 A document header declares `title`, `summary`, `tags`, and `prerequisites`.
 The identifier and the layer are not declared: the identifier is the file

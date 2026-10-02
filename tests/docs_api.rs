@@ -43,38 +43,57 @@ fn malformed_input_yields_an_empty_catalog() {
 }
 
 #[test]
-fn a_translation_filed_under_the_crate_beats_the_bare_name() {
-    // `new` means something different in each crate, so a translation
-    // filed under the name alone would be shown against the wrong
-    // documentation.
+fn an_item_carries_both_languages() {
+    // `apsis-rs` writes the doc comment in English and then in Chinese, and
+    // the extractor separates the two into the catalogue.
     let item = r#"{"kind":"fn","name":"new","doc":"English.",
-            "signature":"pub fn new()"}"#;
-    let texts = r#"{
-            "new":"裸译。",
-            "apsis-core::new":"属于 apsis-core 的译文。"}"#;
+            "doc_zh":"中文。","signature":"pub fn new()"}"#;
     let parsed = parse_item(
         &apsis_book::json::parse(item).expect("an item"),
-        Some(&apsis_book::json::parse(texts).expect("the translations")),
         "apsis-core",
         None,
     )
     .expect("an item");
-    assert_eq!(parsed.doc_zh.as_deref(), Some("属于 apsis-core 的译文。"));
+    assert_eq!(parsed.doc.as_str(), "English.");
+    assert_eq!(parsed.doc_zh.as_deref(), Some("中文。"));
 }
 
 #[test]
-fn a_translation_filed_under_the_owner_separates_two_items_of_one_crate() {
-    // Two types of one crate each have a `new`; the owner tells them
-    // apart.
+fn an_item_without_a_translation_has_none() {
+    // A comment that is English only leaves the Chinese empty, and the
+    // reader is then shown the English rather than nothing.
     let item = r#"{"kind":"fn","name":"new","doc":"English.",
             "signature":"pub fn new()"}"#;
-    let texts = r#"{"Inertial::new":"惯性系的新建。"}"#;
     let parsed = parse_item(
         &apsis_book::json::parse(item).expect("an item"),
-        Some(&apsis_book::json::parse(texts).expect("the translations")),
-        "apsis-coord",
-        Some("Inertial"),
+        "apsis-core",
+        None,
     )
     .expect("an item");
-    assert_eq!(parsed.doc_zh.as_deref(), Some("惯性系的新建。"));
+    assert_eq!(parsed.doc_zh, None);
+}
+
+#[test]
+fn the_committed_catalogue_carries_both_languages_for_every_item() {
+    // The translation comes from the source doc comments rather than from a
+    // file maintained beside them, so a crate that was never translated shows
+    // up here rather than silently reading as English to a Chinese reader.
+    let catalog = apsis_book::docs::load_api_catalog();
+    let mut missing = Vec::new();
+    for krate in &catalog.crates {
+        if krate.summary_zh.is_none() {
+            missing.push(format!("{} (crate summary)", krate.name));
+        }
+        for item in &krate.items {
+            if item.doc_zh.is_none() {
+                missing.push(format!("{}::{}", krate.name, item.name));
+            }
+        }
+    }
+    assert!(
+        missing.is_empty(),
+        "{} entries have no Chinese: {:?}",
+        missing.len(),
+        &missing[..missing.len().min(8)]
+    );
 }

@@ -172,12 +172,21 @@ description would drift silently.
 The script reports the crates it read in `generated_from`, which the service
 returns in `/api/api`, so the provenance of what is displayed is checkable.
 
-The translation is a separate file, `content/api.zh.json`, keyed by crate
-name and by item name. It is separate from the catalog because the catalog
-is generated and the translation is authored: regenerating the catalog must
-not discard the translation. An associated item is keyed by the type that
-declares it, as `Type::name`, because several types have an associated
-`new`; the bare name is the fallback.
+The translation is not a separate file. `apsis-rs` writes each doc comment in
+English and then in Chinese, in the one comment beside the code, and the
+extractor splits the two halves as it reads. Both languages therefore come
+from the same place as the code they describe, and neither can fall behind
+it: a crate that has not been translated shows up as an item with no Chinese
+rather than as an item quietly reading as English, and a test asserts that no
+such item is left in the committed catalog.
+
+An earlier revision kept the Chinese in `content/api.zh.json`, keyed by item
+name. That is the arrangement this replaced. It was wrong for a reason worth
+recording: the key was a name, and a name is not unique. `new` is defined by
+fifty-nine crates and they do not all mean the same thing by it, so a
+translation filed under the bare name could be shown against the wrong
+documentation. Splitting the comment removes the question, because the
+translation is attached to the item rather than looked up by a name.
 
 A doc comment refers to another item with a Rust path, written as
 `[Epoch](crate::Epoch)` or as a shortcut `[`Epoch::mjd`]`. The renderer turns

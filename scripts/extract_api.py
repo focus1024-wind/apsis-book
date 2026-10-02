@@ -3,10 +3,19 @@
 
 The service presents the public interface of the `apsis-rs` workspace as it
 is written in the source, so the catalog is generated from the source rather
-than maintained by hand. This script reads the crate directories of the
-layers that `apsis-book` enables, collects the crate level documentation and
-every public item with its doc comment and signature, and writes the result
-to `content/api.json`. The file is embedded in the binary by `build.rs`.
+than maintained by hand. This script reads the crate directories, collects
+the crate level documentation and every public item with its doc comment and
+signature, and writes the result to `content/api.json`. The file is embedded
+in the binary by `build.rs`.
+
+Each doc comment in `apsis-rs` is written in English and then in Chinese, in
+the one comment beside the code. The two halves are split here, on the first
+line that contains a Chinese character, and both are written to the catalog.
+The service shows one of them, so no separate translation file is needed and
+a translation cannot fall behind the code it describes. This replaced an
+earlier arrangement that kept the Chinese in `content/api.zh.json` keyed by
+item name, which was unsound because a name such as `new` is defined by many
+crates and does not mean the same thing in each.
 
 Run it from the `apsis-book` directory when the `apsis-rs` sources change:
 
@@ -107,6 +116,62 @@ ITEM = re.compile(
 DOC = re.compile(r"^\s*/// ?(.*)$")
 MODULE_DOC = re.compile(r"^\s*//! ?(.*)$")
 
+# A doc comment carries the English text first and the Chinese text after it,
+# in one comment. The boundary is the first line that contains a Chinese
+# character. The two halves are returned separately so that the service can
+# show one of them rather than both at once.
+CJK = re.compile(r"[\u4e00-\u9fff]")
+# A line that is only a code fence or an example belongs to whichever half it
+# is in; it is not a boundary on its own.
+def split_bilingual_lines(lines):
+    """Split doc comment lines into their English and Chinese parts."""
+    boundary = None
+    for position, line in enumerate(lines):
+        if CJK.search(line):
+            boundary = position
+            break
+    if boundary is None:
+        return "\n".join(lines).strip(), None
+    english = "\n".join(lines[:boundary]).strip()
+    chinese = "\n".join(lines[boundary:]).strip()
+    # A comment that is Chinese throughout has no English half; the Chinese
+    # is then the only text there is.
+    return english, chinese or None
+
+
+def split_bilingual(comment):
+    """Split one doc comment, given as text, into its two languages."""
+    return split_bilingual_lines(comment.split("\n"))
+
+
+def module_doc_lines(lines):
+    """Return the leading //! block as its lines, keeping their structure."""
+    collected = []
+    for line in lines:
+        match = MODULE_DOC.match(line)
+        if match:
+            collected.append(match.group(1))
+        elif collected:
+            break
+        elif line.strip() and not line.startswith("//!"):
+            break
+    return collected
+
+
+def module_doc_pair(lines):
+    """Return the leading //! block in English and in Chinese.
+
+    The module documentation is the whole block, written in English and then
+    in Chinese. Both halves are returned whole, with their paragraphs and
+    lists intact: the crate page shows all of it, and the one line a card
+    needs is derived from it later.
+
+    The split is made on the lines rather than on the joined text, because a
+    paragraph boundary and a language boundary are both line boundaries, and
+    joining first would lose both.
+    """
+    return split_bilingual_lines(module_doc_lines(lines))
+
 
 def module_doc(lines):
     """Return the first paragraph of the leading //! block."""
@@ -177,7 +242,8 @@ def collect_file(path):
 
         match = ITEM.match(line)
         if match:
-            doc = doc_comment(buffer)
+            doc_all = doc_comment(buffer)
+            doc, doc_zh = split_bilingual(doc_all)
             signature_lines = [line.strip()]
             # A declaration continues until its parentheses balance and the
             # line ends with `{`, `;`, or a where clause that is closed.
@@ -201,6 +267,7 @@ def collect_file(path):
                     "name": match.group("name"),
                     "signature": signature,
                     "doc": doc,
+                    "doc_zh": doc_zh,
                     "associated": bool(match.group("indent")),
                 }
             )
@@ -213,17 +280,18 @@ def collect_file(path):
             buffer = buffer[-200:]
         index += 1
 
-    return module_doc(lines), items
+    return module_doc_pair(lines), items
 
 
 def collect_crate(workspace, name, directory):
     """Return the catalog entry of one crate."""
     root = os.path.join(workspace, directory, "src")
     summary = ""
+    summary_zh = None
     items = []
     lib = os.path.join(root, "lib.rs")
     if os.path.exists(lib):
-        summary, _ = collect_file(lib)
+        (summary, summary_zh), _ = collect_file(lib)
     for current, _, files in os.walk(root):
         for file_name in sorted(files):
             if not file_name.endswith(".rs"):
@@ -242,7 +310,13 @@ def collect_crate(workspace, name, directory):
             continue
         seen.add(key)
         unique.append(item)
-    return {"name": name, "layer": None, "summary": summary, "items": unique}
+    return {
+        "name": name,
+        "layer": None,
+        "summary": summary,
+        "summary_zh": summary_zh,
+        "items": unique,
+    }
 
 
 def main():
