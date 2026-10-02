@@ -20,9 +20,12 @@
 //! page, because the layout says what they said. A number or a name has no
 //! such excuse, so a missing one is a defect.
 //!
-//! `sqrt` is notation of the same kind: it is drawn as the radical sign, so
-//! its letters are gone by design and are not missed. Every other function
-//! name is drawn as its own letters, as in `sin` and `ln`.
+//! A LaTeX command is notation of the same kind. `\sqrt` is drawn as the
+//! radical sign and `\Delta` as the Greek letter, so their letters are gone
+//! by design and are not missed. A command whose name is its own glyph, such
+//! as `\ln`, is drawn as those letters, so stripping every command only
+//! makes this check less strict about a function name and never hides a lost
+//! number.
 
 use apsis_book::docs::document::Language;
 
@@ -49,6 +52,28 @@ fn visible(html: &str) -> String {
             _ if !in_tag && depth > 0 => out.push(character),
             _ => {}
         }
+    }
+    out
+}
+
+/// Returns the text with the notation words removed.
+///
+/// A formula is written either as LaTeX, where a command is `\sqrt`, or as
+/// plain notation, where the same root is the bare word `sqrt`. Both are
+/// notation and neither is drawn as those letters.
+fn strip_commands(source: &str) -> String {
+    let source = source.replace("sqrt", "");
+    let mut out = String::with_capacity(source.len());
+    let mut characters = source.chars().peekable();
+    while let Some(character) = characters.next() {
+        if character == '\\' {
+            // A command runs to the first character that is not a letter.
+            while characters.peek().is_some_and(|c| c.is_alphabetic()) {
+                characters.next();
+            }
+            continue;
+        }
+        out.push(character);
     }
     out
 }
@@ -80,10 +105,9 @@ fn every_formula_shows_every_character_it_was_written_with() {
                 checked += 1;
                 // The source as written, without the spaces that only set it
                 // out on the page.
-                // `sqrt` is drawn as the radical sign, so its letters are
-                // notation of the same kind as the operators.
-                let written: String = source
-                    .replace("sqrt", "")
+                // A command name is notation: what it draws is a sign or a
+                // Greek letter, not the letters of its name.
+                let written: String = strip_commands(&source)
                     .chars()
                     .filter(|c| c.is_alphanumeric())
                     .collect();

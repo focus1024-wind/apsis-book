@@ -863,6 +863,13 @@ button.ghost:hover:not(:disabled) {
 
 .doc-body {
   min-width: 0;
+  /*
+   * A doc comment names items by their full path, as in
+   * `NoiseTemperature::from_noise_figure_db`, and a path has no space in it
+   * to break at. Left alone it makes the page scroll sideways on a phone,
+   * because the column can shrink but the word cannot.
+   */
+  overflow-wrap: anywhere;
 }
 
 .doc-body h1,
