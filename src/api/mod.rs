@@ -14,6 +14,20 @@
 //! - Every other path is served from the embedded frontend, with directory
 //!   requests falling back to `index.html` so that client side routing
 //!   works on a reload.
+//!
+//! 请求路由。
+//!
+//! 路由器把一个 [`Request`] 变成一个 [`Response`]。它拥有路由表、各载荷的 JSON
+//! 编码，以及从错误到状态码的映射。每个路由都是一个普通函数，使这张表读起来就是
+//! 服务所提供内容的一份清单。
+//!
+//! 路由分为四组：
+//!
+//! - `/health` 与 `/api/health` 报告进程正在提供服务。
+//! - `/api/docs`、`/api/graph` 与 `/api/api` 暴露第一、二项任务的内容。
+//! - `/api/tools` 暴露第三项任务的工具注册表并运行工具。
+//! - 其余路径都由内嵌前端提供，其中目录请求回退到 `index.html`，使客户端路由在
+//!   刷新后仍然工作。
 
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -28,24 +42,40 @@ use crate::state::AppState;
 use crate::tools;
 
 /// The request router.
+///
+/// 请求路由器。
 pub struct Router {
     state: Arc<AppState>,
     /// Pre-encoded document listing, built once at startup.
+    ///
+    /// 预先编码的文档列表，在启动时构建一次。
     docs_index: String,
     /// Pre-encoded search index, built once at startup.
+    ///
+    /// 预先编码的搜索索引，在启动时构建一次。
     search: crate::docs::SearchIndex,
     /// Pre-encoded concept graph.
+    ///
+    /// 预先编码的概念图谱。
     concept_graph: String,
     /// Pre-encoded list of the flow graphs.
+    ///
+    /// 预先编码的流程图列表。
     flow_index: String,
     /// Pre-encoded crate structure graph.
+    ///
+    /// 预先编码的 crate 结构图。
     crate_graph: String,
     /// Pre-encoded tool registry.
+    ///
+    /// 预先编码的工具注册表。
     tool_registry: String,
 }
 
 impl Router {
     /// Builds the router over the parsed content.
+    ///
+    /// 在已解析的内容之上构建路由器。
     pub fn new(state: Arc<AppState>) -> Self {
         let docs_index = json::to_string(&document_index(&state));
         let search = state.docs.search_index();
@@ -114,6 +144,8 @@ impl Handler for Router {
 
 impl Router {
     /// Reports service health and the state of the embedded content.
+    ///
+    /// 报告服务健康状况与内嵌内容的状态。
     fn health(&self) -> Response {
         let body = json_object! {
             "status" => "ok",
@@ -137,6 +169,8 @@ impl Router {
     }
 
     /// Searches the document index.
+    ///
+    /// 搜索文档索引。
     fn search_documents(&self, request: &Request) -> Response {
         let query = request.query_pairs();
         let text = query.get("q").cloned().unwrap_or_default();
@@ -175,6 +209,11 @@ impl Router {
     /// reader can switch the language without another request. A language
     /// without a translation is omitted and the frontend falls back to the
     /// English form.
+    ///
+    /// 返回一篇文档及其渲染后的 HTML。
+    ///
+    /// 两种语言形式都嵌入时都被返回，使读者无需再次请求即可切换语言。没有译文的语言
+    /// 被省略，前端回退到英文形式。
     fn document(&self, path: &str) -> Response {
         let id = path.trim_start_matches("/api/docs/");
         if id.is_empty() || id.contains('/') {
@@ -222,6 +261,8 @@ impl Router {
     }
 
     /// Returns one flow graph by identifier.
+    ///
+    /// 按标识返回一张流程图。
     fn flow(&self, path: &str) -> Response {
         let id = path.trim_start_matches("/api/graph/");
         if id == "flows" {
@@ -242,6 +283,8 @@ impl Router {
     }
 
     /// Returns the interface catalog summary.
+    ///
+    /// 返回接口目录概要。
     fn api_index(&self) -> Response {
         let catalog = &self.state.api;
         let item_names = &catalog.item_names;
@@ -277,6 +320,9 @@ impl Router {
             // The layers the crates belong to, in reading order, so that the
             // index is organized the same way as the concept documentation
             // rather than as one flat list.
+
+            // 各 crate 所属的层，按阅读顺序，使索引的组织方式与概念文档相同，
+            // 而不是一张平铺的列表。
             "layers" => api_layers(&self.state.docs),
             "crates" => crates,
             "items" => items,
@@ -285,6 +331,8 @@ impl Router {
     }
 
     /// Returns one crate of the interface catalog.
+    ///
+    /// 返回接口目录中的一个 crate。
     fn api_crate(&self, path: &str) -> Response {
         let name = path.trim_start_matches("/api/api/crates/");
         match self.state.api.krate(name) {
@@ -298,6 +346,8 @@ impl Router {
     }
 
     /// Returns one interface item by name.
+    ///
+    /// 按名字返回一个接口条目。
     fn api_item(&self, path: &str) -> Response {
         let name = path.trim_start_matches("/api/api/items/");
         match self.state.api.find_item(name) {
@@ -318,6 +368,8 @@ impl Router {
     }
 
     /// Returns one tool description.
+    ///
+    /// 返回一个工具的描述。
     fn tool(&self, path: &str) -> Response {
         let id = path.trim_start_matches("/api/tools/");
         match self.state.tools.get(id) {
@@ -336,6 +388,11 @@ impl Router {
     /// The body must be a JSON object of parameters. A body that is not
     /// valid JSON, or a parameter that fails validation, produces a bad
     /// request status with a message naming the parameter.
+    ///
+    /// 运行一个工具。
+    ///
+    /// 请求体必须是一个参数的 JSON 对象。不是合法 JSON 的请求体，或校验失败的参数，
+    /// 会产生一个「请求有误」状态，其消息指名该参数。
     fn run_tool(&self, request: &Request, path: &str) -> Response {
         let id = path
             .trim_start_matches("/api/tools/")
@@ -385,6 +442,11 @@ impl Router {
     /// path falls back to `index.html` so that a client side route survives
     /// a reload. When no frontend is embedded the placeholder page is
     /// served, which keeps the JSON interfaces reachable from a browser.
+    ///
+    /// 提供一个内嵌的前端资源。
+    ///
+    /// 指名某个文件的请求以该文件作答。其余任何路径回退到 `index.html`，使客户端路由
+    /// 在刷新后存活。未嵌入前端时提供占位页面，使 JSON 接口仍能从浏览器触达。
     fn static_asset(&self, path: &str) -> Response {
         let relative = path.trim_start_matches('/');
 
@@ -410,6 +472,9 @@ impl Router {
         // A directory request, or an unknown path that looks like a route,
         // returns the single page entry point, which names the current
         // bundle and is therefore never served from a cache.
+
+        // 目录请求，或看起来像路由的未知路径，返回单页入口；入口指名当前的包，
+        // 因此绝不会从缓存中提供。
         match embedded::get("index.html") {
             Some(bytes) => Response::new(Status::Ok, "text/html; charset=utf-8", bytes.to_vec())
                 .with_cache_control(ENTRY_CACHE_POLICY),
@@ -423,6 +488,11 @@ impl Router {
 /// The entry point names the current bundle, so it is never reused from a
 /// cache without asking. `must-revalidate` states that requirement to
 /// intermediaries as well as to the browser.
+///
+/// 入口页面的缓存策略。
+///
+/// 入口指名当前的包，因此不经询问绝不会从缓存中复用。`must-revalidate` 把这一
+/// 要求既向浏览器声明，也向中间代理声明。
 const ENTRY_CACHE_POLICY: &str = "no-cache, must-revalidate";
 
 /// The cache policy for a file whose name carries a content hash.
@@ -431,12 +501,22 @@ const ENTRY_CACHE_POLICY: &str = "no-cache, must-revalidate";
 /// file has never been requested before and cannot be in a cache. Marking it
 /// immutable is therefore both safe and free: the browser keeps it until it
 /// is no longer named by any entry point.
+///
+/// 名字带内容哈希的文件的缓存策略。
+///
+/// 改动某个文件的构建同时改动了它的名字，因此新文件的 URL 从未被请求过，不可能
+/// 在缓存里。标记为不可变因而既安全又免费：浏览器会一直保留它，直到不再有任何
+/// 入口指名它。
 const HASHED_CACHE_POLICY: &str = "public, max-age=31536000, immutable";
 
 /// The cache policy for a file whose name carries no content hash.
 ///
 /// Such a file is a name that a future build reuses, so it must be
 /// revalidated rather than reused from a cache.
+///
+/// 名字不带内容哈希的文件的缓存策略。
+///
+/// 这样的文件是一个会被后续构建复用的名字，因此必须重新验证，而不能从缓存中复用。
 pub(crate) const UNHASHED_CACHE_POLICY: &str = "no-cache, must-revalidate";
 
 /// Returns the cache policy for an asset path.
@@ -445,6 +525,12 @@ pub(crate) const UNHASHED_CACHE_POLICY: &str = "no-cache, must-revalidate";
 /// the build uses to decide whether the contents changed. Nothing about the
 /// contents is read, so the policy is correct for a file that was embedded by
 /// an earlier build as well as for one embedded by the current one.
+///
+/// 返回某个资源路径的缓存策略。
+///
+/// 判断只依据文件名，而文件名正是构建用来判断内容是否变化的同一个信号。不读取
+/// 内容的任何部分，因此该策略对早期构建所嵌入的文件与当前构建所嵌入的文件同样
+/// 正确。
 pub(crate) fn cache_policy(path: &str) -> &'static str {
     if is_content_hashed(path) {
         HASHED_CACHE_POLICY
@@ -459,6 +545,12 @@ pub(crate) fn cache_policy(path: &str) -> &'static str {
 /// the bundler emits, which is base64 and therefore mixes cases, so the
 /// check accepts both and only rejects characters that cannot appear in a
 /// hash. A name without one is a name a later build reuses.
+///
+/// 当文件名以内容哈希结尾时返回 `true`。
+///
+/// 构建把哈希追加在扩展名之前。其字母表即打包器输出的那一个，是 base64，因而
+/// 大小写混用，所以本检查两者都接受，只拒绝不可能出现在哈希中的字符。不含哈希的
+/// 名字是后续构建会复用的名字。
 pub(crate) fn is_content_hashed(path: &str) -> bool {
     let Some((stem, _)) = path.rsplit_once('.') else {
         return false;
@@ -477,6 +569,11 @@ pub(crate) fn is_content_hashed(path: &str) -> bool {
 /// The listing is grouped so that the distinction between the concepts and
 /// the implementation survives to the reader: the concepts are the larger
 /// superset, and the implementation is what one particular library does.
+///
+/// 构建文档列表载荷。
+///
+/// 列表是分组的，使概念与实现之间的区别能传达到读者：概念是更大的超集，而实现
+/// 是某一个特定库做了什么。
 fn document_index(state: &AppState) -> Value {
     let groups: Vec<Value> = state
         .docs
@@ -503,6 +600,9 @@ fn document_index(state: &AppState) -> Value {
                     // A layer that covers two unrelated subjects carries a
                     // subject for each, rather than one list of documents
                     // that have nothing to do with one another.
+
+                    // 涵盖两个无关主题的层为每个主题各带一个子区，而不是把互不
+                    // 相干的文档凑成一份列表。
                     let subsections: Vec<Value> = section
                         .subsections
                         .iter()
@@ -540,10 +640,18 @@ fn document_index(state: &AppState) -> Value {
 
 /// Encodes a documentation text and its rendering in both languages.
 ///
+/// 以两种语言编码一段文档文本及其渲染结果。
+///
 /// The documentation comment is rendered to HTML here, by the same renderer
 /// the concept documents use, so a comment that contains a list, a table,
 /// or a code block is drawn as one. The two `plain` members carry the text
 /// with the markup removed, which the index uses for a one line summary.
+///
+/// 编码一段文档文本及其两种语言下的渲染结果。
+///
+/// 文档注释在此用与概念文档相同的渲染器渲染为 HTML，因此含有列表、表格或代码块
+/// 的注释会被照原样画出。两个 `plain` 成员携带去掉标记后的文本，索引用它作一行
+/// 摘要。
 fn doc_texts(item: &crate::docs::ApiItem, items: &std::collections::HashSet<String>) -> Value {
     let zh = item.doc_zh.as_deref().unwrap_or(&item.doc);
     json_object! {
@@ -561,6 +669,8 @@ fn doc_texts(item: &crate::docs::ApiItem, items: &std::collections::HashSet<Stri
 }
 
 /// Encodes a crate summary in both languages, with the plain text.
+///
+/// 以两种语言编码某个 crate 的概要，并附纯文本。
 fn crate_texts(krate: &crate::docs::ApiCrate, items: &std::collections::HashSet<String>) -> Value {
     let zh = krate.summary_zh.as_deref().unwrap_or(&krate.summary);
     json_object! {
@@ -572,6 +682,8 @@ fn crate_texts(krate: &crate::docs::ApiCrate, items: &std::collections::HashSet<
         },
         // The index card takes the opening sentence; the crate page shows the
         // whole summary under `html`.
+
+        // 索引卡片取首句；crate 页面在 `html` 下展示完整概要。
         "brief" => json_object! {
             "zh" => crate_summary_brief(zh),
             "en" => crate_summary_brief(&krate.summary),
@@ -587,11 +699,17 @@ fn crate_texts(krate: &crate::docs::ApiCrate, items: &std::collections::HashSet<
 ///
 /// The Markdown renderer is applied first so that a summary that opens with
 /// a list or a heading is reduced to its prose.
+///
+/// 返回某个 crate 概要的纯文本。
+///
+/// 先施加 Markdown 渲染器，使以列表或标题开头的概要归约为其散文。
 fn crate_summary_plain(summary: &str) -> String {
     crate::docs::markdown::to_plain_text(summary)
 }
 
 /// Returns the first sentence of a summary, for a card that links onward.
+///
+/// 返回概要的首句，供链接到别处的卡片使用。
 ///
 /// Returns the layers of the concept documentation, in reading order.
 ///
@@ -599,6 +717,11 @@ fn crate_summary_plain(summary: &str) -> String {
 /// groups the crates by that layer, so it needs the layer's title and its
 /// place in the reading order, both of which the concept documentation
 /// already declares.
+///
+/// 返回概念文档的各层，按阅读顺序。
+///
+/// 接口目录记录了每个 crate 属于哪一层。索引按该层对 crate 分组，因此需要层的
+/// 标题与它在阅读顺序中的位置，而这两者概念文档都已经声明。
 fn api_layers(docs: &crate::docs::Tree) -> Value {
     let layers: Vec<Value> = docs
         .groups()
@@ -622,12 +745,21 @@ fn api_layers(docs: &crate::docs::Tree) -> Value {
 /// shows what a crate is, and the crate page shows the rest, so the card takes
 /// the opening sentence only. Without this the index cards are as tall as the
 /// longest crate document and the page reads as a wall.
+///
+/// 返回概要的首句，供链接到别处的卡片使用。
+///
+/// crate 概要是该 crate 的整份文档，长达数段并含一份它包含什么的列表。索引上的
+/// 卡片说明一个 crate 是什么，其余由 crate 页面展示，因此卡片只取首句。没有这一
+/// 处理，索引卡片会与最长的 crate 文档一样高，页面读起来像一堵墙。
 pub(crate) fn crate_summary_brief(summary: &str) -> String {
     let text = crate_summary_plain(summary);
     let text = text.trim();
     // A sentence ends at the first full stop that is not part of a number or
     // an abbreviation, which keeps `1.5` and `e.g.` from cutting a sentence
     // in half.
+
+    // 句子在第一个不属于数字或缩写的句点处结束，这使 `1.5` 与 `e.g.` 不会把
+    // 句子截成两半。
     let mut end = None;
     for (index, character) in text.char_indices() {
         // A Chinese sentence ends at its own full stop and is not followed by
@@ -699,6 +831,11 @@ fn optional_bilingual(translation: &Option<String>, fallback: &str) -> Value {
 /// The list is part of the payload so that the frontend does not carry its
 /// own copy of the flow identifiers; adding a flow to the content is enough
 /// for it to appear in the navigation.
+///
+/// 编码流程图列表。
+///
+/// 该列表是载荷的一部分，使前端无须自备一份流程标识；向内容中新增一张流程图，
+/// 就足以让它出现在导航中。
 fn flow_list_json(flows: &[Graph]) -> Value {
     let items: Vec<Value> = flows
         .iter()
@@ -716,6 +853,8 @@ fn flow_list_json(flows: &[Graph]) -> Value {
 }
 
 /// Encodes the tag lists of a document, one per language.
+///
+/// 编码一篇文档的标签列表，每种语言一份。
 fn tag_lists(document: &crate::docs::Document) -> Value {
     json_object! {
         "en" => document.tags.iter().map(|tag| Value::from(tag.as_str())).collect::<Vec<Value>>(),
@@ -724,6 +863,8 @@ fn tag_lists(document: &crate::docs::Document) -> Value {
 }
 
 /// Encodes the title of a chapter, in both languages.
+///
+/// 以两种语言编码某个章的标题。
 fn chapter_title(state: &AppState, chapter_id: &str) -> Value {
     let found = state
         .docs
@@ -743,6 +884,11 @@ fn chapter_title(state: &AppState, chapter_id: &str) -> Value {
 /// authored data has a translation. A node whose label is a name, such as a
 /// crate, carries only the one form because it is written the same way in
 /// both languages.
+///
+/// 把一张图编码为 JSON。
+///
+/// 当撰写的数据有译文时，显示标签与概要都以两种语言携带。标签本身是名字的节点
+/// ——例如某个 crate——只携带一种形式，因为它在两种语言中写法相同。
 fn graph_json(graph: &Graph) -> Value {
     let nodes: Vec<Value> = graph
         .nodes
@@ -798,6 +944,8 @@ fn graph_json(graph: &Graph) -> Value {
 }
 
 /// Encodes a crate of the interface catalog as JSON.
+///
+/// 把接口目录中的一个 crate 编码为 JSON。
 fn crate_json(
     krate: &crate::docs::ApiCrate,
     item_names: &std::collections::HashSet<String>,
@@ -824,9 +972,14 @@ fn crate_json(
 }
 
 /// Encodes one tool description as JSON.
+///
+/// 把一个工具的描述编码为 JSON。
 fn tool_json(tool: &crate::tools::ToolSpec) -> Value {
     // The registry encoder is the single source of the tool shape, so the
     // listing of all tools and the description of one tool cannot drift.
+
+    // 注册表编码器是工具形状的唯一来源，因此全部工具的列表与单个工具的描述不会
+    // 漂移。
     let registry = tools::registry_json(&crate::tools::Registry::new());
     let listed = registry
         .get("tools")
@@ -842,6 +995,8 @@ fn tool_json(tool: &crate::tools::ToolSpec) -> Value {
 }
 
 /// Returns the catalog summary for the interface index, used by tests.
+///
+/// 返回接口索引的目录概要，供测试使用。
 #[allow(dead_code)]
 fn catalog_summary(catalog: &ApiCatalog) -> Value {
     json_object! {
@@ -855,6 +1010,11 @@ fn catalog_summary(catalog: &ApiCatalog) -> Value {
 /// The status is a real `404` so that a client can distinguish a missing
 /// resource from a server failure, and the body carries the same message in
 /// the shape the other routes use.
+///
+/// 构建一个指名资源种类的「未找到」响应。
+///
+/// 状态是真正的 `404`，使客户端能把缺失的资源与服务器故障区分开；响应体以其他
+/// 路由所用的同一形状携带同一条消息。
 fn not_found(kind: &str) -> Response {
     Response::new(
         Status::NotFound,
