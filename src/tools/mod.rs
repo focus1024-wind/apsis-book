@@ -11,6 +11,15 @@
 //! wraps that object and performs the typed reads and the validation, so a
 //! handler never has to parse a value itself and never sees a value of the
 //! wrong type.
+//!
+//!
+//! 服务的第三项任务是为 `apsis-rs` 各内核提供一个在线试验台。注册表是「服务能
+//! 运行什么」的唯一描述：每个工具声明其参数、类型、单位与默认值，前端据此渲染
+//! 表单。因此新增一个工具意味着在此加一个条目、并在 [`handlers`] 中加一个处理
+//! 函数，前端无需改动。
+//!
+//! 参数值以 JSON 对象形式从客户端到达。[`Params`] 包装该对象并完成带类型的读取
+//! 与校验，因此处理函数从不必自行解析取值，也永远不会看到类型错误的取值。
 
 pub mod handlers;
 pub mod labels;
@@ -23,18 +32,30 @@ use crate::json::Value;
 use crate::json_object;
 
 /// The type of a parameter, selecting the form control the frontend draws.
+///
+/// 参数的类型，决定前端绘制哪种表单控件。
 #[derive(Debug, Clone)]
 pub enum ParamKind {
     /// A floating point number, optionally bounded and with a unit.
+    ///
+    /// 一个浮点数，可有上下界并带单位。
     Number {
         /// Unit shown next to the input, or an empty string.
+        ///
+        /// 显示在输入框旁的单位，或空字符串。
         unit: &'static str,
         /// Smallest accepted value, when bounded.
+        ///
+        /// 可接受的最小值，当有下界时。
         min: Option<f64>,
         /// Largest accepted value, when bounded.
+        ///
+        /// 可接受的最大值，当有上界时。
         max: Option<f64>,
     },
     /// An integer, optionally bounded.
+    ///
+    /// 一个整数，可有上下界。
     Integer {
         /// Smallest accepted value, when bounded.
         min: Option<i64>,
@@ -42,54 +63,95 @@ pub enum ParamKind {
         max: Option<i64>,
     },
     /// A free text field of several lines, drawn as a text area.
+    ///
+    /// 一个多行的自由文本字段，绘制为文本区。
     Multiline,
     /// A choice among a fixed set of values.
+    ///
+    /// 在一组固定取值中作选择。
     Select(&'static [SelectOption]),
 }
 
 /// One option of a [`ParamKind::Select`] parameter.
+///
+/// [`ParamKind::Select`] 参数的一个选项。
 #[derive(Debug, Clone, Copy)]
 pub struct SelectOption {
     /// Value sent by the frontend.
+    ///
+    /// 由前端发送的取值。
     pub value: &'static str,
     /// Label shown to the user, in both languages.
+    ///
+    /// 向用户显示的标签，含两种语言。
     pub label: Text,
 }
 
 /// The description of one tool parameter.
+///
+/// 一个工具参数的描述。
 #[derive(Debug, Clone)]
 pub struct ParamSpec {
     /// Machine name, used as the JSON member name.
+    ///
+    /// 机器名，用作 JSON 成员名。
     pub name: &'static str,
     /// Human readable label.
+    ///
+    /// 供人阅读的标签。
     pub label: Text,
     /// One sentence explanation shown as help text.
+    ///
+    /// 作为帮助文本显示的一句话说明。
     pub help: Text,
     /// Type and constraints.
+    ///
+    /// 类型与约束。
     pub kind: ParamKind,
     /// Default value, as it would be typed into the form.
+    ///
+    /// 默认值，即会被键入表单的那个值。
     pub default: Option<&'static str>,
     /// Whether the form must supply a value.
+    ///
+    /// 表单是否必须提供该值。
     pub required: bool,
 }
 
 /// The description of one tool.
+///
+/// 一个工具的描述。
 #[derive(Debug, Clone)]
 pub struct ToolSpec {
     /// Identifier used in the route.
+    ///
+    /// 用于路由的标识。
     pub id: &'static str,
     /// Display name.
+    ///
+    /// 显示名。
     pub name: Text,
     /// One sentence summary.
+    ///
+    /// 一句话概要。
     pub summary: Text,
     /// Longer description, shown above the form.
+    ///
+    /// 较长的描述，显示在表单上方。
     pub description: Text,
     /// Grouping shown in the tool list.
+    ///
+    /// 在工具列表中显示的分组。
     pub category: Text,
     /// Parameters, in form order.
+    ///
+    /// 各参数，按表单顺序。
     pub params: &'static [ParamSpec],
     /// The `apsis-rs` items the tool calls, for cross linking to the
     /// interface documentation.
+    ///
+    ///
+    /// 该工具调用的 `apsis-rs` 条目，用于交叉链接到接口文档。
     pub api_items: &'static [&'static str],
 }
 
@@ -97,12 +159,19 @@ pub struct ToolSpec {
 ///
 /// The table is a constant, so its parameter slices have a `'static`
 /// lifetime and the registry holds no owned data.
+///
+///
+/// 所有工具的注册表。
+///
+/// 该表是常量，因此其参数切片具有 `'static` 生命周期，注册表不持有任何自有数据。
 pub struct Registry {
     by_id: HashMap<&'static str, usize>,
 }
 
 impl Registry {
     /// Builds the registry from the tool table.
+    ///
+    /// 从工具表构建注册表。
     pub fn new() -> Self {
         let by_id = TOOL_TABLE
             .iter()
@@ -113,16 +182,22 @@ impl Registry {
     }
 
     /// Returns every tool.
+    ///
+    /// 返回每一个工具。
     pub fn entries(&self) -> &'static [ToolSpec] {
         TOOL_TABLE
     }
 
     /// Returns a tool by identifier.
+    ///
+    /// 按标识返回一个工具。
     pub fn get(&self, id: &str) -> Option<&'static ToolSpec> {
         self.by_id.get(id).map(|index| &TOOL_TABLE[*index])
     }
 
     /// Returns the distinct categories in the order they first appear.
+    ///
+    /// 按其首次出现的顺序返回各不相同的类别。
     pub fn categories(&self) -> Vec<Text> {
         let mut categories: Vec<Text> = Vec::new();
         for tool in TOOL_TABLE {
@@ -144,6 +219,12 @@ impl Default for Registry {
 ///
 /// It is a constant rather than a function so that the parameter slices are
 /// promoted to `'static` and the registry borrows it instead of owning it.
+///
+///
+/// 工具表。
+///
+/// 它是一个常量而不是函数，这样参数切片会被提升为 `'static`，注册表借用它而不是
+/// 拥有它。
 const TOOL_TABLE: &[ToolSpec] = &[
     ToolSpec {
         id: "parse-tle",
@@ -807,6 +888,8 @@ const TOOL_TABLE: &[ToolSpec] = &[
 ];
 
 /// The gravity model options shared by the propagation tools.
+///
+/// 各传播工具共用的重力模型选项。
 const GRAVITY_MODELS: [SelectOption; 2] = [
     SelectOption {
         value: "wgs72",
@@ -822,6 +905,8 @@ const GRAVITY_MODELS: [SelectOption; 2] = [
 ];
 
 /// The time scale options.
+///
+/// 各时间尺度选项。
 const TIME_SCALES: [SelectOption; 4] = [
     SelectOption {
         value: "utc",
@@ -842,6 +927,8 @@ const TIME_SCALES: [SelectOption; 4] = [
 ];
 
 /// The input form options of the time tool.
+///
+/// 时间工具的输入形式选项。
 const TIME_INPUTS: [SelectOption; 2] = [
     SelectOption {
         value: "calendar",
@@ -854,6 +941,8 @@ const TIME_INPUTS: [SelectOption; 2] = [
 ];
 
 /// The rotation direction options of the frame tool.
+///
+/// 参考系工具的旋转方向选项。
 const FRAME_DIRECTIONS: [SelectOption; 2] = [
     SelectOption {
         value: "eci-to-ecef",
@@ -866,6 +955,8 @@ const FRAME_DIRECTIONS: [SelectOption; 2] = [
 ];
 
 /// A sample element set, used as the default of the propagation tools.
+///
+/// 一个样例元素集，用作各传播工具的默认值。
 ///
 /// It is the International Space Station element set that the `apsis-rs`
 /// crate documentation uses in its examples, so the values in the interface
@@ -923,6 +1014,8 @@ pub struct Params<'a> {
 
 impl<'a> Params<'a> {
     /// Wraps the values of a call to a tool.
+    ///
+    /// 包装一次工具调用的各个值。
     pub fn new(tool: &'a ToolSpec, values: &'a Value) -> Result<Self, ToolError> {
         if matches!(values, Value::Object(_)) {
             Ok(Self { tool, values })
@@ -939,6 +1032,12 @@ impl<'a> Params<'a> {
     /// control sends text. An absent member falls back to the default
     /// declared by the parameter, and only a parameter with neither a value
     /// nor a default is reported as required.
+    ///
+    ///
+    /// 返回一个必需的数值。
+    ///
+    /// 取值可以作为 JSON 数字或字符串到达，因为表单控件发送的是文本。缺失的成员
+    /// 回退到参数声明的默认值，只有既无取值又无默认值的参数才被报告为必需。
     pub fn number(&self, name: &str) -> Result<f64, ToolError> {
         let spec = self.spec(name)?;
         let text = match self.raw(name) {
@@ -978,6 +1077,12 @@ impl<'a> Params<'a> {
     ///
     /// A value that is not a whole number is rejected rather than rounded,
     /// because rounding would silently change a field such as a year.
+    ///
+    ///
+    /// 返回一个必需的整数。
+    ///
+    /// 不是整数的取值会被拒绝而不是四舍五入，因为取整会悄悄改变诸如年份这样的
+    /// 字段。
     pub fn integer(&self, name: &str) -> Result<i64, ToolError> {
         let value = self.number(name)?;
         if value.fract() != 0.0 {
@@ -988,6 +1093,8 @@ impl<'a> Params<'a> {
     }
 
     /// Returns a required string.
+    ///
+    /// 返回一个必需的字符串。
     pub fn text(&self, name: &str) -> Result<String, ToolError> {
         let spec = self.spec(name)?;
         match self.raw(name) {
@@ -1003,6 +1110,9 @@ impl<'a> Params<'a> {
 
     /// Returns a value that must be one of the options of a select
     /// parameter.
+    ///
+    ///
+    /// 返回一个必须是某个选择型参数选项的取值。
     pub fn choice(&self, name: &str) -> Result<&'static str, ToolError> {
         let spec = self.spec(name)?;
         let accepted = match spec.kind {
@@ -1027,11 +1137,15 @@ impl<'a> Params<'a> {
     }
 
     /// Returns the raw value of a parameter.
+    ///
+    /// 返回某个参数的原始取值。
     fn raw(&self, name: &str) -> Option<&Value> {
         self.values.get(name)
     }
 
     /// Returns the specification of a parameter.
+    ///
+    /// 返回某个参数的规格说明。
     fn spec(&self, name: &str) -> Result<&'a ParamSpec, ToolError> {
         self.tool
             .params
@@ -1041,6 +1155,8 @@ impl<'a> Params<'a> {
     }
 
     /// Validates a number against the bounds of its specification.
+    ///
+    /// 依据规格说明的上下界校验一个数值。
     fn check_number(&self, spec: &ParamSpec, value: f64) -> Result<f64, ToolError> {
         if !value.is_finite() {
             return Err(ToolError::parameter(spec.name, "must be a finite number"));
@@ -1072,6 +1188,12 @@ impl<'a> Params<'a> {
 /// The registry resolves the identifier, the parameters are validated, and
 /// the handler runs. An unknown identifier is reported as a general failure
 /// so that the HTTP layer can answer with a not found status.
+///
+///
+/// 按标识执行一个工具。
+///
+/// 注册表解析该标识，参数被校验，随后处理函数运行。未知标识被报告为一般性失败，
+/// 使 HTTP 层能以「未找到」状态作答。
 pub fn execute(registry: &Registry, id: &str, values: &Value) -> Result<Value, ToolError> {
     let tool = registry
         .get(id)
@@ -1084,6 +1206,11 @@ pub fn execute(registry: &Registry, id: &str, values: &Value) -> Result<Value, T
 ///
 /// Every label is encoded in both languages, so the frontend can switch the
 /// language of the interface without another request.
+///
+///
+/// 把注册表编码为供前端使用的 JSON。
+///
+/// 每个标签都以两种语言编码，因此前端无须再次请求即可切换界面语言。
 pub fn registry_json(registry: &Registry) -> Value {
     let tools: Vec<Value> = registry.entries().iter().map(tool_json).collect();
     let categories: Vec<Value> = registry.categories().iter().map(Text::json).collect();
@@ -1100,6 +1227,13 @@ pub fn registry_json(registry: &Registry) -> Value {
 /// which is what the page shows. The HTML comes from the same renderer as
 /// the concept documentation, so a formula written between dollar signs is
 /// set the same way in both places.
+///
+///
+/// 把一个工具编码为 JSON。
+///
+/// 描述与参数帮助都以 Markdown 书写，因此各发送两次：源码形式，供阅读 JSON 的人
+/// 使用；以及 HTML 形式，即页面所显示的内容。HTML 来自与概念文档相同的渲染器，
+/// 因此写在美元符号之间的公式在两处排版一致。
 fn tool_json(tool: &ToolSpec) -> Value {
     let params: Vec<Value> = tool.params.iter().map(param_json).collect();
     json_object! {
@@ -1115,6 +1249,8 @@ fn tool_json(tool: &ToolSpec) -> Value {
 }
 
 /// Renders both languages of a piece of Markdown to HTML.
+///
+/// 把一段 Markdown 的两种语言都渲染为 HTML。
 fn rendered_text(text: &Text) -> Value {
     json_object! {
         "zh" => crate::docs::markdown::render(text.zh),
@@ -1123,6 +1259,8 @@ fn rendered_text(text: &Text) -> Value {
 }
 
 /// Encodes one parameter as JSON.
+///
+/// 把一个参数编码为 JSON。
 fn param_json(param: &ParamSpec) -> Value {
     let (kind, options) = match &param.kind {
         ParamKind::Number { unit, min, max } => (
