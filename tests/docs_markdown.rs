@@ -1,9 +1,15 @@
 //! Tests for the Markdown renderer.
+//! Markdown 渲染器的测试。
 //!
 //! They live here rather than inside the module so that `src/` holds no test
 //! code, as it does in `apsis-rs`. An integration test is a separate crate and
 //! reaches only what the library makes public, so the few internal items the
 //! tests need are opened through `apsis_book::testkit`.
+
+//!
+//! 它们放在这里而不是模块内部，使 `src/` 不含测试代码，与 `apsis-rs` 一致。
+//! 集成测试是独立的 crate，只能触达库公开的部分，因此测试所需的那少数内部条目
+//! 经 `apsis_book::testkit` 开放。
 
 use apsis_book::docs::markdown::*;
 
@@ -25,6 +31,7 @@ fn a_display_formula_is_rendered_on_its_own() {
 #[test]
 fn a_dollar_without_a_pair_is_left_alone() {
     // A price must survive as a price.
+    // 价格必须作为价格保留下来。
     let html = render("It costs $5 today.");
     assert!(html.contains("$5"), "the lone dollar was consumed");
     assert!(!html.contains("<math"), "no formula should be produced");
@@ -34,6 +41,8 @@ fn a_dollar_without_a_pair_is_left_alone() {
 fn two_prices_are_not_a_formula() {
     // The closing dollar has a space before it, which is what separates
     // this from a formula.
+
+    // 收尾的美元符号前有一个空格，这正是它与公式的区别所在。
     let html = render("It costs $5 and then $6.");
     assert!(
         !html.contains("<math"),
@@ -93,6 +102,7 @@ fn a_rust_path_link_points_at_the_interface_page() {
     assert!(html.contains("data-api=\"Epoch\""), "{html}");
     assert!(html.contains("href=\"#/api/Epoch\""), "{html}");
     // A web address is left as it is.
+    // 网址按原样保留。
     assert!(html.contains("href=\"https://example.com\""), "{html}");
 }
 
@@ -108,11 +118,13 @@ fn a_path_to_a_variant_resolves_to_the_declaring_item() {
     );
     assert!(html.contains("data-api=\"PropagationErrorKind\""), "{html}");
     // A path whose segments are all unknown is left as written.
+    // 所有片段都未知的路径按原样保留。
     let html = render_with("[`Nope`](crate::Unknown::Missing).\n", Some(&known));
     assert!(!html.contains("data-api"), "{html}");
 }
 
 /// The names of two items, for the shortcut link test.
+/// 两个条目的名字，供简写链接的测试使用。
 fn items() -> std::collections::HashSet<String> {
     ["mjd", "Epoch"]
         .iter()
@@ -131,10 +143,12 @@ fn a_shortcut_link_points_at_the_interface_page() {
     assert!(html.contains("href=\"#/api/mjd\""), "{html}");
     assert!(html.contains("data-api=\"Epoch\""), "{html}");
     // A label that is not an item name stays as a code span.
+    // 不是条目名的标签保持为代码片段。
     let html = render_with("The range is [`0, 1`].\n", Some(&known));
     assert!(!html.contains("data-api"), "{html}");
     assert!(html.contains("<code>0, 1</code>"), "{html}");
     // A name that is not in the catalog also stays as a code span.
+    // 不在目录中的名字同样保持为代码片段。
     let html = render_with("See [`NotAnItem`].\n", Some(&known));
     assert!(!html.contains("data-api"), "{html}");
 }
@@ -144,6 +158,9 @@ fn a_chinese_heading_keeps_its_own_anchor() {
     // Only ASCII letters were kept, so every Chinese heading reduced to
     // the fallback and the whole table of contents pointed at the first
     // section.
+
+    // 只保留了 ASCII 字母，于是每个中文标题都归约到同一个回退值，整份目录都指向
+    // 第一节。
     let html = render("# 时间尺度\n\n正文。\n\n# 单位约定\n\n更多。\n");
     assert!(html.contains("id=\"时间尺度\""), "{html}");
     assert!(html.contains("id=\"单位约定\""), "{html}");
@@ -192,6 +209,8 @@ fn plain_text_drops_the_markup() {
 fn plain_text_resolves_a_shortcut_reference() {
     // A rustdoc shortcut keeps the item name and loses the brackets,
     // which otherwise appear verbatim in a one line summary.
+
+    // rustdoc 简写保留条目名并去掉方括号，否则方括号会原样出现在一行摘要里。
     let text = to_plain_text("See [`Vec3`] and [`Epoch::mjd`](crate::Epoch::mjd).\n");
     assert!(text.contains("Vec3"));
     assert!(text.contains("mjd"));

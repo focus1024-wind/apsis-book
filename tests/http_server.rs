@@ -1,9 +1,15 @@
 //! Tests for the listener and the worker pool.
+//! 监听器与工作线程池的测试。
 //!
 //! They live here rather than inside the module so that `src/` holds no test
 //! code, as it does in `apsis-rs`. An integration test is a separate crate and
 //! reaches only what the library makes public, so the few internal items the
 //! tests need are opened through `apsis_book::testkit`.
+
+//!
+//! 它们放在这里而不是模块内部，使 `src/` 不含测试代码，与 `apsis-rs` 一致。
+//! 集成测试是独立的 crate，只能触达库公开的部分，因此测试所需的那少数内部条目
+//! 经 `apsis_book::testkit` 开放。
 use apsis_book::http::request::{Request, RequestError};
 use apsis_book::http::response::{Response, Status};
 use std::net::SocketAddr;
@@ -45,6 +51,7 @@ fn serves_a_request_over_a_real_socket() {
 
     drop(stream);
     // The accept loop ends when the listener is dropped with the thread.
+    // 接受循环在线程随监听器一同被丢弃时结束。
     let _ = running;
 }
 

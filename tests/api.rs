@@ -1,9 +1,15 @@
 //! Tests for the router and the payloads it encodes.
+//! 路由器及其编码的载荷的测试。
 //!
 //! They live here rather than inside the module so that `src/` holds no test
 //! code, as it does in `apsis-rs`. An integration test is a separate crate and
 //! reaches only what the library makes public, so the few internal items the
 //! tests need are opened through `apsis_book::testkit`.
+
+//!
+//! 它们放在这里而不是模块内部，使 `src/` 不含测试代码，与 `apsis-rs` 一致。
+//! 集成测试是独立的 crate，只能触达库公开的部分，因此测试所需的那少数内部条目
+//! 经 `apsis_book::testkit` 开放。
 use std::sync::Arc;
 
 use apsis_book::api::*;
@@ -25,6 +31,9 @@ fn router() -> Router {
 fn get(router: &Router, path: &str) -> Response {
     // The request parser splits the target, so a test that wants a query
     // supplies it in the path and it is split the same way here.
+
+    // 请求解析器会拆分目标，因此想要查询的测试把它写在路径里，这里也以同样的
+    // 方式拆分。
     let (path, query) = match path.split_once('?') {
         Some((path, query)) => (path.to_string(), Some(query.to_string())),
         None => (path.to_string(), None),
@@ -212,6 +221,8 @@ fn malformed_bodies_are_rejected() {
 fn a_hashed_asset_is_immutable_and_a_plain_one_is_not() {
     // A content hash in the name means the name changes with the
     // contents, so the browser can keep it for as long as it likes.
+
+    // 名字中含内容哈希意味着名字随内容变化，因此浏览器可以想存多久就存多久。
     assert_eq!(
         cache_policy("assets/index-Vou83oaV.js"),
         "public, max-age=31536000, immutable"
@@ -221,10 +232,12 @@ fn a_hashed_asset_is_immutable_and_a_plain_one_is_not() {
         "public, max-age=31536000, immutable"
     );
     // A name without one is reused by the next build.
+    // 不含哈希的名字会被下一次构建复用。
     assert_eq!(cache_policy("index.html"), UNHASHED_CACHE_POLICY);
     assert_eq!(cache_policy("assets/app.js"), UNHASHED_CACHE_POLICY);
     assert_eq!(cache_policy("favicon.ico"), UNHASHED_CACHE_POLICY);
     // A name that merely ends in a dash is not hashed.
+    // 仅仅以连字符结尾的名字不算带哈希。
     assert_eq!(cache_policy("assets/app-.js"), UNHASHED_CACHE_POLICY);
     assert_eq!(cache_policy("assets/no-extension"), UNHASHED_CACHE_POLICY);
 }
@@ -232,6 +245,7 @@ fn a_hashed_asset_is_immutable_and_a_plain_one_is_not() {
 #[test]
 fn a_hash_is_recognised_by_its_shape() {
     // The bundler emits a mixed case base64 hash.
+    // 打包器输出的哈希是大小写混合的 base64。
     assert!(is_content_hashed("index-Vou83oaV.js"));
     assert!(is_content_hashed("style-CEH25aoZ.css"));
     assert!(is_content_hashed("app-deadbeef.js"));
@@ -270,6 +284,7 @@ fn post_to_a_get_route_is_refused() {
 #[test]
 fn a_crate_card_takes_the_first_sentence_only() {
     // The index shows what a crate is; the crate page shows the rest.
+    // 索引说明一个 crate 是什么；其余内容由 crate 页面呈现。
     assert_eq!(
         crate_summary_brief(
             "ApsisRS \u{7684}\u{5171}\u{4eab}\u{57fa}\u{7840}\u{7c7b}\u{578b}\u{3002}\u{672c} crate \u{4f4d}\u{4e8e}\u{4f9d}\u{8d56}\u{56fe}\u{7684}\u{5e95}\u{5c42}\u{3002}"
@@ -281,6 +296,7 @@ fn a_crate_card_takes_the_first_sentence_only() {
 #[test]
 fn a_number_is_not_a_sentence_end() {
     // A version or a measurement must not cut a sentence in half.
+    // 版本号或量值不得把句子截成两半。
     assert_eq!(
         crate_summary_brief("Reads version 1.5 of the format. Then it checksums."),
         "Reads version 1.5 of the format."

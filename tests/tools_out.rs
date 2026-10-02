@@ -1,15 +1,22 @@
 //! Tests for the tool result shape.
+//! 工具结果形状的测试。
 //!
 //! They live here rather than inside the module so that `src/` holds no test
 //! code, as it does in `apsis-rs`. An integration test is a separate crate and
 //! reaches only what the library makes public, so the few internal items the
 //! tests need are opened through `apsis_book::testkit`.
+
+//!
+//! 它们放在这里而不是模块内部，使 `src/` 不含测试代码，与 `apsis-rs` 一致。
+//! 集成测试是独立的 crate，只能触达库公开的部分，因此测试所需的那少数内部条目
+//! 经 `apsis_book::testkit` 开放。
 use apsis_book::json::Value;
 
 use apsis_book::tools::labels;
 use apsis_book::tools::out::*;
 
 /// The first cell of the first row of a shaped response.
+/// 某个已整形响应中第一行第一格的单元格。
 fn first_cell(value: &Value) -> Value {
     let rows = value
         .get("table")
@@ -26,6 +33,8 @@ fn first_cell(value: &Value) -> Value {
 fn a_text_cell_is_shown_in_either_language() {
     // The meaning of a field is a fixed phrase, so it is looked up rather
     // than written twice.
+
+    // 字段的含义是固定短语，因此走查表而不是写两遍。
     let mut table = Table::new(vec![Column::text("meaning", "Meaning")]);
     table.push(vec![Value::from("Mean motion")]);
     let value = table_response(
@@ -45,6 +54,9 @@ fn a_text_cell_is_shown_in_either_language() {
 fn an_identifier_is_not_set_as_a_formula() {
     // `mean_motion` is a field name. Set as a formula it would come out as
     // separate letters with a subscript, which is not the field name.
+
+    // `mean_motion` 是一个字段名。当成公式排版会变成逐字母加下标，那就不是
+    // 字段名了。
     let mut table = Table::new(vec![Column::text("field", "Field")]);
     table.push(vec![Value::from("mean_motion")]);
     let value = table_response("kind", "Title", Vec::new(), &table, Vec::new(), Vec::new());
@@ -58,6 +70,7 @@ fn an_identifier_is_not_set_as_a_formula() {
 #[test]
 fn a_unit_with_a_power_is_rendered() {
     // `rev/day^2` is a unit, and the power is what a reader needs raised.
+    // `rev/day^2` 是一个单位，读者需要看到的是被抬起的幂次。
     let mut table = Table::new(vec![Column::text("unit", "Unit")]);
     table.push(vec![Value::from("rev/day^2")]);
     let value = table_response("kind", "Title", Vec::new(), &table, Vec::new(), Vec::new());

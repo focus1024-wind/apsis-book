@@ -8,6 +8,15 @@
 //! The binary is located through the `CARGO_BIN_EXE_apsis-book` variable that
 //! cargo sets for an integration test, so the test always runs against the
 //! binary built from the same sources.
+//!
+//! 针对服务二进制的端到端测试。
+//!
+//! 测试在一个临时端口上启动真实的二进制，等待它报告自己的地址，然后以普通 TCP
+//! 请求与之通信。这样把请求解析器、路由器、JSON 编解码器、内嵌内容与工具处理
+//! 函数放在一起检验，这是单元测试做不到的。
+//!
+//! 二进制的位置取自 cargo 为集成测试设置的 `CARGO_BIN_EXE_apsis-book`，因此测试
+//! 总是针对由同一份源码构建出的二进制运行。
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
@@ -17,6 +26,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 /// A running service that is stopped when it is dropped.
+/// 一个运行中的服务，被丢弃时即停止。
 struct Service {
     child: Child,
     address: String,
@@ -24,6 +34,7 @@ struct Service {
 
 impl Service {
     /// Starts the binary and waits for it to report its address.
+    /// 启动二进制并等待它报告自己的地址。
     fn start() -> Self {
         let mut child = Command::new(env!("CARGO_BIN_EXE_apsis-book"))
             .args(["--address", "127.0.0.1:0", "--workers", "2"])
@@ -51,6 +62,7 @@ impl Service {
     }
 
     /// Sends a raw request and returns the whole response as text.
+    /// 发送一个原始请求，并把整个响应作为文本返回。
     fn request(&self, request: &str) -> String {
         let mut stream =
             TcpStream::connect(&self.address).expect("the service must accept a connection");
@@ -68,11 +80,13 @@ impl Service {
     }
 
     /// Sends a GET request.
+    /// 发送一个 GET 请求。
     fn get(&self, path: &str) -> String {
         self.request(&format!("GET {path} HTTP/1.1\r\nHost: localhost\r\n\r\n"))
     }
 
     /// Sends a POST request with a JSON body.
+    /// 发送一个带 JSON 请求体的 POST 请求。
     fn post(&self, path: &str, body: &str) -> String {
         self.request(&format!(
             "POST {path} HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
@@ -89,6 +103,7 @@ impl Drop for Service {
 }
 
 /// Returns the body of a response.
+/// 返回某个响应的请求体。
 fn body(response: &str) -> &str {
     response
         .split_once("\r\n\r\n")
@@ -97,6 +112,7 @@ fn body(response: &str) -> &str {
 }
 
 /// Returns the status line of a response.
+/// 返回某个响应的状态行。
 fn status(response: &str) -> &str {
     response.lines().next().unwrap_or("")
 }
@@ -105,6 +121,10 @@ fn status(response: &str) -> &str {
 ///
 /// The accept loop starts a moment after the address is printed, so the
 /// first connection can be refused.
+///
+/// 等待某个条件，轮询直到它成立或超过时限。
+///
+/// 接受循环在地址打印之后片刻才启动，因此第一次连接可能被拒绝。
 fn wait_ready(service: &Service) {
     let deadline = Instant::now() + Duration::from_secs(10);
     while Instant::now() < deadline {
@@ -152,6 +172,7 @@ fn serves_the_document_index_and_a_document() {
     let listing = body(&index);
     assert!(listing.contains("\"groups\""), "{listing}");
     // The concepts and the implementation are separate groups.
+    // 概念与实现是两个分开的分组。
     assert!(listing.contains("\"concepts\""), "{listing}");
     assert!(listing.contains("\"implementation\""), "{listing}");
 
@@ -185,15 +206,19 @@ fn interface_documentation_is_translated() {
     let item = service.get("/api/api/items/propagate_minutes");
     let body = body(&item);
     // The Chinese documentation is served and is rendered to HTML.
+    // 中文文档会被提供，并渲染为 HTML。
     assert!(body.contains("传播"), "the Chinese doc should be served");
     assert!(body.contains("<p>"), "the doc should be rendered as HTML");
     // A doc comment link to another item becomes an internal route.
+    // 指向另一个条目的文档注释链接会成为一个内部路由。
     assert!(
         body.contains("data-api=") && body.contains("#/api/"),
         "the doc link should be resolved: {body}"
     );
     // The English documentation is still present, so the language can switch
     // without another request.
+
+    // 英文文档仍然存在，因此切换语言无需再一次请求。
     assert!(
         body.contains("Returns the state of the satellite"),
         "the English doc should still be present"
@@ -207,6 +232,7 @@ fn crate_summaries_are_translated() {
     let response = service.get("/api/api/crates/apsis-sgp4");
     let body = body(&response);
     // The Chinese summary and its plain form are both served.
+    // 中文概要与它的纯文本形式都会被提供。
     assert!(
         body.contains("传播器"),
         "the Chinese summary should be served"
@@ -301,6 +327,7 @@ fn rejects_a_malformed_body_without_failing() {
     let body = body(&response);
     assert!(body.contains("\"ok\":false"), "{body}");
     // The service must still answer a subsequent request.
+    // 服务必须仍能回应后续请求。
     assert!(status(&service.get("/health")).contains("200"));
 }
 
@@ -321,6 +348,7 @@ fn documents_are_served_in_both_languages() {
     assert!(body.contains("\"language\":\"zh\""), "{body}");
     assert!(body.contains("\"language\":\"en\""), "{body}");
     // The Chinese form of the document carries Chinese text.
+    // 文档的中文形式携带中文文本。
     assert!(body.contains("传播"), "the Chinese form should be embedded");
 }
 
@@ -372,6 +400,8 @@ fn the_flow_index_lists_every_flow() {
     assert!(body.contains("tle-parsing"), "{body}");
     // The index carries a bilingual title, so the frontend needs no copy of
     // the flow names.
+
+    // 索引携带双语标题，因此前端无须另存一份流程图名。
     assert!(body.contains("\"title\""), "{body}");
     assert!(body.contains("\"zh\""), "{body}");
 }
@@ -382,6 +412,8 @@ fn static_assets_are_revalidated() {
     wait_ready(&service);
     // The build writes stable file names, so an immutable policy would pin a
     // reader to the bundle current at first load.
+
+    // 构建写出的是稳定的文件名，因此不可变策略会把读者钉在首次加载时的那个包上。
     let asset = service.get("/assets/app.js");
     assert!(asset.contains("no-cache"), "{asset}");
     assert!(!asset.contains("immutable"), "{asset}");

@@ -1,9 +1,15 @@
 //! Tests for the tool handlers.
+//! 工具处理函数的测试。
 //!
 //! They live here rather than inside the module so that `src/` holds no test
 //! code, as it does in `apsis-rs`. An integration test is a separate crate and
 //! reaches only what the library makes public, so the few internal items the
 //! tests need are opened through `apsis_book::testkit`.
+
+//!
+//! 它们放在这里而不是模块内部，使 `src/` 不含测试代码，与 `apsis-rs` 一致。
+//! 集成测试是独立的 crate，只能触达库公开的部分，因此测试所需的那少数内部条目
+//! 经 `apsis_book::testkit` 开放。
 use apsis_book::testkit::json_object;
 
 use apsis_book::tools::ToolError;
@@ -13,6 +19,7 @@ use apsis_book::json::Value;
 use apsis_book::tools::{Params, Registry};
 
 /// Runs a tool with the given parameters.
+/// 以给定参数运行一个工具。
 fn call(id: &str, values: Value) -> Result<Value, ToolError> {
     let registry = Registry::new();
     let tool = registry.get(id).unwrap();
@@ -21,11 +28,13 @@ fn call(id: &str, values: Value) -> Result<Value, ToolError> {
 }
 
 /// Returns the English text of a label, which is a bilingual object.
+/// 返回某个标签的英文文本，该标签是一个双语对象。
 fn label_english(value: &Value) -> &str {
     value.get("en").and_then(Value::as_str).unwrap_or("")
 }
 
 /// Returns the numeric value of the scalar with an English label.
+/// 返回英文标签为给定值的那个标量的数值。
 fn scalar_number(value: &Value, label: &str) -> f64 {
     value
         .get("scalars")
@@ -111,6 +120,8 @@ fn kepler_conversion_rejects_a_non_elliptical_orbit() {
     // An eccentricity of one is a parabola; the conversion requires an
     // ellipse, so the tool reports the condition without naming a
     // parameter.
+
+    // 偏心率为一即抛物线；该转换要求椭圆，因此工具报告该条件而不指名某个参数。
     let error = call(
         "kepler-state",
         json_object! { "eccentricity" => 1.0, "semi_major_axis" => 7000.0 },

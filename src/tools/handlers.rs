@@ -9,6 +9,15 @@
 //! condition, which is what a caller with the input in front of them needs;
 //! the handler adds the parameter name so that the form can highlight the
 //! field.
+//!
+//! 工具处理函数。
+//!
+//! 每个处理函数接收已校验的参数，并调用 `apsis-rs` 的公共接口。结果由
+//! [`super::out`] 塑造，使前端对所有工具都用同一批组件渲染。
+//!
+//! 错误通过 [`ToolError`] 报告，消息为表单的使用者而写。`apsis-rs` 底层的错误
+//! 类型描述了具体状况，那正是手头有输入的调用方所需要的；处理函数补上参数名，
+//! 使表单能够高亮该字段。
 
 use apsis::apsis_coord::{Ecef, Eci, Geodetic};
 use apsis::apsis_frames::EarthRotationAngle;
@@ -27,6 +36,10 @@ use crate::tools::{Params, ToolError};
 ///
 /// The identifier is one of the identifiers in the registry; an unknown one
 /// is reported as a general failure.
+///
+/// 按标识运行一个工具。
+///
+/// 标识是注册表中的标识之一；未知的标识被报告为一般性失败。
 pub fn run(id: &str, params: &Params<'_>) -> Result<Value, ToolError> {
     match id {
         "parse-tle" => parse_tle(params),
@@ -43,6 +56,7 @@ pub fn run(id: &str, params: &Params<'_>) -> Result<Value, ToolError> {
 }
 
 /// Parses a two-line element set and reports its fields.
+/// 解析两行元素集并报告其各字段。
 fn parse_tle(params: &Params<'_>) -> Result<Value, ToolError> {
     let text = params.text("tle")?;
     let element = TwoLineElement::parse(&text).map_err(|error| {
@@ -156,6 +170,7 @@ fn parse_tle(params: &Params<'_>) -> Result<Value, ToolError> {
 }
 
 /// Propagates one instant with SGP4 and reports the state.
+/// 用 SGP4 传播某一时刻并报告状态。
 fn sgp4_propagate(params: &Params<'_>) -> Result<Value, ToolError> {
     let text = params.text("tle")?;
     let model = gravity_model(params.choice("model")?);
@@ -245,6 +260,7 @@ fn sgp4_propagate(params: &Params<'_>) -> Result<Value, ToolError> {
 }
 
 /// Samples a ground track and returns the points.
+/// 对地面轨迹采样并返回各点。
 fn sgp4_track(params: &Params<'_>) -> Result<Value, ToolError> {
     let text = params.text("tle")?;
     let model = gravity_model(params.choice("model")?);
@@ -341,6 +357,8 @@ fn sgp4_track(params: &Params<'_>) -> Result<Value, ToolError> {
     .map(|value| {
         // The time axis is carried separately so that the chart can label
         // the abscissa without reading the table.
+
+        // 时间轴单独携带，使图表无需读取表格即可标注横坐标。
         let mut members = value.members().to_vec();
         members.push((
             "axis".to_string(),
@@ -355,6 +373,7 @@ fn sgp4_track(params: &Params<'_>) -> Result<Value, ToolError> {
 }
 
 /// Compares the mean elements with the osculating elements.
+/// 把平均根数与密切根数作比较。
 fn orbit_osculating(params: &Params<'_>) -> Result<Value, ToolError> {
     let text = params.text("tle")?;
     let model = gravity_model(params.choice("model")?);
@@ -480,6 +499,7 @@ fn orbit_osculating(params: &Params<'_>) -> Result<Value, ToolError> {
 }
 
 /// Converts Keplerian elements to a state vector.
+/// 把开普勒根数转换为状态矢量。
 fn kepler_state(params: &Params<'_>) -> Result<Value, ToolError> {
     let parameter = gravity_parameter(params.choice("model")?);
     let elements = KeplerianElements {
@@ -594,6 +614,7 @@ fn kepler_state(params: &Params<'_>) -> Result<Value, ToolError> {
 }
 
 /// Converts an instant between time scales.
+/// 在时间尺度之间转换一个时刻。
 fn time_convert(params: &Params<'_>) -> Result<Value, ToolError> {
     let scale = time_scale(params.choice("scale")?);
     let form = params.choice("input")?;
@@ -647,6 +668,9 @@ fn time_convert(params: &Params<'_>) -> Result<Value, ToolError> {
             if let Some(mjd) = mjd {
                 // The label names the scale the input was given on, so it
                 // is built rather than looked up.
+
+                // 标签要指出输入所用的尺度，因此它是构造出来的，而不是查表得到
+                // 的。
                 scalars.push(Scalar::with_unit(
                     format!("Input on {}", target.name()),
                     out::fmt(mjd, 9),
@@ -700,6 +724,7 @@ fn time_convert(params: &Params<'_>) -> Result<Value, ToolError> {
 }
 
 /// Converts a geodetic position to Earth-fixed coordinates.
+/// 把大地位置转换为地固坐标。
 fn geodetic_ecef(params: &Params<'_>) -> Result<Value, ToolError> {
     let latitude = out::radians(params.number("latitude")?);
     let longitude = out::radians(params.number("longitude")?);
@@ -780,6 +805,7 @@ fn geodetic_ecef(params: &Params<'_>) -> Result<Value, ToolError> {
 }
 
 /// Rotates a vector between the inertial and Earth-fixed frames.
+/// 在惯性系与地固系之间旋转一个矢量。
 fn frame_transform(params: &Params<'_>) -> Result<Value, ToolError> {
     let direction = params.choice("direction")?;
     let vector = apsis::apsis_math::Vec3::new(
@@ -864,6 +890,11 @@ fn frame_transform(params: &Params<'_>) -> Result<Value, ToolError> {
 /// whose perigee touches the lower orbit and whose apogee touches the upper
 /// one, a coast for half the ellipse's period, and a second burn onto the
 /// destination circle.
+///
+/// 规划两个圆轨道之间的霍曼转移。
+///
+/// 该转移是经典的两脉冲机动：一次点火进入一个近地点触及低轨、远地点触及高轨的
+/// 椭圆，滑行半个椭圆周期，再一次点火进入目标圆轨道。
 fn hohmann_transfer(params: &Params<'_>) -> Result<Value, ToolError> {
     let from_radius = params.number("from_radius")?;
     let to_radius = params.number("to_radius")?;
@@ -966,6 +997,7 @@ fn hohmann_transfer(params: &Params<'_>) -> Result<Value, ToolError> {
 }
 
 /// Returns the gravity model named by a select value.
+/// 返回某个选择值所命名的重力模型。
 fn gravity_model(value: &str) -> GravityModel {
     match value {
         "wgs84" => GravityModel::WGS84,
@@ -974,6 +1006,7 @@ fn gravity_model(value: &str) -> GravityModel {
 }
 
 /// Returns the display name of a gravity model select value.
+/// 返回某个重力模型选择值的显示名。
 fn gravity_model_name(value: &str) -> &'static str {
     match value {
         "wgs84" => "WGS 84",
@@ -982,6 +1015,7 @@ fn gravity_model_name(value: &str) -> &'static str {
 }
 
 /// Returns the Chinese display name of a gravity model select value.
+/// 返回某个重力模型选择值的中文显示名。
 fn gravity_model_name_zh(value: &str) -> &'static str {
     match value {
         "wgs84" => "WGS 84",
@@ -990,6 +1024,7 @@ fn gravity_model_name_zh(value: &str) -> &'static str {
 }
 
 /// Returns the gravitational parameter of a gravity model select value.
+/// 返回某个重力模型选择值的引力参数。
 fn gravity_parameter(value: &str) -> GravityParameter {
     match value {
         "wgs84" => GravityParameter::WGS84,
@@ -998,6 +1033,7 @@ fn gravity_parameter(value: &str) -> GravityParameter {
 }
 
 /// Returns the time scale named by a select value.
+/// 返回某个选择值所命名的时间尺度。
 fn time_scale(value: &str) -> TimeScale {
     match value {
         "tai" => TimeScale::Tai,
@@ -1008,6 +1044,7 @@ fn time_scale(value: &str) -> TimeScale {
 }
 
 /// Formats an epoch as a UTC calendar string.
+/// 把历元格式化为 UTC 日历字符串。
 fn format_calendar(epoch: Epoch) -> String {
     match epoch.calendar(TimeScale::Utc) {
         Some(calendar) => format_calendar_text(calendar),
@@ -1016,6 +1053,7 @@ fn format_calendar(epoch: Epoch) -> String {
 }
 
 /// Formats a calendar value.
+/// 格式化一个日历值。
 fn format_calendar_text(calendar: Calendar) -> String {
     format!(
         "{:04}-{:02}-{:02}T{:02}:{:02}:{:09.6}",
@@ -1032,6 +1070,10 @@ fn format_calendar_text(calendar: Calendar) -> String {
 ///
 /// An empty slice returns not-a-number for both, which encodes as `null` and
 /// is rendered by the frontend as a missing value.
+///
+/// 返回切片中的最小值与最大值。
+///
+/// 空切片对两者都返回非数，它编码为 `null`，并由前端渲染为缺失值。
 fn min_max(values: &[f64]) -> (f64, f64) {
     let mut minimum = f64::NAN;
     let mut maximum = f64::NAN;
@@ -1054,6 +1096,11 @@ fn min_max(values: &[f64]) -> (f64, f64) {
 ///
 /// The estimate uses Kepler's third law with the WGS 72 gravitational
 /// parameter, so it is the size of the circular orbit with that mean motion.
+///
+/// 估计某个平均运动所隐含的半长轴。
+///
+/// 该估计使用开普勒第三定律与 WGS 72 引力参数，因此它是具有该平均运动的圆轨道
+/// 的大小。
 fn semi_major_axis_estimate(mean_motion: f64) -> f64 {
     if mean_motion <= 0.0 {
         return f64::NAN;
