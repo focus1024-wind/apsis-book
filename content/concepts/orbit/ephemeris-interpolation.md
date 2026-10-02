@@ -29,7 +29,7 @@ $$
 p(s) = h_{00}(s) \, p_0 + h_{10}(s) \, \Delta t \, v_0 + h_{01}(s) \, p_1 + h_{11}(s) \, \Delta t \, v_1
 $$
 
-where `s` is the fraction along the interval in `[0, 1]`, `dt` is the
+where $s$ is the fraction along the interval in `[0, 1]`, `dt` is the
 interval length, and
 
 $$
@@ -44,7 +44,7 @@ $$
 are the Hermite basis polynomials. The velocity is the derivative of the
 same polynomial with respect to time.
 
-Because the velocity is used at both ends, the interpolation is `C^1`: the
+Because the velocity is used at both ends, the interpolation is $C^1$: the
 position and the velocity are continuous across a sample boundary. A table
 built from position alone would have a discontinuous velocity at every
 sample, which is visible in a plot as a kink and is wrong for anything that

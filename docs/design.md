@@ -136,9 +136,14 @@ as fenced code blocks, which is what a plain text file allows, and the
 renderer was made to recognise a block that held equations. That was treating
 the symptom: a code block is not the notation for mathematics, the reader of
 the source sees a formula presented as code, and a renderer that guesses which
-blocks are formulas is a renderer that guesses wrong. The blocks are now
-written in the notation they should always have used, and the renderer reads
-the one notation every Markdown mathematics tool reads.
+blocks are formulas is a renderer that guesses wrong.
+
+The guess was removed rather than refined. It was wrong in practice and not
+only in principle: a doc comment in the library carries a Rust example in a
+fence with no language on it, and the example holds an equals sign, so the
+page drew a program as a formula. A code block is now drawn as a code block
+and nothing else, and the blocks in the documents are written in the
+notation they should always have used.
 
 Setting a formula is mostly an exercise in not losing a character. Text inside
 a MathML row with no element around it is not drawn, so a token that is not

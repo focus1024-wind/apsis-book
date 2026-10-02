@@ -17,11 +17,11 @@ numbers:
 
 | Parameter | Symbol | Value | Unit |
 |-----------|--------|-------|------|
-| Semi-major axis | `a` | 6 378 137.0 | m |
-| Inverse flattening | `1/f` | 298.257 223 563 | dimensionless |
-| Flattening | `f` | 1 / 298.257 223 563 | dimensionless |
-| Semi-minor axis | `b = a (1 - f)` | 6 356 752.314 245 | m |
-| First eccentricity squared | `e^2 = 2 f - f^2` | 0.006 694 379 990 13 | dimensionless |
+| Semi-major axis | $a$ | 6 378 137.0 | m |
+| Inverse flattening | $1/f$ | 298.257 223 563 | dimensionless |
+| Flattening | $f$ | 1 / 298.257 223 563 | dimensionless |
+| Semi-minor axis | $b = a(1 - f)$ | 6 356 752.314 245 | m |
+| First eccentricity squared | $e^2 = 2f - f^2$ | 0.006 694 379 990 13 | dimensionless |
 
 Every other quantity is derived from the two defining numbers, so the
 derived values agree with the published ones to the precision of the
@@ -29,10 +29,10 @@ definitions rather than being independently rounded.
 
 Three coordinates describe a point:
 
-- **Geodetic latitude** `phi`, the angle between the ellipsoid normal at the
+- **Geodetic latitude** $\phi$, the angle between the ellipsoid normal at the
   point and the equatorial plane.
-- **Longitude** `lambda`, positive east of the prime meridian.
-- **Height** `h`, measured along the ellipsoid normal, positive outward.
+- **Longitude** $\lambda$, positive east of the prime meridian.
+- **Height** $h$, measured along the ellipsoid normal, positive outward.
 
 Geodetic latitude is not geocentric latitude. Geocentric latitude is the
 angle between the radius vector to the point and the equatorial plane. The
@@ -58,9 +58,9 @@ z &= \left( N (1 - e^2) + h \right) \sin\phi
 \end{aligned}
 $$
 
-`N` is the distance from the point to the rotation axis measured in the
-equatorial plane for a point at zero height. It grows from `a` at the
-equator to `a / sqrt(1 - e^2)` at the pole.
+$N$ is the distance from the point to the rotation axis measured in the
+equatorial plane for a point at zero height. It grows from $a$ at the
+equator to $a / \sqrt{1 - e^2}$ at the pole.
 
 The reverse conversion, from Cartesian coordinates to geodetic latitude and
 height, has no elementary closed form and is solved by iteration or by a

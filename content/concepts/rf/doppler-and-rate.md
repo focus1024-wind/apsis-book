@@ -18,7 +18,7 @@ motion along the line of sight. **Range rate** is the rate of change of
 range, and it is the same physical quantity: one is a frequency, the other a
 velocity.
 
-For a satellite moving at `v_r` radially, at range `R`, the received
+For a satellite moving at $v_r$ radially, at range $R$, the received
 frequency shift is
 
 $$
@@ -26,7 +26,7 @@ $$
 $$
 
 approaching raises the frequency. The non-relativistic form is adequate for
-orbital speeds; the relativistic correction is about one part in `10^13` and
+orbital speeds; the relativistic correction is about one part in $10^{13}$ and
 matters only for a clock discipline experiment.
 
 ## Mathematics
@@ -40,7 +40,7 @@ $$
 \frac{\Delta f}{f} = -\frac{2 v_r}{c}
 $$
 
-with `v_r` the range rate. The factor of two is why the same satellite
+with $v_r$ the range rate. The factor of two is why the same satellite
 appears to shift twice as much when tracked in two-way mode, and a range
 model that ignores it has a factor-of-two error that is easy to miss.
 
@@ -78,7 +78,7 @@ self-referenced.
 - Frequencies in hertz; a shift is often expressed in parts per billion.
 - Range rate in metres per second or kilometres per second.
 - Range in kilometres, with the carrier frequency in hertz, so the factor
-  `2 c / f` carries its units.
+  $2c/f$ carries its units.
 - The factor of two applies to two-way; one-way is the single case.
 
 ## Applicability

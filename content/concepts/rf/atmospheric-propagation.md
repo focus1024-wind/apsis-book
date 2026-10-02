@@ -39,8 +39,8 @@ $$
 \gamma = \frac{k R^{\alpha}}{\cos\theta}
 $$
 
-where `R` is the rain rate, `theta` the zenith angle, and `k` and `alpha`
-frequency-dependent. The `1 / cos theta` is why a low-elevation pass is
+where $R$ is the rain rate, $\theta$ the zenith angle, and `k` and $\alpha$
+frequency-dependent. The $1 / \cos\theta$ is why a low-elevation pass is
 severe: at ten degrees from the horizon the path is about six times longer
 through the layer.
 

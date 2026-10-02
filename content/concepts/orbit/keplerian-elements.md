@@ -15,11 +15,11 @@ against. This document defines them and the conversions.
 
 | Element | Symbol | Meaning | Unit |
 |---------|--------|---------|------|
-| Semi-major axis | `a` | Size of the ellipse | km |
+| Semi-major axis | $a$ | Size of the ellipse | km |
 | Eccentricity | `e` | Shape, `0` for a circle, below `1` for an ellipse | dimensionless |
-| Inclination | `i` | Tilt of the orbit plane against the equator | rad |
+| Inclination | $i$ | Tilt of the orbit plane against the equator | rad |
 | Right ascension of the ascending node | `Omega` | Where the orbit crosses the equator going north | rad |
-| Argument of perigee | `omega` | Angle from the ascending node to perigee, in the orbit plane | rad |
+| Argument of perigee | $\omega$ | Angle from the ascending node to perigee, in the orbit plane | rad |
 | True anomaly | `nu` | Angle from perigee to the satellite | rad |
 
 The first two give the shape and size. The second two give the orientation
@@ -39,14 +39,14 @@ $$
 r = \frac{p}{1 + e \cos\nu}, \qquad p = a (1 - e^2)
 $$
 
-where `p` is the semi-latus rectum. The velocity follows from the vis-viva
+where $p$ is the semi-latus rectum. The velocity follows from the vis-viva
 equation:
 
 $$
 v^2 = \mu \left( \frac{2}{r} - \frac{1}{a} \right)
 $$
 
-where `mu` is the gravitational parameter of the Earth.
+where $\mu$ is the gravitational parameter of the Earth.
 
 Two derived quantities appear often:
 
@@ -82,8 +82,8 @@ apogee and differ in between.
 | Anomaly | Symbol | Defined as | Geometric meaning |
 |---------|--------|------------|-------------------|
 | True anomaly | `nu` | Angle at the focus from perigee | Actual direction of the satellite |
-| Eccentric anomaly | `E` | Angle at the center of the ellipse | Auxiliary angle of the projecting circle |
-| Mean anomaly | `M` | `M = E - e sin(E)` | Angle a fictitious body on a circular orbit would have |
+| Eccentric anomaly | $E$ | Angle at the center of the ellipse | Auxiliary angle of the projecting circle |
+| Mean anomaly | $M$ | $M = E - e\sin E$ | Angle a fictitious body on a circular orbit would have |
 
 The relations are
 
@@ -91,8 +91,8 @@ $$
 \tan\frac{\nu}{2} = \sqrt{\frac{1 + e}{1 - e}} \tan\frac{E}{2}, \qquad M = E - e \sin E
 $$
 
-`M = E - e sin(E)` is Kepler's equation. It is transcendental, so `E` is
-recovered from `M` by iteration; the implementation uses Newton's method
+$M = E - e\sin E$ is Kepler's equation. It is transcendental, so $E$ is
+recovered from $M$ by iteration; the implementation uses Newton's method
 with a fixed iteration budget and a tolerance, which converges quickly for
 the eccentricities an Earth orbit has. The equation has no closed form
 solution, and any implementation that claims one is approximating.
@@ -106,7 +106,7 @@ because both conversions above are simple in it.
 - Angles in the interface are in **radians**. A tool that accepts degrees
   converts on the input boundary and reports both.
 - The eccentricity is **dimensionless**.
-- The gravitational parameter `mu` is in **cubic kilometers per second
+- The gravitational parameter $\mu$ is in **cubic kilometers per second
   squared**.
 
 ## Applicability

@@ -13,7 +13,7 @@ definition, the expression, and its limits.
 
 ## Definition
 
-The Earth Rotation Angle, written `theta` or ERA, is the angle measured
+The Earth Rotation Angle, written $\theta$ or ERA, is the angle measured
 along the true equator from the Celestial Intermediate Origin to the
 Terrestrial Intermediate Origin. In practice it is the angle between the
 inertial and Earth-fixed frames, and that is how it is used here.
@@ -38,7 +38,7 @@ a solar day.
 The angle is not reduced to one turn. The value returned is a continuous
 function of time, so the difference between two angles is meaningful even
 when the interval is longer than a day. A caller that needs an angle in
-`[0, 2 pi)` reduces it explicitly.
+$[0, 2\pi)$ reduces it explicitly.
 
 The rotation between the frames is a clockwise turn about the third axis:
 

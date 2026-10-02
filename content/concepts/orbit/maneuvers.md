@@ -37,7 +37,7 @@ $$
 \Delta v = v_e \ln\frac{m_0}{m_f}
 $$
 
-with `v_e` the exhaust velocity. Since a logarithmic function grows slowly,
+with $v_e$ the exhaust velocity. Since a logarithmic function grows slowly,
 doubling the propellant gives far less than double the velocity. This is why
 the delta-v of a mission is the primary constraint on its design, and why
 staging exists.
@@ -49,7 +49,7 @@ Hohmann transfer. The first burn raises or lowers the apoapsis to match the
 target, the satellite coasts through half a revolution, and the second burn
 circularises.
 
-With `r_1`, `r_2` the two radii and `a_t = (r_1 + r_2) / 2` the transfer
+With $r_1$, $r_2$ the two radii and $a_t = (r_1 + r_2) / 2$ the transfer
 semi-major axis, the two burns follow from the vis-viva equation,
 
 $$
@@ -82,13 +82,13 @@ $$
 \Delta v_{\text{plane}} \sim 2 V \sin\frac{\Delta i}{2}
 $$
 
-with `V` the circular speed at the radius where the rotation is performed.
+with $V$ the circular speed at the radius where the rotation is performed.
 
 ### Finite burns
 
 Over a finite burn the satellite is still moving against gravity and the
 thrust does not act along the instantaneous velocity. The achieved velocity
-change is less than the ideal `a * t`, and the shortfall is the gravity loss,
+change is less than the ideal $a t$, and the shortfall is the gravity loss,
 
 $$
 L_{\text{gravity}} = \left\lvert \Delta v_{\text{ideal}} \right\rvert - \left\lvert \Delta v_{\text{achieved}} \right\rvert
@@ -101,7 +101,7 @@ An electric thruster is not.
 
 - Delta-v and velocity in kilometres per second.
 - Radii in kilometres.
-- The gravitational parameter `mu` in cubic kilometres per second squared.
+- The gravitational parameter $\mu$ in cubic kilometres per second squared.
 - Inclinations in radians; degrees hide a factor of about 57 when used in a
   sine.
 

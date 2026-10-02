@@ -18,15 +18,15 @@ $$
 F = -\tfrac{1}{2} \rho v^2 C_d A
 $$
 
-with `rho` the atmospheric density, `v` the speed, `Cd` a drag coefficient of
-order one, and `A` the projected area. What matters to the orbit is the
+with $\rho$ the atmospheric density, $v$ the speed, `Cd` a drag coefficient of
+order one, and $A$ the projected area. What matters to the orbit is the
 combination
 
 $$
 B = \frac{C_d A}{m}
 $$
 
-the inverse of the **ballistic coefficient**, and `B` is what a drag model
+the inverse of the **ballistic coefficient**, and $B$ is what a drag model
 actually needs.
 
 Above about 700 km the density is small enough that the force is comparable
@@ -52,7 +52,7 @@ $$
 H = \frac{k T}{m g}
 $$
 
-with `T` the temperature, which itself depends on the solar activity. A warmer
+with $T$ the temperature, which itself depends on the solar activity. A warmer
 thermosphere means a larger scale height, a higher density at every altitude,
 and faster decay.
 
@@ -67,7 +67,7 @@ over one solar cycle does not transfer to another.
 ### Effect on the orbit
 
 The effect on the semi-major axis is a secular decay, with a rate that scales
-with `rho / m` and with the inverse of the semi-major axis cubed, because the
+with $\rho / m$ and with the inverse of the semi-major axis cubed, because the
 orbit speed falls with altitude. The practical consequence is that the decay
 rate is not constant over the life of the orbit; a satellite that starts in a
 dense layer decays quickly and then slows as it sinks into a thinner one.
@@ -113,6 +113,6 @@ which is why such derived values are more reliable than a propagated one.
 
 ## See also
 
-- [[perturbations]] for the ordering of drag against `J_2` and third body
+- [[perturbations]] for the ordering of drag against $J_2$ and third body
 - [[ephemeris-interpolation]] for a track that stops needing a density model
 - [[sgp4]] for a propagation that carries a fitted drag term

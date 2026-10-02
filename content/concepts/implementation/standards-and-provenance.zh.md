@@ -28,7 +28,7 @@ summary: 每个已实现算法各自遵循哪一公开标准或论文，以及�
 | 地球自转角 | *IERS Conventions (2010)*，公式 8.32 | `apsis-frames` |
 | 大地坐标转换 | NIMA TR8350.2，*Department of Defense World Geodetic System 1984*，第三版，2000 | `apsis-geodesy` |
 | 儒略日与约化儒略日 | IAU 约定，见《天文年历解释性补充》 | `apsis-time` |
-| 地球时偏差 | IAU 2000 决议 B1.9，定义 `TT - TAI = 32.184 s` | `apsis-time` |
+| 地球时偏差 | IAU 2000 决议 B1.9，定义 $\text{TT} - \text{TAI} = 32.184\,\text{s}$ | `apsis-time` |
 | 闰秒 | IERS Bulletin C，由 `apsis-leap` 以表形式内嵌 | `apsis-leap` |
 | 日历算法 | Howard Hinnant，*chrono-Compatible Low-Level Date Algorithms*，2015 | `apsis-time` |
 | 离散事件仿真 | Zeigler、Praehofer、Kim，*Theory of Modeling and Simulation*，第二版，2000 | `apsis-sim-engine` |

@@ -37,7 +37,7 @@ Naming the source makes these choices checkable.
 | Earth Rotation Angle | *IERS Conventions (2010)*, equation 8.32 | `apsis-frames` |
 | Geodetic conversions | NIMA TR8350.2, *Department of Defense World Geodetic System 1984*, third edition, 2000 | `apsis-geodesy` |
 | Julian and Modified Julian Date | IAU conventions as described in the *Explanatory Supplement to the Astronomical Almanac* | `apsis-time` |
-| Terrestrial Time offset | IAU 2000 Resolution B1.9, defining `TT - TAI = 32.184 s` | `apsis-time` |
+| Terrestrial Time offset | IAU 2000 Resolution B1.9, defining $\text{TT} - \text{TAI} = 32.184\,\text{s}$ | `apsis-time` |
 | Leap seconds | IERS Bulletin C, embedded as a table by `apsis-leap` | `apsis-leap` |
 | Calendar algorithms | Howard Hinnant, *chrono-Compatible Low-Level Date Algorithms*, 2015 | `apsis-time` |
 | Discrete event simulation | Zeigler, Praehofer, Kim, *Theory of Modeling and Simulation*, second edition, 2000 | `apsis-sim-engine` |

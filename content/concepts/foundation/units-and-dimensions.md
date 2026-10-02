@@ -55,14 +55,14 @@ one in a compiler that tracked those types.
 ### Scaling laws
 
 Dimension reasoning earns its keep in scaling arguments, where an error shows
-up as an impossible exponent. The gravitational perturbation at distance `r`
-from a body of mass `M` must scale as
+up as an impossible exponent. The gravitational perturbation at distance $r$
+from a body of mass $M$ must scale as
 
 $$
 a \propto \frac{G M}{r^2}
 $$
 
-because `G` has units of `m^3 kg^-1 s^-2`; any other combination either does
+because $G$ has units of $\text{m}^3\,\text{kg}^{-1}\,\text{s}^{-2}$; any other combination either does
 not have the dimensions of an acceleration or does have them only for a
 particular case, which is the signal that the argument is incomplete.
 
@@ -71,13 +71,13 @@ particular case, which is the signal that the argument is incomplete.
 - **Angles.** An angle is dimensionless in principle, because a full turn is
   one. It is written in radians in most formulae, and in degrees, arcminutes
   and arcseconds where it is read by a person. The relationship is
-  `180 / pi` degrees per radian. A rotation described in axis and angle uses
+  $180 / \pi$ degrees per radian. A rotation described in axis and angle uses
   the angle in a plane and the axis through the pole; the two conventions
   differ, which is why a rotation is usually written explicitly as
   right-hand or left-hand.
-- **Prefixes.** SI prefixes are powers of ten: kilo is `10^3`, mega `10^6`,
-  micro `10^-6`. A kilometre is a thousand metres, never a thousand miles.
-- **Binary prefixes.** A mebibyte is `2^20` bytes, not `10^6`. The distinction
+- **Prefixes.** SI prefixes are powers of ten: kilo is $10^3$, mega $10^6$,
+  micro $10^{-6}$. A kilometre is a thousand metres, never a thousand miles.
+- **Binary prefixes.** A mebibyte is $2^{20}$ bytes, not $10^6$. The distinction
   matters wherever a size is compared against a capacity.
 - **Units in the field.** Orbital work is written in kilometres and seconds,
   not metres, because the quantities are large and the models are fitted to

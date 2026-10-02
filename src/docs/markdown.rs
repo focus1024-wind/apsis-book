@@ -68,13 +68,7 @@ pub fn render_with(markdown: &str, items: Option<&std::collections::HashSet<Stri
                 index += 1;
             }
             index += 1; // closing fence
-            // A plain block holding equations is a formula, not source, and
-            // is set as one. A block that holds anything else, such as a
-            // transcript or a matrix, is left as the block it is.
-            match render_formula_block(language, &code) {
-                Some(rendered) => output.push_str(&rendered),
-                None => output.push_str(&render_code_block(language, &code)),
-            }
+            output.push_str(&render_code_block(language, &code));
             continue;
         }
 
@@ -234,19 +228,6 @@ fn collect_table<'a>(lines: &[&'a str], start: usize) -> (Vec<&'a str>, usize) {
 }
 
 /// Renders a fenced code block.
-/// Renders a fenced block that holds equations, when it does.
-///
-/// Only a block marked `text`, or marked with nothing at all, is considered.
-/// A block marked as a language is source code by the author's statement, and
-/// a shell transcript or a listing is not a formula however many equals signs
-/// it happens to contain.
-fn render_formula_block(language: &str, code: &str) -> Option<String> {
-    if !language.is_empty() && language != "text" {
-        return None;
-    }
-    crate::docs::mathml::render_plain(code).map(|math| format!("{math}\n"))
-}
-
 fn render_code_block(language: &str, code: &str) -> String {
     let class = if language.is_empty() {
         String::new()

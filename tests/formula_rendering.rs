@@ -29,28 +29,54 @@
 
 use apsis_book::docs::document::Language;
 
-/// Returns the text a reader sees, with the markup removed.
+/// Returns the text a reader sees.
 ///
-/// MathML draws an element's text and drops text that has no element, so
-/// keeping only what is inside an element is what the browser shows.
+/// A browser draws the text of a leaf element and drops text that has no
+/// element around it, so this counts the same and no more. An earlier
+/// version counted any text inside any element, which made the check below
+/// pass whatever the renderer produced: text with no element was counted as
+/// drawn although the browser shows nothing.
 fn visible(html: &str) -> String {
+    /// The elements whose text is drawn.
+    const LEAF: [&str; 6] = ["mi", "mo", "mn", "mtext", "mspace", "ms"];
+
     let mut out = String::new();
-    let mut depth: usize = 0;
-    let mut in_tag = false;
+    // The elements currently open, innermost last.
+    let mut open: Vec<String> = Vec::new();
     let mut characters = html.chars().peekable();
-    while let Some(character) = characters.next() {
+    let mut in_tag = false;
+    let mut tag = String::new();
+
+    for character in characters.by_ref() {
         match character {
             '<' => {
                 in_tag = true;
-                if characters.peek() == Some(&'/') {
-                    depth = depth.saturating_sub(1);
-                } else {
-                    depth += 1;
+                tag.clear();
+            }
+            '>' => {
+                in_tag = false;
+                let name: String = tag
+                    .trim_start_matches('/')
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or("")
+                    .to_lowercase();
+                if tag.starts_with('/') {
+                    open.pop();
+                } else if !tag.ends_with('/') {
+                    open.push(name);
                 }
             }
-            '>' => in_tag = false,
-            _ if !in_tag && depth > 0 => out.push(character),
-            _ => {}
+            _ if in_tag => tag.push(character),
+            _ => {
+                // Drawn only when the innermost open element holds text.
+                if open
+                    .last()
+                    .is_some_and(|name| LEAF.contains(&name.as_str()))
+                {
+                    out.push(character);
+                }
+            }
         }
     }
     out
@@ -163,11 +189,15 @@ fn every_formula_shows_every_character_it_was_written_with() {
                 // The source as written, without the spaces that only set it
                 // out on the page.
                 let written = content_characters(&source);
-                // The part of the page that is the formula itself.
-                let start = html.find(&format!("data-tex=\"{source}\"")).unwrap_or(0);
+                // The part of the page that is the formula itself: the
+                // MathML and nothing else. The source is carried beside it
+                // for a reader to copy, and including it here would compare
+                // the source against itself and pass whatever happened.
+                let from = html.find(&format!("data-tex=\"{source}\"")).unwrap_or(0);
+                let start = html[from..].find("<math").map(|e| from + e).unwrap_or(from);
                 let end = html[start..]
-                    .find("</span>")
-                    .map(|e| start + e)
+                    .find("</math>")
+                    .map(|e| start + e + "</math>".len())
                     .unwrap_or(html.len());
                 let shown: String = visible(&html[start..end])
                     .chars()

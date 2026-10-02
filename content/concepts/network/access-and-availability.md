@@ -26,10 +26,10 @@ across the line of sight.
 
 ### The geometric pass
 
-A satellite in a circular orbit at semi-major axis `a` passes a latitude
-`phi` with a maximum elevation `e_max` that follows from the geometry,
+A satellite in a circular orbit at semi-major axis $a$ passes a latitude
+$\phi$ with a maximum elevation $e_{\text{max}}$ that follows from the geometry,
 
-`e_max` follows from the geometry: it is the angle whose tangent is the
+$e_{\text{max}}$ follows from the geometry: it is the angle whose tangent is the
 perpendicular distance from the observer to the orbit plane divided by the
 distance along the line of sight.
 

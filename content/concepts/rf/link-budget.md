@@ -19,8 +19,8 @@ $$
 P_r = \frac{\text{EIRP} \, G_t}{L}
 $$
 
-with `L` the total propagation and implementation loss. The link closes when
-`P_r` exceeds the sensitivity of the receiver, and the **link margin** is the
+with $L$ the total propagation and implementation loss. The link closes when
+$P_r$ exceeds the sensitivity of the receiver, and the **link margin** is the
 difference in decibels.
 
 Every term is a ratio, so the budget is written in decibels throughout:
@@ -77,7 +77,7 @@ part of the orbit.
 ### Rain attenuation
 
 Attenuation from rain at frequencies above 10 GHz is significant. It scales
-roughly with `f^0.75` up to about 30 GHz and is then given by the specific
+roughly with $f^{0.75}$ up to about 30 GHz and is then given by the specific
 attenuation `gamma` times the path length through the rain cell. The design
 figure is not the average attenuation but the value exceeded for a stated
 fraction of the worst hour in a year, because the budget is closed against

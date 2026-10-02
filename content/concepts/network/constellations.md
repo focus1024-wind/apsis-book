@@ -29,14 +29,14 @@ poorly covered at any given place and time.
 
 ### The geometry of a shell
 
-At altitude `h`, the Earth subtends a half angle from the satellite, and the
+At altitude $h$, the Earth subtends a half angle from the satellite, and the
 ground area visible above an elevation angle `e` is
 
 $$
 A(e) = 2 \pi R^2 \left( 1 + \cos e \right)
 $$
 
-For `e = 0`, the visible cap is a hemisphere. The fraction of the globe a
+For $e = 0$, the visible cap is a hemisphere. The fraction of the globe a
 satellite can see at once is therefore fixed by its altitude alone, and no
 amount of satellites improves it beyond covering more of that hemisphere at
 the same time.

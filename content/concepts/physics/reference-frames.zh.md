@@ -28,7 +28,7 @@ $$
 \mathbf{r}_{\text{ecef}} = R_3(\theta) \, \mathbf{r}_{\text{eci}}, \qquad \mathbf{r}_{\text{eci}} = R_3(\theta)^{\mathsf{T}} \mathbf{r}_{\text{ecef}}
 $$
 
-其中 `theta` 是地球自转角，`R3` 是旋转矩阵
+其中 $\theta$ 是地球自转角，`R3` 是旋转矩阵
 
 $$
 R_3(\theta) = \begin{bmatrix} \cos\theta & \sin\theta & 0 \\ -\sin\theta & \cos\theta & 0 \\ 0 & 0 & 1 \end{bmatrix}

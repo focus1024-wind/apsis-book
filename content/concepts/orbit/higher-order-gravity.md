@@ -23,38 +23,38 @@ U(r, \theta, \lambda) = \frac{\mu}{r} \left[ 1
       \left( C_{nm} \cos m\lambda + S_{nm} \sin m\lambda \right) \right]
 $$
 
-- `r` is the distance from the centre, `theta` the geocentric colatitude and
-  `lambda` the longitude.
-- `P_nm` are the Legendre functions, real polynomials on `sin(theta)`.
-- `C_nm` and `S_nm` are the **geopotential coefficients**; the normalised ones
+- $r$ is the distance from the centre, $\theta$ the geocentric colatitude and
+  $\lambda$ the longitude.
+- $P_{nm}$ are the Legendre functions, real polynomials on $\sin\theta$.
+- $C_{nm}$ and $S_{nm}$ are the **geopotential coefficients**; the normalised ones
   are what a model publishes.
-- `R` is a reference radius.
+- $R$ is a reference radius.
 
-For `n = 0` there is one coefficient, the gravitational parameter. For each
+For $n = 0$ there is one coefficient, the gravitational parameter. For each
 higher degree there are `2n + 1` zonal, tesseral and sectorial terms.
 
-`J_2` is the second zonal coefficient, about `1.0826e-3`, and it dominates
-everything above it. The next largest are `J_3`, `J_4`, each smaller than
+$J_2$ is the second zonal coefficient, about `1.0826e-3`, and it dominates
+everything above it. The next largest are $J_3$, $J_4$, each smaller than
 the last.
 
 ## Mathematics
 
 ### What each term does
 
-- **Zonal** coefficients (`m = 0`) are axisymmetric and cause secular drift
+- **Zonal** coefficients ($m = 0$) are axisymmetric and cause secular drift
   in the node and the argument of perigee, and no change in inclination.
   This is the classical J2 problem.
-- **Tesseral** coefficients (`0 < m < n`) are longitude dependent and cause
+- **Tesseral** coefficients ($0 < m < n$) are longitude dependent and cause
   short-period variation in every element including the inclination. This is
   why real orbits wobble rather than precessing smoothly.
-- **Sectorial** coefficients (`m = n`) couple the radius and the longitude
+- **Sectorial** coefficients ($m = n$) couple the radius and the longitude
   directly and are the smallest contribution.
 
 ### The truncation problem
 
-The series is a power series in `(R/r)`, which converges only for `r > R`,
-that is, outside the Earth. For a satellite at `r` above the surface the
-ratio is `R/r < 1` and the series converges, but **slowly**, because `R/r` is
+The series is a power series in $(R/r)$, which converges only for $r > R$,
+that is, outside the Earth. For a satellite at $r$ above the surface the
+ratio is $R/r < 1$ and the series converges, but **slowly**, because $R/r$ is
 close to one at low altitude. The number of terms needed for a given accuracy
 grows as the altitude falls, which is why a low Earth orbit model truncates
 hard and a geostationary one can carry many terms.
@@ -73,14 +73,14 @@ $$
   \begin{bmatrix} \bar{C}_{nm} \\ \bar{S}_{nm} \end{bmatrix}
 $$
 
-A model is defined by its degree `N` and by the coefficients below it. Degree
+A model is defined by its degree $N$ and by the coefficients below it. Degree
 180 with the first few hundred coefficients is typical.
 
 ## Unit conventions
 
-- Potential and coefficients dimensionless; `mu` is the gravitational
+- Potential and coefficients dimensionless; $\mu$ is the gravitational
   parameter.
-- `R` is the equatorial radius, about 6378.137 km.
+- $R$ is the equatorial radius, about 6378.137 km.
 - Angle in radians; the Legendre functions are polynomials on the sine of the
   colatitude.
 
@@ -88,7 +88,7 @@ A model is defined by its degree `N` and by the coefficients below it. Degree
 
 A truncated gravity field is a compromise. Cutting at a low degree saves
 computation and costs accuracy, and the cost is largest at low altitude where
-`(R/r)` approaches one. The numerical consequences are worse than the
+$(R/r)$ approaches one. The numerical consequences are worse than the
 positional ones: a truncated field is smooth, but its derivatives, which
 drive the short-period terms, are not.
 

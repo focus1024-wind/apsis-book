@@ -32,15 +32,15 @@ problem and cannot be estimated from the arithmetic; it has to be recognised.
 
 ### Iteration
 
-A fixed point is reached by repeated substitution, `x` becoming `g(x)`. It
-converges when the derivative of `g` at the root is small in magnitude:
+A fixed point is reached by repeated substitution, $x$ becoming `g(x)`. It
+converges when the derivative of $g$ at the root is small in magnitude:
 
 $$
 \lvert g'(x) \rvert < 1 \quad \text{(convergence)}, \qquad
 \lvert g'(x) \rvert > 1 \quad \text{(divergence)}
 $$
 
-Kepler's equation, `M = E - e sin E`, has no closed form solution for `E`. It
+Kepler's equation, $M = E - e\sin E$, has no closed form solution for $E$. It
 is solved by Newton's method,
 
 $$
@@ -58,7 +58,7 @@ whether divergence or cost dominates.
 ### Conditioning
 
 The sensitivity of an answer to a perturbation of its input is the
-**condition number**. For a function `f`,
+**condition number**. For a function $f$,
 
 $$
 \kappa = \frac{\lvert f'(x) \rvert \, \lvert x \rvert}{\lvert f(x) \rvert}
@@ -68,7 +68,7 @@ A large condition number means a small input error becomes a large output
 error, whatever the method. Near a singular point the condition number
 diverges: computing the radius of an orbit from its semi-major axis and
 eccentricity is well conditioned, while computing the time to perigee from the
-same elements is not, because `sqrt(1 - e^2)` appears in the denominator and
+same elements is not, because $\sqrt{1 - e^2}$ appears in the denominator and
 goes to zero as `e` approaches one. The problem is ill conditioned, not the
 arithmetic, and more digits do not help.
 
@@ -79,8 +79,8 @@ the step, and a local error proportional to the step squared. Halving the
 step therefore improves the answer by a factor of two, not four, which is why
 "just halve the step" is an expensive way to buy accuracy.
 
-For a method of order `p`, the global error falls as the step to the power
-`p`. A fourth order Runge-Kutta gives `h^4`, which is why it is common: the
+For a method of order $p$, the global error falls as the step to the power
+$p$. A fourth order Runge-Kutta gives $h^4$, which is why it is common: the
 cost per step is four function evaluations, and halving the step costs eight
 times as much for a factor of sixteen less error.
 

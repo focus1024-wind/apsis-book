@@ -49,7 +49,7 @@ $$
                   z \left( 3 - 5 z^2/r^2 \right) \end{bmatrix}
 $$
 
-with `R` the equatorial radius and `z` measured along the rotation axis. It
+with $R$ the equatorial radius and `z` measured along the rotation axis. It
 has no component that changes the energy, so the size of the orbit is
 unaffected to first order; what it changes is the orientation. Its secular
 effects are

@@ -30,7 +30,7 @@ separates a system that fails loudly from one that fails quietly.
 ### Carrier to noise density
 
 The usable quantity is the carrier to noise density ratio, written as
-`C/N0`, which is the carrier power in a one hertz bandwidth over the noise
+$C/N_0$, which is the carrier power in a one hertz bandwidth over the noise
 power in the same bandwidth.
 
 $$
@@ -39,7 +39,7 @@ $$
 
 A pointing loss, a rain fade or a jammer each reduces it, and the range error
 scales with the square root of it. A jammer that costs six decibels of
-`C/N0` does considerably more than six decibels of ranging accuracy.
+$C/N_0$ does considerably more than six decibels of ranging accuracy.
 
 ### The threshold
 
@@ -63,7 +63,7 @@ environment: a jammer must reproduce the motion to corrupt it.
 
 ## Unit conventions
 
-- Power in decibels relative to one milliwatt; `C/N0` in decibels hertz or
+- Power in decibels relative to one milliwatt; $C/N_0$ in decibels hertz or
   dBHz.
 - Noise figure dimensionless, in decibels.
 - Signal strength on an unknown source cannot be converted without a
