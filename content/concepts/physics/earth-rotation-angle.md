@@ -25,9 +25,9 @@ It is a function of UT1, the time scale defined by the rotation of the Earth.
 The angle is computed from the interval in days of UT1 since the J2000.0
 epoch by a linear expression:
 
-```text
-theta = 0.779 057 273 2640 + 1.002 737 909 350 795 * d
-```
+$$
+\theta = 0.779\,057\,273\,2640 + 1.002\,737\,909\,350\,795 \, d
+$$
 
 where `d` is the number of days of UT1 since 2000-01-01 12:00 UT1, and the
 result is in turns. The constant term is the angle at the epoch itself,
@@ -42,10 +42,10 @@ when the interval is longer than a day. A caller that needs an angle in
 
 The rotation between the frames is a clockwise turn about the third axis:
 
-```text
-R3(theta)   : inertial -> Earth-fixed
-R3(theta)^T : Earth-fixed -> inertial
-```
+$$
+R_3(\theta): \text{inertial} \to \text{Earth-fixed}, \qquad
+R_3(\theta)^{\mathsf{T}}: \text{Earth-fixed} \to \text{inertial}
+$$
 
 ## Unit convention
 

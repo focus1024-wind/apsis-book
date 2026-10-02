@@ -18,9 +18,9 @@ document gives both.
 - **Modified Julian Date (MJD)** counts days from midnight on 1858-11-17.
 - The two differ by a fixed offset:
 
-```text
-JD = MJD + 2400000.5
-```
+$$
+\text{JD} = \text{MJD} + 2400000.5
+$$
 
 The half day is the difference between the noon start of the Julian Date and
 the midnight start of the Modified Julian Date. The Modified Julian Date is
@@ -37,9 +37,9 @@ representation.
 A year is a leap year when it is divisible by four, except that a year
 divisible by 100 is not a leap year unless it is also divisible by 400:
 
-```text
-leap(y) = (y mod 4 == 0) and (y mod 100 != 0 or y mod 400 == 0)
-```
+$$
+\text{leap}(y) = (y \bmod 4 = 0) \land (y \bmod 100 \ne 0 \lor y \bmod 400 = 0)
+$$
 
 So 2000 is a leap year and 1900 is not.
 
@@ -50,13 +50,16 @@ arithmetic so that it is exact for every representable date. The algorithm
 shifts the year so that it begins in March, which places the leap day at the
 end of the shifted year and removes the special case from the day count.
 
-```text
-a  = floor((14 - month) / 12)
-y  = year + 4800 - a
-m  = month + 12 a - 3
-JDN = day + floor((153 m + 2) / 5) + 365 y
-      + floor(y / 4) - floor(y / 100) + floor(y / 400) - 32045
-```
+$$
+\begin{aligned}
+a &= \left\lfloor \frac{14 - \text{month}}{12} \right\rfloor \\
+y &= \text{year} + 4800 - a \\
+m &= \text{month} + 12a - 3 \\
+\text{JDN} &= \text{day} + \left\lfloor \frac{153m + 2}{5} \right\rfloor + 365y
+  + \left\lfloor \frac{y}{4} \right\rfloor - \left\lfloor \frac{y}{100} \right\rfloor
+  + \left\lfloor \frac{y}{400} \right\rfloor - 32045
+\end{aligned}
+$$
 
 The inverse uses the same structure with a shift of 32044. Both directions
 are implemented once and tested against each other over a wide range of

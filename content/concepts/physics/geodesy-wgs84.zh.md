@@ -34,18 +34,20 @@ WGS 84 椭球是由两个数定义的旋转扁椭球：
 
 从大地坐标到直角坐标是闭式的。令
 
-```text
-e^2 = 2 f - f^2
-N   = a / sqrt(1 - e^2 sin^2 phi)      （卯酉圈曲率半径）
-```
+$$
+e^2 = 2f - f^2, \qquad
+N = \frac{a}{\sqrt{1 - e^2 \sin^2 \phi}}
+$$
 
 则地固系中的直角坐标为
 
-```text
-x = (N + h) cos(phi) cos(lambda)
-y = (N + h) cos(phi) sin(lambda)
-z = (N (1 - e^2) + h) sin(phi)
-```
+$$
+\begin{aligned}
+x &= (N + h) \cos\phi \cos\lambda \\
+y &= (N + h) \cos\phi \sin\lambda \\
+z &= \left( N (1 - e^2) + h \right) \sin\phi
+\end{aligned}
+$$
 
 `N` 是零高点在赤道面内到自转轴的距离，从赤道的 `a` 增至极点的 `a / sqrt(1 - e^2)`。
 
@@ -53,9 +55,9 @@ z = (N (1 - e^2) + h) sin(phi)
 
 子午圈曲率半径（在子午面内）为
 
-```text
-M = a (1 - e^2) / (1 - e^2 sin^2 phi)^(3/2)
-```
+$$
+M = \frac{a (1 - e^2)}{\left(1 - e^2 \sin^2 \phi\right)^{3/2}}
+$$
 
 它是在该纬度处椭球沿南北方向的曲率半径，出现在沿子午线积分的计算中。
 

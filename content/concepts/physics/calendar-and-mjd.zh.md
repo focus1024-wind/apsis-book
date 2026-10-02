@@ -14,9 +14,9 @@ summary: 日编号系统、外推格里高利历，以及转换算法。
 - **约化儒略日（MJD）** 自 1858-11-17 午夜起算。
 - 二者相差一个固定偏移：
 
-```text
-JD = MJD + 2400000.5
-```
+$$
+\text{JD} = \text{MJD} + 2400000.5
+$$
 
 半天的差异来自儒略日以正午起始而约化儒略日以午夜起始。此处使用约化儒略日，因为它使日编号保持在一个日的小数部分便于处理的范围内。
 
@@ -26,9 +26,9 @@ JD = MJD + 2400000.5
 
 闰年规则为：能被 4 整除的年份是闰年，但能被 100 整除的年份不是，除非它也能被 400 整除：
 
-```text
-leap(y) = (y mod 4 == 0) and (y mod 100 != 0 or y mod 400 == 0)
-```
+$$
+\text{闰年}(y) = (y \bmod 4 = 0) \land (y \bmod 100 \ne 0 \lor y \bmod 400 = 0)
+$$
 
 因此 2000 年是闰年，1900 年不是。
 
@@ -36,13 +36,16 @@ leap(y) = (y mod 4 == 0) and (y mod 100 != 0 or y mod 400 == 0)
 
 日历日期与日编号之间的双向转换使用整数运算，因此对每个可表示的日期都是精确的。算法把年份起点移到三月，使闰日落在调整后年份的末尾，从而从日计数中去掉特殊情况。
 
-```text
-a  = floor((14 - month) / 12)
-y  = year + 4800 - a
-m  = month + 12 a - 3
-JDN = day + floor((153 m + 2) / 5) + 365 y
-      + floor(y / 4) - floor(y / 100) + floor(y / 400) - 32045
-```
+$$
+\begin{aligned}
+a &= \left\lfloor \frac{14 - \text{月}}{12} \right\rfloor \\
+y &= \text{年} + 4800 - a \\
+m &= \text{月} + 12a - 3 \\
+\text{JDN} &= \text{日} + \left\lfloor \frac{153m + 2}{5} \right\rfloor + 365y
+  + \left\lfloor \frac{y}{4} \right\rfloor - \left\lfloor \frac{y}{100} \right\rfloor
+  + \left\lfloor \frac{y}{400} \right\rfloor - 32045
+\end{aligned}
+$$
 
 逆变换采用相同结构，偏移量为 32044。两个方向各实现一次，并在很宽的日期范围内相互校验。
 

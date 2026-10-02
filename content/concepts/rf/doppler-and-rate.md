@@ -21,9 +21,9 @@ velocity.
 For a satellite moving at `v_r` radially, at range `R`, the received
 frequency shift is
 
-```text
-delta_f / f = -v_r / c
-```
+$$
+\frac{\Delta f}{f} = -\frac{v_r}{c}
+$$
 
 approaching raises the frequency. The non-relativistic form is adequate for
 orbital speeds; the relativistic correction is about one part in `10^13` and
@@ -36,9 +36,9 @@ matters only for a clock discipline experiment.
 A signal that travels to the satellite and back is shifted twice, so the
 observed fractional shift is
 
-```text
-delta_f / f = -2 * v_r / c
-```
+$$
+\frac{\Delta f}{f} = -\frac{2 v_r}{c}
+$$
 
 with `v_r` the range rate. The factor of two is why the same satellite
 appears to shift twice as much when tracked in two-way mode, and a range
@@ -48,9 +48,9 @@ model that ignores it has a factor-of-two error that is easy to miss.
 
 Integrating the two-way shift gives the range,
 
-```text
-R(t) = R0 - integral 2 * c * v_r / f0 dt
-```
+$$
+R(t) = R_0 - \int \frac{2 c \, v_r}{f_0} \, dt
+$$
 
 which is why a tracking system measures range as the integral of a
 frequency rather than as a timing. The accumulator drifts with any error in

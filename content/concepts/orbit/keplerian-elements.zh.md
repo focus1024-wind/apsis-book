@@ -27,34 +27,38 @@ summary: 六个经典轨道元素、二体解与三种近点角。
 
 半径随真近点角的变化由圆锥曲线方程给出：
 
-```text
-r = p / (1 + e cos(nu)),    p = a (1 - e^2)
-```
+$$
+r = \frac{p}{1 + e \cos\nu}, \qquad p = a (1 - e^2)
+$$
 
 其中 `p` 是半通径。速度由活力公式给出：
 
-```text
-v^2 = mu (2 / r - 1 / a)
-```
+$$
+v^2 = \mu \left( \frac{2}{r} - \frac{1}{a} \right)
+$$
 
 其中 `mu` 是地球的引力参数。
 
 两个导出量经常出现：
 
-```text
-近地点半径 r_p = a (1 - e)
-远地点半径 r_a = a (1 + e)
-周期       T   = 2 pi sqrt(a^3 / mu)      （开普勒第三定律）
-```
+$$
+\begin{aligned}
+r_p &= a (1 - e) && \text{（近地点半径）} \\
+r_a &= a (1 + e) && \text{（远地点半径）} \\
+T &= 2 \pi \sqrt{\frac{a^3}{\mu}} && \text{（开普勒第三定律）}
+\end{aligned}
+$$
 
 到直角状态的转换先把卫星置于近焦点坐标系，其第一轴指向近地点，第三轴沿轨道法线：
 
-```text
-r = p / (1 + e cos nu)
-x = r cos(nu),  y = r sin(nu),  z = 0
-vx = -sqrt(mu / p) sin(nu)
-vy =  sqrt(mu / p) (e + cos(nu))
-```
+$$
+\begin{aligned}
+r &= \frac{p}{1 + e \cos\nu} \\
+x &= r \cos\nu, \quad y = r \sin\nu, \quad z = 0 \\
+v_x &= -\sqrt{\frac{\mu}{p}} \sin\nu \\
+v_y &=  \sqrt{\frac{\mu}{p}} \left( e + \cos\nu \right)
+\end{aligned}
+$$
 
 再按近地点幅角、倾角和升交点赤经依次旋转。
 
@@ -70,10 +74,9 @@ vy =  sqrt(mu / p) (e + cos(nu))
 
 关系为
 
-```text
-tan(nu / 2) = sqrt((1 + e) / (1 - e)) tan(E / 2)
-M = E - e sin(E)
-```
+$$
+\tan\frac{\nu}{2} = \sqrt{\frac{1 + e}{1 - e}} \tan\frac{E}{2}, \qquad M = E - e \sin E
+$$
 
 `M = E - e sin(E)` 即开普勒方程。它是超越方程，因此由 `M` 求 `E` 需迭代；实现采用带固定迭代次数与容差的牛顿法，对地球轨道通常具有的偏心率收敛很快。该方程没有闭式解，声称有闭式解的实现都是在近似。
 

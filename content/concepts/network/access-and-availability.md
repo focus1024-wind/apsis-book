@@ -29,11 +29,9 @@ across the line of sight.
 A satellite in a circular orbit at semi-major axis `a` passes a latitude
 `phi` with a maximum elevation `e_max` that follows from the geometry,
 
-```text
-e_max such that the elevation is arctan of the perpendicular
-        distance from the observer to the orbit plane, divided
-        by the distance along the line of sight
-```
+`e_max` follows from the geometry: it is the angle whose tangent is the
+perpendicular distance from the observer to the orbit plane divided by the
+distance along the line of sight.
 
 with two limits worth naming. At the pole a satellite in an inclined orbit
 reaches only `90 - inclination` degrees of elevation at best, so a

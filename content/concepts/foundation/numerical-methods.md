@@ -35,17 +35,17 @@ problem and cannot be estimated from the arithmetic; it has to be recognised.
 A fixed point is reached by repeated substitution, `x` becoming `g(x)`. It
 converges when the derivative of `g` at the root is small in magnitude:
 
-```text
-|g'(x)| < 1   for convergence
-|g'(x)| > 1   for divergence
-```
+$$
+\lvert g'(x) \rvert < 1 \quad \text{(convergence)}, \qquad
+\lvert g'(x) \rvert > 1 \quad \text{(divergence)}
+$$
 
 Kepler's equation, `M = E - e sin E`, has no closed form solution for `E`. It
 is solved by Newton's method,
 
-```text
-E_{n+1} = E_n - (E_n - e sin E_n - M) / (1 - e cos E_n)
-```
+$$
+E_{n+1} = E_n - \frac{E_n - e \sin E_n - M}{1 - e \cos E_n}
+$$
 
 which converges quadratically near the root when `e` is not close to one. The
 iteration is fast and its rate depends on eccentricity; for a near-parabolic
@@ -60,9 +60,9 @@ whether divergence or cost dominates.
 The sensitivity of an answer to a perturbation of its input is the
 **condition number**. For a function `f`,
 
-```text
-kappa = | f'(x) | * | x| / | f(x) |
-```
+$$
+\kappa = \frac{\lvert f'(x) \rvert \, \lvert x \rvert}{\lvert f(x) \rvert}
+$$
 
 A large condition number means a small input error becomes a large output
 error, whatever the method. Near a singular point the condition number

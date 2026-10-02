@@ -12,19 +12,21 @@ summary: 信号是否强到可用的算术，以及把宽裕设计变成不可�
 
 远端的接收功率为
 
-```text
-P_r = EIRP * G_t / L
-```
+$$
+P_r = \frac{\text{EIRP} \, G_t}{L}
+$$
 
 其中 `L` 为全部传播与实现损耗。当 `P_r` 超过接收机灵敏度时链路闭合，**链路裕量**是以分贝计的差值。
 
 每一项都是比值，因此预算全程以分贝书写：
 
-```text
-EIRP = P_t + G_t - L_feeder
-P_r  = EIRP + G_r - L_space - L_polarisation - L_pointing
-裕量  = P_r - 灵敏度
-```
+$$
+\begin{aligned}
+\text{EIRP} &= P_t + G_t - L_{\text{馈线}} \\
+P_r &= \text{EIRP} + G_r - L_{\text{空间}} - L_{\text{极化}} - L_{\text{指向}} \\
+\text{裕量} &= P_r - \text{灵敏度}
+\end{aligned}
+$$
 
 决定结果的两项是自由空间损耗（由几何决定）与不是自由的那几项：雨、指向、极化失配。
 
@@ -34,15 +36,15 @@ P_r  = EIRP + G_r - L_space - L_polarisation - L_pointing
 
 损耗随距离四次方与频率平方增长：
 
-```text
-L_fs = (4 pi d f / c)^2
-```
+$$
+L_{\text{fs}} = \left( \frac{4 \pi d f}{c} \right)^2
+$$
 
 线性形式，或分贝形式
 
-```text
-L_fs(dB) = 92.45 + 20 log10 d_km + 20 log10 f_GHz
-```
+$$
+L_{\text{fs,dB}} = 92.45 + 20 \log_{10} d_{\text{km}} + 20 \log_{10} f_{\text{GHz}}
+$$
 
 四次方就是频率翻倍要付出六分贝、距离翻倍也要六分贝的原因。550 km 的星座与 1100 km 的星座用同样设备少十二分贝裕量，超过发射功率翻倍所能补回的量，因为功率翻倍只有三分贝。
 
@@ -50,9 +52,9 @@ L_fs(dB) = 92.45 + 20 log10 d_km + 20 log10 f_GHz
 
 天线接收接近自身极化的信号。角度 `psi` 的失配代价为
 
-```text
-L_pol = -log10( cos^2 psi )   dB
-```
+$$
+L_{\text{pol}} = -10 \log_{10} \left( \cos^2 \psi \right) \ \text{dB}
+$$
 
 几度以内很小，三十度以外很大。倾斜的抛物面或转动的航天器本体可能在一次过境中把链路推过该门限，这是只出现在轨道某一段的常见中断原因。
 

@@ -25,14 +25,16 @@ SGP4 意为简化一般摄动模型第 4 版。该模型是闭式解析传播：
 
 传播首先从平均运动恢复轨道的大小与形状，这需要撤销拟合元素时所施加的改正：
 
-```text
-a1 = (xke / n0)^(2/3)
-delta1 = 1.5 k2 (3 cos^2(i0) - 1) / (a1^2 (1 - e0^2)^(3/2))
-a0 = a1 (1 - delta1/3 - delta1^2 - 134/81 delta1^3)
-delta0 = 1.5 k2 (3 cos^2(i0) - 1) / (a0^2 (1 - e0^2)^(3/2))
-n0' = n0 / (1 + delta0)         （去 Kozai 平均运动）
-a0'' = a0 / (1 - delta0)
-```
+$$
+\begin{aligned}
+a_1 &= \left( \frac{x_{ke}}{n_0} \right)^{2/3} \\
+\delta_1 &= \frac{3}{2} k_2 \frac{3 \cos^2 i_0 - 1}{a_1^2 \left( 1 - e_0^2 \right)^{3/2}} \\
+a_0 &= a_1 \left( 1 - \frac{\delta_1}{3} - \delta_1^2 - \frac{134}{81} \delta_1^3 \right) \\
+\delta_0 &= \frac{3}{2} k_2 \frac{3 \cos^2 i_0 - 1}{a_0^2 \left( 1 - e_0^2 \right)^{3/2}} \\
+n_0' &= \frac{n_0}{1 + \delta_0} && \text{（去 Kozai 平均运动）} \\
+a_0'' &= \frac{a_0}{1 - \delta_0}
+\end{aligned}
+$$
 
 阻力项 `BSTAR` 使半长轴与偏心率产生长期衰减，扁率使近地点幅角、赤经与平近点角产生长期变化率。随后传播由改正后的平近点角求出位置。
 

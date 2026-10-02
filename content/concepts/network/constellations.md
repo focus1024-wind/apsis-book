@@ -32,9 +32,9 @@ poorly covered at any given place and time.
 At altitude `h`, the Earth subtends a half angle from the satellite, and the
 ground area visible above an elevation angle `e` is
 
-```text
-A(e) = 2 pi R^2 ( 1 + cos(e) )
-```
+$$
+A(e) = 2 \pi R^2 \left( 1 + \cos e \right)
+$$
 
 For `e = 0`, the visible cap is a hemisphere. The fraction of the globe a
 satellite can see at once is therefore fixed by its altitude alone, and no

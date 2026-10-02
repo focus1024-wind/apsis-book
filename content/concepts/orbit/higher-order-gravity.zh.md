@@ -12,11 +12,11 @@ summary: 扁率项遗漏了什么、地球引力场如何展开，以及这个�
 
 天体的**地球位势**是其引力场造成的单位质量势能。在地球附近它习惯写成
 
-```text
-U(r, theta, lambda) = (mu / r) [ 1
-  + sum_n (R/r)^n * sum_m P_nm(sin theta)
-      * [ C_nm cos(m lambda) + S_nm sin(m lambda) ] ]
-```
+$$
+U(r, \theta, \lambda) = \frac{\mu}{r} \left[ 1
+  + \sum_{n} \left( \frac{R}{r} \right)^n \sum_{m} P_{nm}(\sin\theta)
+      \left( C_{nm} \cos m\lambda + S_{nm} \sin m\lambda \right) \right]
+$$
 
 - `r` 是到地心的距离，`theta` 是地心余纬，`lambda` 是经度。
 - `P_nm` 是勒让德函数，是 `sin(theta)` 上的实多项式。
@@ -45,9 +45,11 @@ U(r, theta, lambda) = (mu / r) [ 1
 
 模型公布的系数经过归一化，使未归一化形式不随阶次增长：
 
-```text
-[ C_nm  S_nm ] = [ 1 / sqrt( (1-delta) (n-m)! (n+m)! ) ] * [ Cbar_nm  Sbar_nm ]
-```
+$$
+\begin{bmatrix} C_{nm} \\ S_{nm} \end{bmatrix}
+  = \frac{1}{\sqrt{(1 - \delta)\,(n - m)!\,(n + m)!}}
+  \begin{bmatrix} \bar{C}_{nm} \\ \bar{S}_{nm} \end{bmatrix}
+$$
 
 一个模型由其最高阶 `N` 以及此下的系数定义。180 阶配前几百个系数是常见配置。
 

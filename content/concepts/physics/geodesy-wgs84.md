@@ -43,18 +43,20 @@ degrees at mid latitudes, which is about 21 kilometers on the ground.
 
 The conversion from geodetic to Cartesian coordinates is closed form. With
 
-```text
-e^2 = 2 f - f^2
-N   = a / sqrt(1 - e^2 sin^2 phi)      (prime vertical radius of curvature)
-```
+$$
+e^2 = 2f - f^2, \qquad
+N = \frac{a}{\sqrt{1 - e^2 \sin^2 \phi}}
+$$
 
 the Cartesian coordinates in the Earth-fixed frame are
 
-```text
-x = (N + h) cos(phi) cos(lambda)
-y = (N + h) cos(phi) sin(lambda)
-z = (N (1 - e^2) + h) sin(phi)
-```
+$$
+\begin{aligned}
+x &= (N + h) \cos\phi \cos\lambda \\
+y &= (N + h) \cos\phi \sin\lambda \\
+z &= \left( N (1 - e^2) + h \right) \sin\phi
+\end{aligned}
+$$
 
 `N` is the distance from the point to the rotation axis measured in the
 equatorial plane for a point at zero height. It grows from `a` at the
@@ -69,9 +71,9 @@ axis, because no longitude is defined there.
 
 The meridian radius of curvature, in the plane of a meridian, is
 
-```text
-M = a (1 - e^2) / (1 - e^2 sin^2 phi)^(3/2)
-```
+$$
+M = \frac{a (1 - e^2)}{\left(1 - e^2 \sin^2 \phi\right)^{3/2}}
+$$
 
 It is the radius of curvature of the ellipsoid in the north-south direction
 at that latitude. It appears in geodetic computations that integrate along a

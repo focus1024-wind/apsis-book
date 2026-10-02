@@ -28,9 +28,9 @@ order as `J_2` on a large satellite at low altitude.
 
 The flux falls as the inverse square of the distance,
 
-```text
-P(r) = P_1au * (1 au / r)^2
-```
+$$
+P(r) = P_{1\,\text{au}} \left( \frac{1\,\text{au}}{r} \right)^2
+$$
 
 with `P_1au = 4.56e-6 N/m^2` for total solar irradiance at 1 au.
 
@@ -40,9 +40,9 @@ For a satellite with projected area `A`, mass `m`, and a coefficient
 `C_R` that is 1 for absorption, 2 for perfect reflection and between for a
 typical surface, the acceleration is
 
-```text
-a_srp = C_R * P_1au * A / m * (1 au / r)^2
-```
+$$
+a_{\text{srp}} = C_R \frac{P_{1\,\text{au}} A}{m} \left( \frac{1\,\text{au}}{r} \right)^2
+$$
 
 The `A/m` ratio is the whole story. It ranges from about `0.002 m^2/kg` for a
 large communications satellite to about `0.05` for a small cube of a

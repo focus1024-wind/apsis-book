@@ -22,9 +22,9 @@ summary: 如何改变轨道、代价是多少推进剂，以及为什么两个�
 
 飞行器能产生的速度取决于推进剂的喷气速度和质量比：
 
-```text
-delta_v = v_e * ln (m_0 / m_f)
-```
+$$
+\Delta v = v_e \ln\frac{m_0}{m_f}
+$$
 
 其中 `v_e` 为喷气速度。由于对数函数增长缓慢，推进剂加倍远不能使速度加倍。这就是任务的速度增量是设计首要约束的原因，也是分级存在的原因。
 
@@ -34,16 +34,18 @@ delta_v = v_e * ln (m_0 / m_f)
 
 设 `r_1`、`r_2` 为两个半径、`a_t = (r_1 + r_2) / 2` 为转移半长轴，两次点火由活力公式给出：
 
-```text
-delta_v_1 = sqrt( mu (2/r_1 - 1/a_t) ) - sqrt( mu / r_1 )
-delta_v_2 = sqrt( mu / r_2 ) - sqrt( mu (2/r_2 - 1/a_t) )
-```
+$$
+\begin{aligned}
+\Delta v_1 &= \sqrt{\mu \left( \frac{2}{r_1} - \frac{1}{a_t} \right)} - \sqrt{\frac{\mu}{r_1}} \\
+\Delta v_2 &= \sqrt{\frac{\mu}{r_2}} - \sqrt{\mu \left( \frac{2}{r_2} - \frac{1}{a_t} \right)}
+\end{aligned}
+$$
 
 滑行时间取转移椭圆周期的一半：
 
-```text
-t_coast = pi sqrt( a_t^3 / mu )
-```
+$$
+t_{\text{coast}} = \pi \sqrt{\frac{a_t^3}{\mu}}
+$$
 
 从 300 km 转移到地球静止轨道约需 4.1 km/s，它占运载器可提供能力的很大一部分，且其中大部分来自第一次点火。
 
@@ -51,9 +53,9 @@ t_coast = pi sqrt( a_t^3 / mu )
 
 同时改变倾角的转移比共面转移更贵。在同一次点火中既抬升远地点又转动轨道面的联合机动，代价高于单独做其中任一项。给定半径改变与倾角改变时，最优解是一个两次点火的序列，其中变轨面在较小半径处完成，因为该处速度最低，同样的角度转动在速度增量上最便宜。
 
-```text
-delta_v_plane ~ V * 2 sin( 倾角改变量 / 2 )
-```
+$$
+\Delta v_{\text{变轨面}} \sim 2 V \sin\frac{\Delta i}{2}
+$$
 
 其中 `V` 是完成转动处半径上的圆轨道速度。
 
@@ -61,9 +63,9 @@ delta_v_plane ~ V * 2 sin( 倾角改变量 / 2 )
 
 在有限推力过程中，卫星仍在抵抗重力运动，且推力不沿瞬时速度方向。实际达到的速度增量小于理想的 `a * t`，差值即重力损失：
 
-```text
-重力损失 = | 理想 delta_v | - | 实际 delta_v |
-```
+$$
+L_{\text{重力}} = \left\lvert \Delta v_{\text{理想}} \right\rvert - \left\lvert \Delta v_{\text{实际}} \right\rvert
+$$
 
 它随点火时长增长。化学推力点火足够短，可以忽略；电推进不行。
 

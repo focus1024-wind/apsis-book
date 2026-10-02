@@ -12,9 +12,9 @@ UTC 通过插入或删除整秒来保持与地球自转接近，而地球自转�
 
 闰秒是国际地球自转与参考系统服务在 Bulletin C 公告中宣布的对 UTC 的一秒调整。该调整使
 
-```text
-| UT1 - UTC | < 0.9 s
-```
+$$
+\lvert \text{UT1} - \text{UTC} \rvert < 0.9\,\text{s}
+$$
 
 UT1 是由地球自转定义的尺度。地球自转速率并非常数，因此自某历元起经过的秒数与地球转过的角度不会保持同步。闰秒用于弥合这一差距。
 
@@ -22,16 +22,18 @@ UT1 是由地球自转定义的尺度。地球自转速率并非常数，因此�
 
 TAI 与 UTC 之间的偏移是日期的阶跃函数：
 
-```text
-DTAI(date) = 10 s + N(date)
-```
+$$
+\Delta\text{TAI}(t) = 10\,\text{s} + N(t)
+$$
 
 其中 `N(date)` 是 1972-01-01 至该日期之间插入的闰秒数。内核以 TAI 存储时刻，因此该偏移只在时刻与 UTC 之间转换时应用：
 
-```text
-tai_mjd = utc_mjd + DTAI(utc_mjd) / 86400
-utc_mjd = tai_mjd - DTAI(utc_mjd) / 86400
-```
+$$
+\begin{aligned}
+\text{tai} &= \text{utc} + \frac{\Delta\text{TAI}(\text{utc})}{86400} \\
+\text{utc} &= \text{tai} - \frac{\Delta\text{TAI}(\text{utc})}{86400}
+\end{aligned}
+$$
 
 第二个关系式需要在 UTC 时刻处的偏移，而该时刻正是待求量，因此查找表中包含近似时刻的区间，并校验结果的自洽性。实现通过定位适用的表项来完成。
 

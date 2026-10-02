@@ -40,9 +40,9 @@ A unit is a conversion factor to a base unit. Length may be expressed in
 metres, kilometres or feet; each is a number multiplied by a factor to give
 metres. Dimensionally aware arithmetic keeps track of that factor, so
 
-```text
-1 km + 500 m = 1500 m      and never     1 + 500 = 501
-```
+$$
+1\,\text{km} + 500\,\text{m} = 1500\,\text{m}, \quad \text{never } 1 + 500 = 501
+$$
 
 The rule is that the conversion factor travels with the value. A quantity of
 type length carries the factor to metres with it, so adding it to another
@@ -58,9 +58,9 @@ Dimension reasoning earns its keep in scaling arguments, where an error shows
 up as an impossible exponent. The gravitational perturbation at distance `r`
 from a body of mass `M` must scale as
 
-```text
-a ~ G M / r^2
-```
+$$
+a \propto \frac{G M}{r^2}
+$$
 
 because `G` has units of `m^3 kg^-1 s^-2`; any other combination either does
 not have the dimensions of an acceleration or does have them only for a

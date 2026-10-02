@@ -14,17 +14,17 @@ against lifetime, and it is why most low Earth orbits end.
 
 **Drag** is the aerodynamic force opposite the velocity. Its magnitude is
 
-```text
-F = -1/2 * rho * v^2 * Cd * A
-```
+$$
+F = -\tfrac{1}{2} \rho v^2 C_d A
+$$
 
 with `rho` the atmospheric density, `v` the speed, `Cd` a drag coefficient of
 order one, and `A` the projected area. What matters to the orbit is the
 combination
 
-```text
-B = (Cd * A) / m
-```
+$$
+B = \frac{C_d A}{m}
+$$
 
 the inverse of the **ballistic coefficient**, and `B` is what a drag model
 actually needs.
@@ -48,9 +48,9 @@ satellite can gain altitude while moving through it rather than losing it.
 
 In an isothermal layer the density falls exponentially with a scale height
 
-```text
-H = k * T / (m * g)
-```
+$$
+H = \frac{k T}{m g}
+$$
 
 with `T` the temperature, which itself depends on the solar activity. A warmer
 thermosphere means a larger scale height, a higher density at every altitude,

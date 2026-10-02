@@ -28,23 +28,27 @@ summary: 使轨道偏离椭圆的各种力，以及各模型包含其中哪些�
 
 中心引力为
 
-```text
-a_central = -mu r / |r|^3
-```
+$$
+\mathbf{a}_{\text{中心引力}} = -\frac{\mu \mathbf{r}}{\lvert \mathbf{r} \rvert^3}
+$$
 
 描述赤道隆起的一阶带谐项 `J2` 为
 
-```text
-a_J2 = -1.5 J2 mu R^2 / r^5 *
-       [ x (1 - 5 z^2/r^2), y (1 - 5 z^2/r^2), z (3 - 5 z^2/r^2) ]
-```
+$$
+\mathbf{a}_{J_2} = -\frac{3}{2} \frac{J_2 \mu R^2}{r^5}
+  \begin{bmatrix} x \left( 1 - 5 z^2/r^2 \right) \\[2pt]
+                  y \left( 1 - 5 z^2/r^2 \right) \\[2pt]
+                  z \left( 3 - 5 z^2/r^2 \right) \end{bmatrix}
+$$
 
 其中 `R` 是赤道半径，`z` 沿自转轴量取。它没有改变能量的分量，因此一阶上不影响轨道大小，改变的是轨道朝向。其长期效应为
 
-```text
-dOmega/dt = -1.5 n J2 (R/a)^2 cos(i) / (1 - e^2)^2
-domega/dt =  0.75 n J2 (R/a)^2 (5 cos^2(i) - 1) / (1 - e^2)^2
-```
+$$
+\begin{aligned}
+\dot\Omega &= -\frac{3}{2} n J_2 \left( \frac{R}{a} \right)^2 \frac{\cos i}{\left( 1 - e^2 \right)^2} \\
+\dot\omega &=  \frac{3}{4} n J_2 \left( \frac{R}{a} \right)^2 \frac{5 \cos^2 i - 1}{\left( 1 - e^2 \right)^2}
+\end{aligned}
+$$
 
 前者使小倾角轨道缓慢向西进动，使极轨轨道在赤经上进动。两者都大到在一天之内即可产生影响。
 

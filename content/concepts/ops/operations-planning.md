@@ -33,9 +33,9 @@ plane drifts because the oblateness and the solar and lunar gravity produce
 a nodal rate the design did not ask for. Holding the plane costs a
 station-keeping manoeuvre at some interval,
 
-```text
-delta_v_keeping ~ | dOmega/dt | * interval * a
-```
+$$
+\Delta v_{\text{keeping}} \sim \left\lvert \dot\Omega \right\rvert \Delta t \, a
+$$
 
 so the cost is linear in the drift rate and in the interval. Halving the
 allowed drift doubles the rate, and halving the allowed drift interval

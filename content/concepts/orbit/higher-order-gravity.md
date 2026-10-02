@@ -17,11 +17,11 @@ high-accuracy model does and where its difficulties begin.
 The **geopotential** of a body is the potential energy per unit mass due to its
 gravitational field. Near the Earth it is conventionally written
 
-```text
-U(r, theta, lambda) = (mu / r) [ 1
-  + sum_n (R/r)^n * sum_m P_nm(sin theta)
-      * [ C_nm cos(m lambda) + S_nm sin(m lambda) ] ]
-```
+$$
+U(r, \theta, \lambda) = \frac{\mu}{r} \left[ 1
+  + \sum_{n} \left( \frac{R}{r} \right)^n \sum_{m} P_{nm}(\sin\theta)
+      \left( C_{nm} \cos m\lambda + S_{nm} \sin m\lambda \right) \right]
+$$
 
 - `r` is the distance from the centre, `theta` the geocentric colatitude and
   `lambda` the longitude.
@@ -67,9 +67,11 @@ strongest, not where it is weakest.
 The coefficients published by a model are normalised so that the unnormalised
 form does not grow with degree:
 
-```text
-[ C_nm  S_nm ] = [ 1 / sqrt( (1-delta) (n-m)! (n+m)! ) ] * [ Cbar_nm  Sbar_nm ]
-```
+$$
+\begin{bmatrix} C_{nm} \\ S_{nm} \end{bmatrix}
+  = \frac{1}{\sqrt{(1 - \delta)\,(n - m)!\,(n + m)!}}
+  \begin{bmatrix} \bar{C}_{nm} \\ \bar{S}_{nm} \end{bmatrix}
+$$
 
 A model is defined by its degree `N` and by the coefficients below it. Degree
 180 with the first few hundred coefficients is typical.

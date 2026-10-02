@@ -58,9 +58,17 @@ pub(crate) fn normalize(latex: &str) -> Vec<Token> {
                     end += 1;
                 }
                 if end == index + 1 {
-                    // A backslash before a non letter is that character.
-                    if let Some(next) = characters.get(index + 1) {
-                        tokens.push(Token::Symbol(*next));
+                    // A backslash before a mark is a command of its own when
+                    // the mark is a spacing one, and that character itself
+                    // otherwise.
+                    match characters.get(index + 1) {
+                        Some(',') => tokens.push(Token::Command("thinspace".to_string())),
+                        Some(';') => tokens.push(Token::Command("thickspace".to_string())),
+                        Some(':') => tokens.push(Token::Command("medspace".to_string())),
+                        Some('!') => tokens.push(Token::Command("negspace".to_string())),
+                        Some(' ') => tokens.push(Token::Command("space".to_string())),
+                        Some(next) => tokens.push(Token::Symbol(*next)),
+                        None => {}
                     }
                     index += 2;
                 } else {
@@ -112,6 +120,18 @@ enum Node {
     Nested(Box<Node>, Box<Node>),
     /// A named function such as `sin`.
     Function(String),
+    /// A mark written above its argument, as in `\dot\Omega`.
+    Overscript(Box<Node>, String),
+    /// Words that stand as they are written, as in `\text{km}`.
+    Verbatim(String),
+    /// A matrix, with the delimiters its environment asks for.
+    Matrix {
+        /// The opening and closing delimiters, which may be empty.
+        open: &'static str,
+        close: &'static str,
+        /// The cells, one row at a time.
+        rows: Vec<Vec<Node>>,
+    },
 }
 
 /// The Greek letters, by command.
@@ -279,6 +299,121 @@ fn parse_row(tokens: &[Token], cursor: &mut usize, stop: Option<&[char]>) -> Vec
         }
     }
     row
+}
+
+/// Returns the delimiters a matrix environment is drawn with.
+fn matrix_delimiters(name: &str) -> Option<(&'static str, &'static str)> {
+    Some(match name {
+        "matrix" | "aligned" | "align" | "gathered" | "array" => ("", ""),
+        "pmatrix" => ("(", ")"),
+        "bmatrix" => ("[", "]"),
+        "vmatrix" => ("|", "|"),
+        "Vmatrix" => ("‖", "‖"),
+        "cases" => ("{", ""),
+        _ => return None,
+    })
+}
+
+/// Reads the name of an environment from the group that follows `\begin`.
+fn parse_environment_name(tokens: &[Token], cursor: &mut usize) -> String {
+    let mut name = String::new();
+    if !matches!(tokens.get(*cursor), Some(Token::Group)) {
+        return name;
+    }
+    *cursor += 1;
+    while let Some(token) = tokens.get(*cursor) {
+        if token == &Token::Group {
+            break;
+        }
+        if let Token::Symbol(character) = token {
+            name.push(*character);
+        }
+        *cursor += 1;
+    }
+    if matches!(tokens.get(*cursor), Some(Token::Group)) {
+        *cursor += 1;
+    }
+    name
+}
+
+/// Reads the rows of a matrix, up to the `\end` that closes it.
+///
+/// A cell ends at `&`, a row ends at `\\`, and the environment ends at
+/// `\end`. The tokens of a cell are read by the same handlers as anywhere
+/// else, so a fraction or a root inside a cell works as it does outside.
+fn parse_matrix_rows(tokens: &[Token], cursor: &mut usize) -> Vec<Vec<Node>> {
+    // Two accumulators: the cell being read, and the cells of the row so
+    // far. One alone does not do, because `&` ends a cell and starts the
+    // next, and the nodes after it belong to the next cell rather than
+    // beside the one just closed.
+    let mut rows: Vec<Vec<Node>> = Vec::new();
+    let mut cells: Vec<Node> = Vec::new();
+    let mut cell: Vec<Node> = Vec::new();
+
+    let end_cell = |cells: &mut Vec<Node>, cell: &mut Vec<Node>| {
+        cells.push(Node::Row(std::mem::take(cell)));
+    };
+
+    loop {
+        match tokens.get(*cursor) {
+            None => break,
+            Some(Token::Command(name)) if name == "end" => break,
+            Some(Token::Symbol('\\')) => {
+                *cursor += 1;
+                end_cell(&mut cells, &mut cell);
+                rows.push(std::mem::take(&mut cells));
+            }
+            Some(Token::Symbol('&')) => {
+                *cursor += 1;
+                end_cell(&mut cells, &mut cell);
+            }
+            Some(Token::Group) => {
+                *cursor += 1;
+                let inner = parse_row(tokens, cursor, Some(&['}']));
+                cell.push(Node::Row(inner));
+            }
+            Some(Token::Symbol(symbol)) => {
+                let symbol = *symbol;
+                *cursor += 1;
+                cell.extend(parse_symbol(symbol, tokens, cursor, &mut 0));
+            }
+            Some(Token::Command(name)) => {
+                let name = name.clone();
+                *cursor += 1;
+                cell.extend(parse_command(&name, tokens, cursor));
+            }
+        }
+    }
+    // The last row has no `\\` after it.
+    if !cell.is_empty() || !cells.is_empty() || rows.is_empty() {
+        end_cell(&mut cells, &mut cell);
+        rows.push(cells);
+    }
+    rows
+}
+
+/// Reads the characters of an argument as the text they are written with.
+///
+/// Used where the argument is words rather than mathematics, so that the
+/// letters are not read as variables one at a time.
+fn parse_raw_text(tokens: &[Token], cursor: &mut usize) -> String {
+    let mut out = String::new();
+    if !matches!(tokens.get(*cursor), Some(Token::Group)) {
+        return out;
+    }
+    *cursor += 1;
+    while let Some(token) = tokens.get(*cursor) {
+        match token {
+            Token::Group => break,
+            Token::Symbol(character) => out.push(*character),
+            Token::Command(name) => out.push_str(name),
+        }
+        *cursor += 1;
+    }
+    if matches!(tokens.get(*cursor), Some(Token::Group)) {
+        *cursor += 1;
+    }
+    out
 }
 
 /// Reads the argument of a command, which is either a group or one symbol.
@@ -451,6 +586,78 @@ fn parse_command(name: &str, tokens: &[Token], cursor: &mut usize) -> Vec<Node> 
                 cursor,
             )]
         }
+        // A matrix environment: \begin{name} cells \end{name}, with `&`
+        // between the cells of a row and `\\` between the rows.
+        "begin" => {
+            let name = parse_environment_name(tokens, cursor);
+            let Some((open, close)) = matrix_delimiters(&name) else {
+                return Vec::new();
+            };
+            let rows = parse_matrix_rows(tokens, cursor);
+            // The environment is closed by `\end{name}`, which is two
+            // tokens: the command and the name. Both are read here, or the
+            // name is left to be set as mathematics of its own.
+            if matches!(tokens.get(*cursor), Some(Token::Command(name)) if name == "end") {
+                *cursor += 1;
+                let _ = parse_raw_text(tokens, cursor);
+            }
+            vec![Node::Matrix { open, close, rows }]
+        }
+        // The closing of an environment is consumed by the environment.
+        "end" => Vec::new(),
+        // A floor, a ceiling, and the modulo operator.
+        "lfloor" | "lceil" | "langle" => {
+            let symbol = match name {
+                "lfloor" => "⌊",
+                "lceil" => "⌈",
+                _ => "⟨",
+            };
+            vec![Node::Text(symbol.to_string())]
+        }
+        "rfloor" | "rceil" | "rangle" => {
+            let symbol = match name {
+                "rfloor" => "⌋",
+                "rceil" => "⌉",
+                _ => "⟩",
+            };
+            vec![Node::Text(symbol.to_string())]
+        }
+        "bmod" => vec![Node::Text(" mod ".to_string())],
+        "pmod" => {
+            let argument = parse_argument(tokens, cursor);
+            vec![Node::Row(vec![
+                Node::Text(" (mod ".to_string()),
+                argument,
+                Node::Text(")".to_string()),
+            ])]
+        }
+        // An accent, written as a mark above its argument.
+        "dot" | "ddot" | "bar" | "overline" | "vec" | "hat" | "tilde" => {
+            let mark = match name {
+                "dot" => "˙",
+                "ddot" => "¨",
+                "vec" => "→",
+                "hat" => "^",
+                "tilde" => "~",
+                _ => "‾",
+            };
+            let argument = parse_argument(tokens, cursor);
+            let accented = Node::Overscript(Box::new(argument), mark.to_string());
+            vec![attach_scripts(accented, tokens, cursor)]
+        }
+        // Commands that only set the size or the style, and carry no glyph.
+        "thinspace" => vec![Node::Text("\u{2009}".to_string())],
+        "medspace" | "thickspace" => vec![Node::Text("\u{2005}".to_string())],
+        "negspace" => Vec::new(),
+        "space" => vec![Node::Text(" ".to_string())],
+        "quad" | "qquad" => vec![Node::Text("\u{2009}\u{2009}".to_string())],
+        "displaystyle" | "textstyle" | "limits" | "nolimits" | "left" | "right" | "bigl"
+        | "bigr" | "Bigl" | "Bigr" | "biggl" | "biggr" | "Biggl" | "Biggr" | "big" | "Big"
+        | "bigg" | "Bigg" => {
+            // A size or a pairing command is structural. The delimiter that
+            // follows is read as an ordinary symbol.
+            Vec::new()
+        }
         "sqrt" => {
             // The index, when there is one, is given in brackets before the
             // radicand: `\sqrt[3]{x}`.
@@ -466,21 +673,16 @@ fn parse_command(name: &str, tokens: &[Token], cursor: &mut usize) -> Vec<Node> 
                 cursor,
             )]
         }
-        "left" | "right" | "big" | "Big" | "bigg" | "Bigg" => {
-            // The size and pairing commands are structural; the delimiter
-            // that follows is read as an ordinary symbol.
-            Vec::new()
-        }
-        "quad" => vec![Node::Text("\u{2009}\u{2009}".to_string())],
-        // The spacing commands are punctuation with no shape of their own.
+        // A comma written as a command is punctuation, not a separator
+        // between two formulas, so it keeps its own shape.
         "," => vec![Node::Text(", ".to_string())],
-        ";" => vec![Node::Text("; ".to_string())],
-        ":" => vec![Node::Text(": ".to_string())],
+        // `\text{...}` holds words as they are written. Read as variables
+        // they would be set one letter at a time, so `km` became `k m`.
         "text" | "mathrm" | "operatorname" | "mbox" => {
-            let inner = parse_argument(tokens, cursor);
-            vec![Node::Row(vec![inner])]
+            vec![Node::Verbatim(parse_raw_text(tokens, cursor))]
         }
-        "mathbf" | "mathit" | "mathsf" | "mathtt" => {
+        // A style command keeps its argument set as mathematics.
+        "mathsf" | "mathtt" | "mathbf" | "mathit" | "mathcal" | "mathfrak" => {
             let inner = parse_argument(tokens, cursor);
             vec![Node::Row(vec![inner])]
         }
@@ -548,6 +750,30 @@ fn emit(node: &Node) -> String {
         // serif face reads as a number rather than as a variable.
         Node::Text(text) => classify(text),
         Node::Function(label) => format!("<mi>{}</mi>", escape(label)),
+        Node::Verbatim(text) => format!("<mtext>{}</mtext>", escape(text)),
+        Node::Overscript(base, mark) => format!(
+            "<mover><mrow>{}</mrow><mo>{}</mo></mover>",
+            emit(base),
+            escape(mark)
+        ),
+        Node::Matrix { open, close, rows } => {
+            let body: String = rows
+                .iter()
+                .map(|row| {
+                    let cells: String = row
+                        .iter()
+                        .map(|cell| format!("<mtd>{}</mtd>", emit(cell)))
+                        .collect();
+                    format!("<mtr>{cells}</mtr>")
+                })
+                .collect();
+            let table = format!("<mtable>{body}</mtable>");
+            if open.is_empty() && close.is_empty() {
+                table
+            } else {
+                format!("<mrow><mo>{open}</mo>{table}<mo>{close}</mo></mrow>")
+            }
+        }
         Node::Row(children) => match children.len() {
             // A row of one is the child itself; an extra pair of brackets
             // would be noise in the markup and would break the grouping the

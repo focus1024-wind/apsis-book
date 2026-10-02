@@ -25,19 +25,21 @@ UTC 是此处唯一不均匀的尺度。它通过插入或删除整秒保持在 
 
 原因在于精确性。两个以 TAI 存储的时刻之差为
 
-```text
-seconds = (tai_mjd_later - tai_mjd_earlier) * 86400
-```
+$$
+\Delta t = \left( \text{tai}_{\text{后}} - \text{tai}_{\text{前}} \right) \times 86400
+$$
 
 该差就是二者之间经过的 SI 时间，无论它们是以何种尺度创建的。若时刻以 UTC 存储，同样的减法在跨越闰秒插入时会出错，因为 UTC 时钟在该点没有单一明确的数值。
 
 尺度之间的转换除 UTC 外都是常数偏移：
 
-```text
-TT  - TAI  = 32.184 s                    （常数，IAU 2000）
-TAI - GPS  = 19 s                        （自 1980 年起为常数）
-TAI - UTC  = 10 s + (1972 年以来插入的闰秒数)
-```
+$$
+\begin{aligned}
+\text{TT} - \text{TAI} &= 32.184\,\text{s} && \text{（常数，IAU 2000）} \\
+\text{TAI} - \text{GPS} &= 19\,\text{s} && \text{（自 1980 年起为常数）} \\
+\text{TAI} - \text{UTC} &= 10\,\text{s} + N && \text{（1972 年以来插入的闰秒数）}
+\end{aligned}
+$$
 
 前两项是常数。第三项是日期的阶跃函数，其数值来自 `apsis-leap` 中的闰秒表，即 IERS Bulletin C 发布的表。
 

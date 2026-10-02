@@ -33,18 +33,15 @@ another is expected. A conversion is an explicit method call.
 The transformation between the inertial and Earth-fixed frames is a
 rotation about the third axis by the Earth Rotation Angle:
 
-```text
-r_ecef = R3(theta) r_eci
-r_eci  = R3(theta)^T r_ecef
-```
+$$
+\mathbf{r}_{\text{ecef}} = R_3(\theta) \, \mathbf{r}_{\text{eci}}, \qquad \mathbf{r}_{\text{eci}} = R_3(\theta)^{\mathsf{T}} \mathbf{r}_{\text{ecef}}
+$$
 
 where `theta` is the Earth Rotation Angle and `R3` is the rotation matrix
 
-```text
-R3(theta) = [ cos(theta)   sin(theta)  0
-             -sin(theta)   cos(theta)  0
-              0            0           1 ]
-```
+$$
+R_3(\theta) = \begin{bmatrix} \cos\theta & \sin\theta & 0 \\ -\sin\theta & \cos\theta & 0 \\ 0 & 0 & 1 \end{bmatrix}
+$$
 
 The rotation is orthogonal, so it preserves lengths and angles. This is a
 useful check: a conversion that changes the length of a vector by more than

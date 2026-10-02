@@ -64,10 +64,10 @@ written as a sign, a mantissa without a decimal point, a sign for the
 exponent, and a single exponent digit. The mantissa is read with a decimal
 point in front of its first digit. So
 
-```text
- 12345-3  means  0.12345e-3
--11606-4  means -0.11606e-4
-```
+| Written in the element set | Means |
+|----------------------------|-------|
+| ` 12345-3` | `0.12345e-3` |
+| `-11606-4` | `-0.11606e-4` |
 
 **The eccentricity has an assumed decimal point.** The field `0006703` means
 `0.0006703`, not `6703`.
@@ -80,9 +80,9 @@ absent term.
 The checksum of a line is the sum of the decimal digits on the line, plus
 one for each minus sign, reduced modulo ten:
 
-```text
-checksum = (sum of digits + number of minus signs) mod 10
-```
+$$
+\text{checksum} = \left( \text{sum of digits} + \text{number of minus signs} \right) \bmod 10
+$$
 
 Only the first 68 columns contribute; the checksum occupies column 69 and is
 not part of its own sum. For the example line 1 the sum is 167 and the

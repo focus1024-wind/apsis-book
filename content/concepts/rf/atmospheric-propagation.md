@@ -35,9 +35,9 @@ over a pass.
 Above about 10 GHz water vapour becomes significant, and above about 30 GHz
 it dominates. The specific attenuation for a given rain rate is
 
-```text
-gamma = k * R^alpha / (cos theta)
-```
+$$
+\gamma = \frac{k R^{\alpha}}{\cos\theta}
+$$
 
 where `R` is the rain rate, `theta` the zenith angle, and `k` and `alpha`
 frequency-dependent. The `1 / cos theta` is why a low-elevation pass is

@@ -38,14 +38,16 @@ The propagation begins by recovering the size and shape of the orbit from
 the mean motion, which requires undoing the correction that was applied when
 the elements were fitted:
 
-```text
-a1 = (xke / n0)^(2/3)
-delta1 = 1.5 k2 (3 cos^2(i0) - 1) / (a1^2 (1 - e0^2)^(3/2))
-a0 = a1 (1 - delta1/3 - delta1^2 - 134/81 delta1^3)
-delta0 = 1.5 k2 (3 cos^2(i0) - 1) / (a0^2 (1 - e0^2)^(3/2))
-n0' = n0 / (1 + delta0)         (the un-Kozai mean motion)
-a0'' = a0 / (1 - delta0)
-```
+$$
+\begin{aligned}
+a_1 &= \left( \frac{x_{ke}}{n_0} \right)^{2/3} \\
+\delta_1 &= \frac{3}{2} k_2 \frac{3 \cos^2 i_0 - 1}{a_1^2 \left( 1 - e_0^2 \right)^{3/2}} \\
+a_0 &= a_1 \left( 1 - \frac{\delta_1}{3} - \delta_1^2 - \frac{134}{81} \delta_1^3 \right) \\
+\delta_0 &= \frac{3}{2} k_2 \frac{3 \cos^2 i_0 - 1}{a_0^2 \left( 1 - e_0^2 \right)^{3/2}} \\
+n_0' &= \frac{n_0}{1 + \delta_0} && \text{(the un-Kozai mean motion)} \\
+a_0'' &= \frac{a_0}{1 - \delta_0}
+\end{aligned}
+$$
 
 The drag term `BSTAR` produces a secular decay of the semi-major axis and
 the eccentricity, and the oblateness produces secular rates in the argument

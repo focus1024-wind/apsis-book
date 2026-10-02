@@ -24,18 +24,15 @@ summary: 惯性系与地固系、在类型中携带参考系的位置表示，�
 
 惯性系与地固系之间的变换是绕第三轴旋转地球自转角：
 
-```text
-r_ecef = R3(theta) r_eci
-r_eci  = R3(theta)^T r_ecef
-```
+$$
+\mathbf{r}_{\text{ecef}} = R_3(\theta) \, \mathbf{r}_{\text{eci}}, \qquad \mathbf{r}_{\text{eci}} = R_3(\theta)^{\mathsf{T}} \mathbf{r}_{\text{ecef}}
+$$
 
 其中 `theta` 是地球自转角，`R3` 是旋转矩阵
 
-```text
-R3(theta) = [ cos(theta)   sin(theta)  0
-             -sin(theta)   cos(theta)  0
-              0            0           1 ]
-```
+$$
+R_3(\theta) = \begin{bmatrix} \cos\theta & \sin\theta & 0 \\ -\sin\theta & \cos\theta & 0 \\ 0 & 0 & 1 \end{bmatrix}
+$$
 
 该旋转是正交的，因此保持长度与夹角不变。这是一个有用的校验：某次转换使矢量长度变化超过舍入误差就说明有误。
 

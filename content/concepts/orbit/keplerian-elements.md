@@ -35,37 +35,41 @@ farthest is apogee.
 The radius as a function of the true anomaly follows from the conic
 equation:
 
-```text
-r = p / (1 + e cos(nu)),    p = a (1 - e^2)
-```
+$$
+r = \frac{p}{1 + e \cos\nu}, \qquad p = a (1 - e^2)
+$$
 
 where `p` is the semi-latus rectum. The velocity follows from the vis-viva
 equation:
 
-```text
-v^2 = mu (2 / r - 1 / a)
-```
+$$
+v^2 = \mu \left( \frac{2}{r} - \frac{1}{a} \right)
+$$
 
 where `mu` is the gravitational parameter of the Earth.
 
 Two derived quantities appear often:
 
-```text
-perigee radius r_p = a (1 - e)
-apogee radius  r_a = a (1 + e)
-period         T   = 2 pi sqrt(a^3 / mu)      (Kepler's third law)
-```
+$$
+\begin{aligned}
+r_p &= a (1 - e) && \text{(perigee radius)} \\
+r_a &= a (1 + e) && \text{(apogee radius)} \\
+T &= 2 \pi \sqrt{\frac{a^3}{\mu}} && \text{(Kepler's third law)}
+\end{aligned}
+$$
 
 The conversion to a Cartesian state places the satellite in the perifocal
 frame, whose first axis points to perigee and whose third axis is along the
 orbit normal:
 
-```text
-r = p / (1 + e cos nu)
-x = r cos(nu),  y = r sin(nu),  z = 0
-vx = -sqrt(mu / p) sin(nu)
-vy =  sqrt(mu / p) (e + cos(nu))
-```
+$$
+\begin{aligned}
+r &= \frac{p}{1 + e \cos\nu} \\
+x &= r \cos\nu, \quad y = r \sin\nu, \quad z = 0 \\
+v_x &= -\sqrt{\frac{\mu}{p}} \sin\nu \\
+v_y &=  \sqrt{\frac{\mu}{p}} \left( e + \cos\nu \right)
+\end{aligned}
+$$
 
 and then rotates by the argument of perigee, the inclination, and the right
 ascension of the ascending node.
@@ -83,10 +87,9 @@ apogee and differ in between.
 
 The relations are
 
-```text
-tan(nu / 2) = sqrt((1 + e) / (1 - e)) tan(E / 2)
-M = E - e sin(E)
-```
+$$
+\tan\frac{\nu}{2} = \sqrt{\frac{1 + e}{1 - e}} \tan\frac{E}{2}, \qquad M = E - e \sin E
+$$
 
 `M = E - e sin(E)` is Kepler's equation. It is transcendental, so `E` is
 recovered from `M` by iteration; the implementation uses Newton's method

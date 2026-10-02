@@ -34,9 +34,9 @@ back to whatever scale is asked for when it is displayed.
 
 The reason is exactness. Two instants stored on TAI differ by
 
-```text
-seconds = (tai_mjd_later - tai_mjd_earlier) * 86400
-```
+$$
+\Delta t = \left( \text{tai}_{\text{later}} - \text{tai}_{\text{earlier}} \right) \times 86400
+$$
 
 and that difference is the elapsed SI time between them, whatever scales
 they were created in. If an instant were stored on UTC, the same subtraction
@@ -45,11 +45,13 @@ not have a single well defined numeric value at that point.
 
 The conversions between scales are offsets except for UTC:
 
-```text
-TT  - TAI  = 32.184 s                    (constant, IAU 2000)
-TAI - GPS  = 19 s                        (constant since 1980)
-TAI - UTC  = 10 s + (number of inserted leap seconds since 1972)
-```
+$$
+\begin{aligned}
+\text{TT} - \text{TAI} &= 32.184\,\text{s} && \text{(constant, IAU 2000)} \\
+\text{TAI} - \text{GPS} &= 19\,\text{s} && \text{(constant since 1980)} \\
+\text{TAI} - \text{UTC} &= 10\,\text{s} + N && \text{(N leap seconds since 1972)}
+\end{aligned}
+$$
 
 The first two are constants. The third is a step function of the date, and
 its value comes from the leap second table in `apsis-leap`, which is the

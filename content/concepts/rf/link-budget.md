@@ -15,9 +15,9 @@ the only thing standing between a design and an outage.
 
 The received power at the far end is
 
-```text
-P_r = EIRP * G_t / L
-```
+$$
+P_r = \frac{\text{EIRP} \, G_t}{L}
+$$
 
 with `L` the total propagation and implementation loss. The link closes when
 `P_r` exceeds the sensitivity of the receiver, and the **link margin** is the
@@ -25,11 +25,13 @@ difference in decibels.
 
 Every term is a ratio, so the budget is written in decibels throughout:
 
-```text
-EIRP = P_t + G_t - L_feeder
-P_r  = EIRP + G_r - L_space - L_polarisation - L_pointing
-margin = P_r - sensitivity
-```
+$$
+\begin{aligned}
+\text{EIRP} &= P_t + G_t - L_{\text{feeder}} \\
+P_r &= \text{EIRP} + G_r - L_{\text{space}} - L_{\text{pol}} - L_{\text{point}} \\
+\text{margin} &= P_r - \text{sensitivity}
+\end{aligned}
+$$
 
 The two that decide the result are free space loss, which is fixed by
 geometry, and the losses that are not: rain, pointing, polarisation
@@ -42,15 +44,15 @@ mismatch.
 The loss grows with the fourth power of distance and with the square of
 frequency:
 
-```text
-L_fs = (4 pi d f / c)^2
-```
+$$
+L_{\text{fs}} = \left( \frac{4 \pi d f}{c} \right)^2
+$$
 
 in linear units, or in decibels,
 
-```text
-L_fs(dB) = 92.45 + 20 log10 d_km + 20 log10 f_GHz
-```
+$$
+L_{\text{fs,dB}} = 92.45 + 20 \log_{10} d_{\text{km}} + 20 \log_{10} f_{\text{GHz}}
+$$
 
 The fourth power is why doubling the frequency costs six decibels and
 doubling the distance costs six. A constellation at 550 km versus one at
@@ -63,9 +65,9 @@ three decibels.
 An antenna receives a polarisation close to its own. A mismatch of an angle
 `psi` costs
 
-```text
-L_pol = -log10( cos^2 psi )   dB
-```
+$$
+L_{\text{pol}} = -10 \log_{10} \left( \cos^2 \psi \right) \ \text{dB}
+$$
 
 which is small below a few degrees and large beyond thirty. A tilted
 heliostat or a rotating spacecraft body can put a link over this threshold

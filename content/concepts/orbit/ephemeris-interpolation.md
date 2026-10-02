@@ -25,19 +25,21 @@ The interpolation is a cubic Hermite polynomial per component. It uses the
 position at both endpoints and the velocity at both endpoints, so it matches
 the value and the first derivative at the ends of every interval:
 
-```text
-p(s) = h00(s) p0 + h10(s) dt v0 + h01(s) p1 + h11(s) dt v1
-```
+$$
+p(s) = h_{00}(s) \, p_0 + h_{10}(s) \, \Delta t \, v_0 + h_{01}(s) \, p_1 + h_{11}(s) \, \Delta t \, v_1
+$$
 
 where `s` is the fraction along the interval in `[0, 1]`, `dt` is the
 interval length, and
 
-```text
-h00 =  2 s^3 - 3 s^2 + 1
-h10 =      s^3 - 2 s^2 + s
-h01 = -2 s^3 + 3 s^2
-h11 =      s^3 -   s^2
-```
+$$
+\begin{aligned}
+h_{00} &=  2 s^3 - 3 s^2 + 1 \\
+h_{10} &=      s^3 - 2 s^2 + s \\
+h_{01} &= -2 s^3 + 3 s^2 \\
+h_{11} &=      s^3 - s^2
+\end{aligned}
+$$
 
 are the Hermite basis polynomials. The velocity is the derivative of the
 same polynomial with respect to time.

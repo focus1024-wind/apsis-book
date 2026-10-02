@@ -178,6 +178,12 @@ or later. The Rust build does not run it and does not depend on Python.
 | `content/flows/*.json` | The algorithm flow graphs |
 | `content/api.json` | The generated interface catalog, in both languages; do not edit by hand |
 
+A formula is written between dollar signs, as `$$...$$` for one on a line of
+its own and `$...$` for one within a sentence. That is the notation every
+Markdown mathematics renderer reads, and it is what the documents use: a
+formula is mathematics, and a fenced code block is not the place for it. The
+service translates the notation to MathML, which the browser lays out itself.
+
 A document header declares `title`, `summary`, `tags`, and `prerequisites`.
 The identifier and the layer are not declared: the identifier is the file
 name and the layer is the directory, so the two cannot disagree with the

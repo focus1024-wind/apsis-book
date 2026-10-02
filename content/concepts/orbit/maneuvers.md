@@ -33,9 +33,9 @@ gravity loss is a substantial fraction of the ideal cost.
 The velocity a vehicle can produce depends on the exhaust velocity of its
 propellant and on the mass ratio,
 
-```text
-delta_v = v_e * ln (m_0 / m_f)
-```
+$$
+\Delta v = v_e \ln\frac{m_0}{m_f}
+$$
 
 with `v_e` the exhaust velocity. Since a logarithmic function grows slowly,
 doubling the propellant gives far less than double the velocity. This is why
@@ -52,16 +52,18 @@ circularises.
 With `r_1`, `r_2` the two radii and `a_t = (r_1 + r_2) / 2` the transfer
 semi-major axis, the two burns follow from the vis-viva equation,
 
-```text
-delta_v_1 = sqrt( mu (2/r_1 - 1/a_t) ) - sqrt( mu / r_1 )
-delta_v_2 = sqrt( mu / r_2 ) - sqrt( mu (2/r_2 - 1/a_t) )
-```
+$$
+\begin{aligned}
+\Delta v_1 &= \sqrt{\mu \left( \frac{2}{r_1} - \frac{1}{a_t} \right)} - \sqrt{\frac{\mu}{r_1}} \\
+\Delta v_2 &= \sqrt{\frac{\mu}{r_2}} - \sqrt{\mu \left( \frac{2}{r_2} - \frac{1}{a_t} \right)}
+\end{aligned}
+$$
 
 and the coast takes half the period of the transfer ellipse,
 
-```text
-t_coast = pi sqrt( a_t^3 / mu )
-```
+$$
+t_{\text{coast}} = \pi \sqrt{\frac{a_t^3}{\mu}}
+$$
 
 A raise from 300 km to geostationary costs about 4.1 km/s, which is a
 large fraction of what a launch vehicle can provide, and most of it is the
@@ -76,9 +78,9 @@ radius change and a given inclination change is a two-burn sequence in which
 the plane change is made at the smaller radius, where the velocity is lowest
 and therefore the same angular rotation is cheapest in delta-v.
 
-```text
-delta_v_plane ~ V * 2 sin( inclination change / 2 )
-```
+$$
+\Delta v_{\text{plane}} \sim 2 V \sin\frac{\Delta i}{2}
+$$
 
 with `V` the circular speed at the radius where the rotation is performed.
 
@@ -88,9 +90,9 @@ Over a finite burn the satellite is still moving against gravity and the
 thrust does not act along the instantaneous velocity. The achieved velocity
 change is less than the ideal `a * t`, and the shortfall is the gravity loss,
 
-```text
-gravity loss = | delta_v_ideal | - | delta_v_achieved |
-```
+$$
+L_{\text{gravity}} = \left\lvert \Delta v_{\text{ideal}} \right\rvert - \left\lvert \Delta v_{\text{achieved}} \right\rvert
+$$
 
 which grows with burn duration. A chemical burn is short enough to ignore it.
 An electric thruster is not.

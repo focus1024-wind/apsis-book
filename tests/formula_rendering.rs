@@ -56,26 +56,58 @@ fn visible(html: &str) -> String {
     out
 }
 
-/// Returns the text with the notation words removed.
+/// Returns the content characters of a formula source.
 ///
-/// A formula is written either as LaTeX, where a command is `\sqrt`, or as
-/// plain notation, where the same root is the bare word `sqrt`. Both are
-/// notation and neither is drawn as those letters.
-fn strip_commands(source: &str) -> String {
-    let source = source.replace("sqrt", "");
-    let mut out = String::with_capacity(source.len());
-    let mut characters = source.chars().peekable();
+/// What is left out is notation: a command name, the name of an environment,
+/// the `&` that separates the cells of a matrix and the `\\` that separates
+/// its rows, and the braces that group. None of them is drawn as those
+/// characters, so none of them is expected on the page. What remains is the
+/// letters and digits, which are content and must all appear.
+fn content_characters(source: &str) -> String {
+    // The attribute is HTML escaped, so a cell separator arrives as `&amp;`
+    // and would otherwise leave the letters of `amp` behind.
+    // `sqrt` is written bare in the plain notation and with a backslash in
+    // LaTeX; the bare form has to go as well, because it is drawn as a
+    // radical sign rather than as its letters.
+    let unescaped = source
+        .replace("sqrt", "")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'");
+
+    let mut out = String::with_capacity(unescaped.len());
+    let mut characters = unescaped.chars().peekable();
     while let Some(character) = characters.next() {
-        if character == '\\' {
+        match character {
             // A command runs to the first character that is not a letter.
-            while characters.peek().is_some_and(|c| c.is_alphabetic()) {
-                characters.next();
+            // The name is captured so that `begin` and `end` can be told
+            // apart from the rest, because those two carry the name of an
+            // environment in braces after them.
+            '\\' => {
+                let mut name = String::new();
+                while let Some(next) = characters.peek().copied() {
+                    if !next.is_alphabetic() {
+                        break;
+                    }
+                    name.push(next);
+                    characters.next();
+                }
+                if (name == "begin" || name == "end") && characters.peek() == Some(&'{') {
+                    characters.next();
+                    for next in characters.by_ref() {
+                        if next == '}' {
+                            break;
+                        }
+                    }
+                }
             }
-            continue;
+            '&' | '{' | '}' | '^' | '_' | '/' | '*' | '$' | '~' => {}
+            other => out.push(other),
         }
-        out.push(character);
     }
-    out
+    out.chars().filter(|c| c.is_alphanumeric()).collect()
 }
 
 /// Returns the formula sources of one document, in order.
@@ -94,23 +126,43 @@ fn formula_blocks(html: &str) -> Vec<String> {
 
 #[test]
 fn every_formula_shows_every_character_it_was_written_with() {
-    let documents = apsis_book::docs::load_documents();
     let mut checked = 0;
     let mut failures = Vec::new();
 
-    for document in &documents {
+    // The concept documents, in both languages.
+    let mut sources: Vec<(String, String)> = Vec::new();
+    for document in &apsis_book::docs::load_documents() {
         for language in [Language::English, Language::Chinese] {
-            let html = &document.variant(language).html;
+            sources.push((document.id.clone(), document.variant(language).html.clone()));
+        }
+    }
+    // And the interface documentation, which carries formulas of its own in
+    // the doc comments of the crate it describes. Leaving it out would have
+    // hidden every formula there.
+    for krate in apsis_book::docs::load_api_catalog().crates {
+        for item in &krate.items {
+            // The doc comment is Markdown, and the service renders it with
+            // the same renderer as a document.
+            for text in [Some(&item.doc), item.doc_zh.as_ref()]
+                .into_iter()
+                .flatten()
+            {
+                sources.push((
+                    format!("{}::{}", krate.name, item.name),
+                    apsis_book::docs::markdown::render(text),
+                ));
+            }
+        }
+    }
+
+    for (id, html) in &sources {
+        let html = html.as_str();
+        {
             for source in formula_blocks(html) {
                 checked += 1;
                 // The source as written, without the spaces that only set it
                 // out on the page.
-                // A command name is notation: what it draws is a sign or a
-                // Greek letter, not the letters of its name.
-                let written: String = strip_commands(&source)
-                    .chars()
-                    .filter(|c| c.is_alphanumeric())
-                    .collect();
+                let written = content_characters(&source);
                 // The part of the page that is the formula itself.
                 let start = html.find(&format!("data-tex=\"{source}\"")).unwrap_or(0);
                 let end = html[start..]
@@ -124,8 +176,7 @@ fn every_formula_shows_every_character_it_was_written_with() {
                 let missing: String = written.chars().filter(|c| !shown.contains(*c)).collect();
                 if !missing.is_empty() {
                     failures.push(format!(
-                        "{}: 公式少了字符 \"{}\"：写入 {}，显示 {}",
-                        document.id, missing, written, shown
+                        "{id}: 公式少了字符 \"{missing}\"：写入 {written}，显示 {shown}"
                     ));
                 }
             }

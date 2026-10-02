@@ -22,9 +22,9 @@ summary: 卫星与接收机之间的空气对信号做了什么，以及它在�
 
 约 10 GHz 以上水汽开始显著，约 30 GHz 以上它占主导。给定雨强的比衰减为
 
-```text
-gamma = k * R^alpha / (cos theta)
-```
+$$
+\gamma = \frac{k R^{\alpha}}{\cos\theta}
+$$
 
 其中 `R` 为雨强、`theta` 为天顶角，`k` 与 `alpha` 依赖频率。`1 / cos theta` 就是低仰角过境严重的原因：在地平线上十度处，穿过该层的路径约长六倍。
 

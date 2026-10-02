@@ -17,9 +17,9 @@ A leap second is a one second adjustment to UTC announced by the
 International Earth Rotation and Reference Systems Service in a Bulletin C
 notice. The adjustment keeps
 
-```text
-| UT1 - UTC | < 0.9 s
-```
+$$
+\lvert \text{UT1} - \text{UTC} \rvert < 0.9\,\text{s}
+$$
 
 UT1 is the scale defined by the rotation of the Earth. The Earth's rotation
 rate is not constant, so the number of seconds that have elapsed since an
@@ -30,18 +30,20 @@ close the gap.
 
 The offset between TAI and UTC is a step function of the date:
 
-```text
-DTAI(date) = 10 s + N(date)
-```
+$$
+\Delta\text{TAI}(t) = 10\,\text{s} + N(t)
+$$
 
 where `N(date)` is the number of leap seconds inserted between 1972-01-01
 and the date. The kernel stores an instant as TAI, so the offset is applied
 only when an instant is converted to or from UTC:
 
-```text
-tai_mjd = utc_mjd + DTAI(utc_mjd) / 86400
-utc_mjd = tai_mjd - DTAI(utc_mjd) / 86400
-```
+$$
+\begin{aligned}
+\text{tai} &= \text{utc} + \frac{\Delta\text{TAI}(\text{utc})}{86400} \\
+\text{utc} &= \text{tai} - \frac{\Delta\text{TAI}(\text{utc})}{86400}
+\end{aligned}
+$$
 
 The second relation needs the offset at the UTC instant, which is what is
 being computed, so the table is searched for the interval that contains the

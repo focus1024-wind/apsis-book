@@ -121,6 +121,33 @@ sentence that contains 坐标, which a whole-run token would not. A single
 Chinese character is left to the substring fallback rather than becoming a
 token, because a token of one character would match nearly every document.
 
+## Formulas
+
+A formula is written between dollar signs, `$$...$$` for one on a line of its
+own and `$...$` for one within a sentence, and the backend translates the
+notation to MathML.
+
+MathML was chosen over a script that lays out mathematics, because the browser
+draws it itself: nothing has to run for a formula to appear, the output prints,
+and the service keeps one runtime dependency.
+
+The documents did not always write formulas this way. They were first written
+as fenced code blocks, which is what a plain text file allows, and the
+renderer was made to recognise a block that held equations. That was treating
+the symptom: a code block is not the notation for mathematics, the reader of
+the source sees a formula presented as code, and a renderer that guesses which
+blocks are formulas is a renderer that guesses wrong. The blocks are now
+written in the notation they should always have used, and the renderer reads
+the one notation every Markdown mathematics tool reads.
+
+Setting a formula is mostly an exercise in not losing a character. Text inside
+a MathML row with no element around it is not drawn, so a token that is not
+given an element disappears and leaves a formula that looks plausible and is
+wrong. Every piece of text is therefore given the element its kind calls for,
+and a test walks every formula in the documents and in the interface
+catalog and compares the characters the page would show against the characters
+the formula was written with.
+
 ## Graphs
 
 One graph shape serves the knowledge graph, the crate structure, and the

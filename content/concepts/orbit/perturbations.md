@@ -36,26 +36,30 @@ the dominant long period effect.
 
 The central gravity is
 
-```text
-a_central = -mu r / |r|^3
-```
+$$
+\mathbf{a}_{\text{central}} = -\frac{\mu \mathbf{r}}{\lvert \mathbf{r} \rvert^3}
+$$
 
 The `J2` term, which models the equatorial bulge, is
 
-```text
-a_J2 = -1.5 J2 mu R^2 / r^5 *
-       [ x (1 - 5 z^2/r^2), y (1 - 5 z^2/r^2), z (3 - 5 z^2/r^2) ]
-```
+$$
+\mathbf{a}_{J_2} = -\frac{3}{2} \frac{J_2 \mu R^2}{r^5}
+  \begin{bmatrix} x \left( 1 - 5 z^2/r^2 \right) \\[2pt]
+                  y \left( 1 - 5 z^2/r^2 \right) \\[2pt]
+                  z \left( 3 - 5 z^2/r^2 \right) \end{bmatrix}
+$$
 
 with `R` the equatorial radius and `z` measured along the rotation axis. It
 has no component that changes the energy, so the size of the orbit is
 unaffected to first order; what it changes is the orientation. Its secular
 effects are
 
-```text
-dOmega/dt = -1.5 n J2 (R/a)^2 cos(i) / (1 - e^2)^2
-domega/dt =  0.75 n J2 (R/a)^2 (5 cos^2(i) - 1) / (1 - e^2)^2
-```
+$$
+\begin{aligned}
+\dot\Omega &= -\frac{3}{2} n J_2 \left( \frac{R}{a} \right)^2 \frac{\cos i}{\left( 1 - e^2 \right)^2} \\
+\dot\omega &=  \frac{3}{4} n J_2 \left( \frac{R}{a} \right)^2 \frac{5 \cos^2 i - 1}{\left( 1 - e^2 \right)^2}
+\end{aligned}
+$$
 
 The first makes a low inclination orbit precess slowly westward and a polar
 orbit precess in right ascension. Both are large enough to matter within a

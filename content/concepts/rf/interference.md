@@ -33,9 +33,9 @@ The usable quantity is the carrier to noise density ratio, written as
 `C/N0`, which is the carrier power in a one hertz bandwidth over the noise
 power in the same bandwidth.
 
-```text
-C/N0 = P_r * G / (k * T_system * F)
-```
+$$
+\frac{C}{N_0} = \frac{P_r G}{k T_{\text{system}} F}
+$$
 
 A pointing loss, a rain fade or a jammer each reduces it, and the range error
 scales with the square root of it. A jammer that costs six decibels of
