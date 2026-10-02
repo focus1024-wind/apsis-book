@@ -121,7 +121,22 @@ The command names the host explicitly. The program defaults to the loopback
 address, where it answers only itself, so a container started without it would
 serve nothing to anyone.
 
-There is no `HEALTHCHECK`. Probing `GET /health` is what an orchestrator
+`docker-compose.yml` does the same thing with the settings a long-running
+service wants: it restarts unless stopped, mounts the filesystem read-only
+because nothing is written to it, drops the ability to gain privileges, and
+probes the service every thirty seconds.
+
+```sh
+cd apsis-book
+docker compose up --build
+```
+
+The probe is written against the shell rather than against a tool, because
+the image carries no HTTP client: it carries one binary and nothing else, and
+adding a client for a probe would undo that. `bash` opens the connection,
+writes the request and reads the status line back.
+
+There is no `HEALTHCHECK` in the image itself. Probing `GET /health` is what an orchestrator
 should do, and a probe inside the container would mean adding an HTTP client
 to an image that needs no other tool. A Kubernetes probe says the same thing
 without one:
@@ -230,6 +245,7 @@ apsis-book/
 │   └── concepts/<layer>/     documents, one directory per layer
 ├── Dockerfile                the release image, in three stages
 ├── Dockerfile.dockerignore   what the image build is not sent
+├── docker-compose.yml        runs the image with the settings it wants
 ├── frontend/                 Svelte and TypeScript, built by Vite
 │   ├── src/lib/              API client, router, components, formatting
 │   ├── src/pages/            one component per route

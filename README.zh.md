@@ -105,7 +105,19 @@ docker run --rm -p 8080:8080 apsis-book:0.1.0
 命令中显式给出主机。程序的默认值是回环地址，那里它只回应自己，因此不带这一项启动
 的容器不会向任何人提供服务。
 
-镜像没有 `HEALTHCHECK`。探测 `GET /health` 是编排系统应当做的事，而在容器内部
+`docker-compose.yml` 做同样的事，并带上长时间运行的服务所需要的设置：除非被停止
+否则自动重启，因文件系统不被写入而以只读方式挂载，去掉取得更多权限的能力，并且
+每三十秒探测一次服务。
+
+```sh
+cd apsis-book
+docker compose up --build
+```
+
+该探针用 shell 写成而不是用某个工具，因为镜像不携带 HTTP 客户端：它只携带一个
+二进制，为探针添加客户端会破坏这一点。`bash` 打开连接、写入请求并读回状态行。
+
+镜像本身没有 `HEALTHCHECK`。探测 `GET /health` 是编排系统应当做的事，而在容器内部
 探测意味着给一个不需要其他工具的体积里加上 HTTP 客户端。Kubernetes 的探针无须
 它即可表达同一件事：
 
@@ -202,6 +214,7 @@ apsis-book/
 │   └── concepts/<layer>/     文档，每层一个目录
 ├── Dockerfile                发布镜像，分三个阶段
 ├── Dockerfile.dockerignore   镜像构建不接收的内容
+├── docker-compose.yml        以长期运行所需的设置来运行镜像
 ├── frontend/                 Svelte 与 TypeScript，由 Vite 构建
 │   ├── src/lib/              API 客户端、路由器、组件、格式化
 │   ├── src/pages/            每个路由一个组件

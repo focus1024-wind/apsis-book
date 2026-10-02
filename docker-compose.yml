@@ -1,0 +1,87 @@
+# Running the release image.
+#
+# The service keeps nothing between runs: the documents, the graphs, the
+# interface catalogue and the frontend are all inside the binary, and the
+# only thing it writes is what it sends. The service is therefore mounted
+# read-only and can be replaced at any time.
+#
+# 运行发布镜像。
+#
+# 服务在两次运行之间不保留任何东西：文档、图谱、接口目录与前端都在二进制里，它
+# 唯一写出的东西就是它发送的内容。因此该服务以只读方式挂载，且可以随时被替换。
+#
+# From this directory:
+#
+#     docker compose up --build
+#
+# 在本目录执行上面那条命令。
+#
+# The build context is the directory above, because the crate depends on
+# `apsis-rs` by path. A reader who only wants to run a published image can
+# drop the `build` section and keep `image`.
+#
+# 构建上下文是上一级目录，因为该 crate 以路径依赖引用 `apsis-rs`。如果只想运行
+# 已发布的镜像，可以删去 `build` 一节而保留 `image`。
+
+name: apsis-book
+
+services:
+  apsis-book:
+    build:
+      context: ..
+      dockerfile: apsis-book/Dockerfile
+    image: apsis-book:0.1.0
+
+    # The container listens on 8080 and the host side is a matter of taste,
+    # so it is a variable with a default rather than a constant.
+    #
+    # 容器监听 8080，而宿主机一侧是个人偏好，因此它是一个带默认值的变量而不是
+    # 常量。
+    ports:
+      - "${APSIS_BOOK_PORT:-8080}:8080"
+
+    # A documentation service has no reason to stop, and a machine that
+    # restarts should bring it back.
+    #
+    # 文档服务没有理由停止，而重启的机器应当把它带回来。
+    restart: unless-stopped
+
+    # The filesystem is not written to, so it is mounted read-only, and the
+    # process runs as `nobody` with no way to gain more than it has.
+    #
+    # 文件系统不被写入，因此以只读方式挂载；进程以 `nobody` 运行，且无法取得超出
+    # 自身已有的权限。
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+
+    # The probe is written against the shell rather than against a tool,
+    # because the image carries no HTTP client: it carries one binary and
+    # nothing else, and adding a client for a probe would undo that.
+    #
+    # 该探针用 shell 写成而不是用某个工具，因为镜像不携带 HTTP 客户端：它只携带
+    # 一个二进制，为探针添加客户端会破坏这一点。
+    #
+    # `bash` opens the connection as a file descriptor, the request is written
+    # to it, and the status line is read back.
+    #
+    # `bash` 把连接打开为一个文件描述符，请求写入其中，状态行从中读回。
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/8080 || exit 1;
+          printf 'GET /health HTTP/1.0\r\n\r\n' >&3;
+          grep -q '200 OK' <&3
+      interval: 30s
+      timeout: 5s
+      # Three failures in a row, which is ninety seconds of a service that is
+      # not answering, before the container is called unhealthy.
+      #
+      # 连续三次失败，即服务九十秒没有回应，才把容器判为不健康。
+      retries: 3
+      # The content is parsed at startup and is small, so the service is
+      # listening within the first second.
+      #
+      # 内容在启动时解析且体量很小，因此服务在第一秒内就已监听。
+      start_period: 5s
