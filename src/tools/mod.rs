@@ -12,7 +12,6 @@
 //! handler never has to parse a value itself and never sees a value of the
 //! wrong type.
 //!
-//!
 //! 服务的第三项任务是为 `apsis-rs` 各内核提供一个在线试验台。注册表是「服务能
 //! 运行什么」的唯一描述：每个工具声明其参数、类型、单位与默认值，前端据此渲染
 //! 表单。因此新增一个工具意味着在此加一个条目、并在 [`handlers`] 中加一个处理
@@ -150,7 +149,6 @@ pub struct ToolSpec {
     /// The `apsis-rs` items the tool calls, for cross linking to the
     /// interface documentation.
     ///
-    ///
     /// 该工具调用的 `apsis-rs` 条目，用于交叉链接到接口文档。
     pub api_items: &'static [&'static str],
 }
@@ -159,7 +157,6 @@ pub struct ToolSpec {
 ///
 /// The table is a constant, so its parameter slices have a `'static`
 /// lifetime and the registry holds no owned data.
-///
 ///
 /// 所有工具的注册表。
 ///
@@ -219,7 +216,6 @@ impl Default for Registry {
 ///
 /// It is a constant rather than a function so that the parameter slices are
 /// promoted to `'static` and the registry borrows it instead of owning it.
-///
 ///
 /// 工具表。
 ///
@@ -1033,7 +1029,6 @@ impl<'a> Params<'a> {
     /// declared by the parameter, and only a parameter with neither a value
     /// nor a default is reported as required.
     ///
-    ///
     /// 返回一个必需的数值。
     ///
     /// 取值可以作为 JSON 数字或字符串到达，因为表单控件发送的是文本。缺失的成员
@@ -1078,7 +1073,6 @@ impl<'a> Params<'a> {
     /// A value that is not a whole number is rejected rather than rounded,
     /// because rounding would silently change a field such as a year.
     ///
-    ///
     /// 返回一个必需的整数。
     ///
     /// 不是整数的取值会被拒绝而不是四舍五入，因为取整会悄悄改变诸如年份这样的
@@ -1110,7 +1104,6 @@ impl<'a> Params<'a> {
 
     /// Returns a value that must be one of the options of a select
     /// parameter.
-    ///
     ///
     /// 返回一个必须是某个选择型参数选项的取值。
     pub fn choice(&self, name: &str) -> Result<&'static str, ToolError> {
@@ -1189,7 +1182,6 @@ impl<'a> Params<'a> {
 /// the handler runs. An unknown identifier is reported as a general failure
 /// so that the HTTP layer can answer with a not found status.
 ///
-///
 /// 按标识执行一个工具。
 ///
 /// 注册表解析该标识，参数被校验，随后处理函数运行。未知标识被报告为一般性失败，
@@ -1206,7 +1198,6 @@ pub fn execute(registry: &Registry, id: &str, values: &Value) -> Result<Value, T
 ///
 /// Every label is encoded in both languages, so the frontend can switch the
 /// language of the interface without another request.
-///
 ///
 /// 把注册表编码为供前端使用的 JSON。
 ///
@@ -1227,7 +1218,6 @@ pub fn registry_json(registry: &Registry) -> Value {
 /// which is what the page shows. The HTML comes from the same renderer as
 /// the concept documentation, so a formula written between dollar signs is
 /// set the same way in both places.
-///
 ///
 /// 把一个工具编码为 JSON。
 ///

@@ -15,6 +15,17 @@
 //! handles either. The layout is computed on the frontend from the node
 //! kinds; the backend only supplies the structure, which keeps the authored
 //! data independent of any particular rendering.
+//!
+//! 服务提供两种图：
+//!
+//! - 概念图谱，撰写于 `content/graph/concepts.json`。其节点是概念，边是它们之间
+//!   的关系，例如 `uses`、`refines` 或 `contrasts`。节点携带解释它的文档的
+//!   标识，因此前端可以在节点被点击时打开那篇文档。
+//! - 流程图，每个文件一张，位于 `content/flows/`。一张流程图以带形状的节点与
+//!   带分支的带标签边，描述某个算法的步骤，例如 SGP4 的传播序列。
+//!
+//! 两者都是同一形状的纯 JSON，因此前端一个渲染器即可处理任一者。布局在前端由
+//! 节点种类算出；后端只提供结构，这让撰写的数据与任何特定的渲染方式无关。
 
 use crate::docs::ApiCatalog;
 use crate::json::{self, Value};
@@ -23,26 +34,46 @@ use crate::json::{self, Value};
 ///
 /// The kind selects how a node is drawn. The set is intentionally small so
 /// that a new graph can be authored without touching the renderer.
+///
+/// 图节点的种类。
+///
+/// 种类决定节点如何绘制。该集合刻意保持很小，使新增一张图无需改动渲染器。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NodeKind {
     /// A concept in the knowledge graph.
+    ///
+    /// 知识图谱中的一个概念。
     Concept,
     /// A crate of the `apsis-rs` workspace.
+    ///
+    /// `apsis-rs` 工作区中的一个 crate。
     Crate,
     /// A layer of the `apsis-rs` workspace.
+    ///
+    /// `apsis-rs` 工作区中的一个层。
     Layer,
     /// A step of an algorithm.
+    ///
+    /// 算法的一个步骤。
     Step,
     /// A decision in an algorithm, with more than one outgoing edge.
+    ///
+    /// 算法中的一个判定，有多于一条出边。
     Decision,
     /// A terminal step, such as a returned value or an error.
+    ///
+    /// 一个终结步骤，例如返回的值或一个错误。
     Terminal,
     /// A data item, such as an element set or an epoch.
+    ///
+    /// 一个数据项，例如元素集或历元。
     Data,
 }
 
 impl NodeKind {
     /// Parses a kind name, defaulting to [`NodeKind::Concept`].
+    ///
+    /// 解析一个种类名，默认为 [`NodeKind::Concept`]。
     pub fn parse(name: &str) -> Self {
         match name {
             "crate" => Self::Crate,
@@ -56,6 +87,8 @@ impl NodeKind {
     }
 
     /// Returns the kind name as it is written in the data.
+    ///
+    /// 以数据中书写的原样返回种类名。
     pub const fn name(self) -> &'static str {
         match self {
             Self::Concept => "concept",
@@ -70,60 +103,108 @@ impl NodeKind {
 }
 
 /// A node of a graph.
+///
+/// 图的一个节点。
 #[derive(Debug, Clone)]
 pub struct Node {
     /// Identifier, unique within the graph.
+    ///
+    /// 标识，在图内唯一。
     pub id: String,
     /// Display label in English.
+    ///
+    /// 英文显示标签。
     pub label: String,
     /// Display label in Chinese, or `None` when the label is a name that is
     /// written the same way in both languages.
+    ///
+    /// 中文显示标签；当标签是一个在两种语言中写法相同的名字时为 `None`。
     pub label_zh: Option<String>,
     /// Kind, selecting how the node is drawn.
+    ///
+    /// 种类，决定节点如何绘制。
     pub kind: NodeKind,
     /// Chapter or group the node belongs to, used for colouring.
+    ///
+    /// 节点所属的章或分组，用于着色。
     pub group: String,
     /// One sentence description in English.
+    ///
+    /// 一句话英文描述。
+    ///
+    /// 一句话英文描述。
     pub summary: String,
     /// One sentence description in Chinese, when one is authored.
+    ///
+    /// 一句话中文描述，若已撰写。
+    ///
+    /// 一句话中文描述，若已撰写。
     pub summary_zh: Option<String>,
     /// Identifier of the document that explains the node, when one exists.
+    ///
+    /// 解释该节点的文档标识，若存在。
     pub document: Option<String>,
     /// Identifier of the interface item, when the node names one.
+    ///
+    /// 接口条目标识，若该节点指名了某个条目。
     pub api: Option<String>,
 }
 
 /// An edge of a graph.
+///
+/// 图的一条边。
 #[derive(Debug, Clone)]
 pub struct Edge {
     /// Source node identifier.
+    ///
+    /// 起点节点标识。
     pub source: String,
     /// Target node identifier.
+    ///
+    /// 终点节点标识。
     pub target: String,
     /// Relationship name, such as `uses`.
+    ///
+    /// 关系名，例如 `uses`。
     pub kind: String,
     /// Optional label drawn on the edge, in English.
+    ///
+    /// 绘制在边上的可选标签，英文。
     pub label: Option<String>,
     /// The same label in Chinese, when one is authored.
+    ///
+    /// 同一标签的中文，若已撰写。
     pub label_zh: Option<String>,
 }
 
 /// A graph, either the concept graph or one flow graph.
+///
+/// 一张图，或为概念图谱，或为一张流程图。
 #[derive(Debug, Clone)]
 pub struct Graph {
     /// Identifier of the graph.
+    ///
+    /// 图的标识。
     pub id: String,
     /// Display title in English.
+    ///
+    /// 英文显示标题。
     pub title: String,
     /// Display title in Chinese, when one is authored.
+    ///
+    /// 中文显示标题，若已撰写。
     pub title_zh: Option<String>,
     /// One sentence description in English.
     pub summary: String,
     /// One sentence description in Chinese, when one is authored.
     pub summary_zh: Option<String>,
     /// Nodes.
+    ///
+    /// 各节点。
     pub nodes: Vec<Node>,
     /// Edges.
+    ///
+    /// 各边。
     pub edges: Vec<Edge>,
 }
 
@@ -132,12 +213,18 @@ impl Graph {
     ///
     /// Used to resolve the endpoints of an edge, which is what the check
     /// for a dangling edge does.
+    ///
+    /// 按标识返回一个节点。
+    ///
+    /// 用于解析一条边的两个端点，悬空边的检查正是这么做的。
     #[allow(dead_code)]
     pub fn node(&self, id: &str) -> Option<&Node> {
         self.nodes.iter().find(|node| node.id == id)
     }
 
     /// Returns the edges that leave a node.
+    ///
+    /// 返回离开某个节点的各条边。
     #[allow(dead_code)]
     pub fn outgoing(&self, id: &str) -> impl Iterator<Item = &Edge> {
         self.edges.iter().filter(move |edge| edge.source == id)
@@ -185,6 +272,8 @@ impl GraphSet {
 }
 
 /// Loads the concept graph and every flow graph from the embedded content.
+///
+/// 从内嵌内容载入概念图谱与每一张流程图。
 pub fn load_graph() -> GraphSet {
     let concepts = crate::docs::content::get("graph/concepts.json")
         .and_then(parse_graph)
@@ -211,6 +300,10 @@ pub fn load_graph() -> GraphSet {
 ///
 /// Returns `None` when the identifier is missing, because a graph without an
 /// identifier cannot be addressed.
+///
+/// 从 JSON 表示解析一张图。
+///
+/// 标识缺失时返回 `None`，因为没有标识的图无法被寻址。
 pub fn parse_graph(text: &str) -> Option<Graph> {
     let value = json::parse(text).ok()?;
     let id = value.get("id")?.as_str()?.to_string();
@@ -306,6 +399,8 @@ pub fn parse_graph(text: &str) -> Option<Graph> {
 
 /// Returns a member of a JSON object as an owned string, when it is a
 /// non-empty string.
+///
+/// 把 JSON 对象的某个成员返回为自有字符串，当它是非空字符串时。
 fn text_field(value: &Value, key: &str) -> Option<String> {
     value
         .get(key)
@@ -321,6 +416,13 @@ fn text_field(value: &Value, key: &str) -> Option<String> {
 /// `foundation -> physics -> orbit -> rf -> network -> ops -> sim`. A layer
 /// edge is drawn from each layer to the next one that the enabled feature
 /// set contains, which is what the dependency rule means in practice.
+///
+/// 从接口目录构建 crate 结构图。
+///
+/// 节点是各 crate，按层分组；边沿 `apsis-rs` 强制的层序：
+/// `foundation -> physics -> orbit -> rf -> network -> ops -> sim`。
+/// 层边从每一层画向所启用特性集合中包含的下一层，这正是依赖规则在实践中
+/// 的含义。
 pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
     let layers = [
         "foundation",
@@ -340,6 +442,10 @@ pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
         // layer structure: the workspace facade re-exports every layer and
         // would sit under a layer it is not part of. It stays on the index,
         // where it is a crate like any other.
+
+        // 不属于任何层的 crate 在层结构图中没有位置：工作区门面转出所有层，
+        // 它会落在一个自己并不属于的层之下。它留在索引里，在那里它与别的 crate
+        // 无异。
         if krate.layer.is_empty() {
             continue;
         }
@@ -372,6 +478,8 @@ pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
 
     // One node per layer that the catalog contains, so the graph describes
     // this build rather than the whole workspace.
+
+    // 目录中包含的每一层一个节点，因此该图描述的是本次构建，而不是整个工作区。
     for layer in layers {
         if !present.contains(&layer) {
             continue;
@@ -394,6 +502,8 @@ pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
     }
 
     // The dependency rule, drawn between the layers that are present.
+
+    // 依赖规则，画在存在的各层之间。
     for window in layers.windows(2) {
         let (lower, upper) = (window[0], window[1]);
         if present.contains(&lower) && present.contains(&upper) {
@@ -423,6 +533,10 @@ pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
 ///
 /// The crate name is the key, so the table stays beside the graph rather
 /// than in a separate translation file.
+///
+/// 返回某个 crate 的中文摘要，若已撰写。
+///
+/// 以 crate 名为键，因此该表与图放在一起，而不在单独的译文文件中。
 fn crate_summary_zh(name: &str) -> Option<String> {
     let text = match name {
         "apsis-core" => "共享基础类型：通用错误、常量与单位标记 trait。",
