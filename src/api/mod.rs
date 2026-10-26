@@ -62,10 +62,10 @@ pub struct Router {
     ///
     /// 预先编码的流程图列表。
     flow_index: String,
-    /// Pre-encoded crate structure graph.
+    /// Pre-encoded module structure graph.
     ///
-    /// 预先编码的 crate 结构图。
-    crate_graph: String,
+    /// 预先编码的模块结构图。
+    module_graph: String,
     /// Pre-encoded tool registry.
     ///
     /// 预先编码的工具注册表。
@@ -81,7 +81,8 @@ impl Router {
         let search = state.docs.search_index();
         let concept_graph = json::to_string(&graph_json(&state.graph.concepts));
         let flow_index = json::to_string(&flow_list_json(&state.graph.flows));
-        let crate_graph = json::to_string(&graph_json(&crate::graph::crate_structure(&state.api)));
+        let module_graph =
+            json::to_string(&graph_json(&crate::graph::module_structure(&state.api)));
         let tool_registry = json::to_string(&tools::registry_json(&state.tools));
         Self {
             state,
@@ -89,7 +90,7 @@ impl Router {
             search,
             concept_graph,
             flow_index,
-            crate_graph,
+            module_graph,
             tool_registry,
         }
     }
@@ -112,8 +113,8 @@ impl Handler for Router {
             (Method::Get | Method::Head, "/api/graph/flows") => {
                 Response::json(self.flow_index.clone()).with_cache_control("no-cache")
             }
-            (Method::Get | Method::Head, "/api/graph/crates") => {
-                Response::json(self.crate_graph.clone()).with_cache_control("no-cache")
+            (Method::Get | Method::Head, "/api/graph/modules") => {
+                Response::json(self.module_graph.clone()).with_cache_control("no-cache")
             }
             (Method::Get | Method::Head, "/api/api") => self.api_index(),
             (Method::Get | Method::Head, "/api/tools") => {
@@ -121,7 +122,7 @@ impl Handler for Router {
             }
             (Method::Get, _) if path.starts_with("/api/docs/") => self.document(path),
             (Method::Get, _) if path.starts_with("/api/graph/") => self.flow(path),
-            (Method::Get, _) if path.starts_with("/api/api/crates/") => self.api_crate(path),
+            (Method::Get, _) if path.starts_with("/api/api/modules/") => self.api_module(path),
             (Method::Get, _) if path.starts_with("/api/api/items/") => self.api_item(path),
             (Method::Get, _) if path.starts_with("/api/tools/") && path.ends_with("/run") => {
                 Response::error(Status::MethodNotAllowed, "this route accepts POST")
@@ -160,7 +161,7 @@ impl Router {
                 .map(|group| group.sections.len())
                 .sum::<usize>(),
             "graph_nodes" => self.state.graph.concepts.nodes.len(),
-            "api_crates" => self.state.api.crates.len(),
+            "api_modules" => self.state.api.modules.len(),
             "api_items" => self.state.api.item_count(),
             "tools" => self.state.tools.entries().len(),
             "frontend_embedded" => embedded::is_populated(),
@@ -268,8 +269,8 @@ impl Router {
         if id == "flows" {
             return Response::json(self.flow_index.clone()).with_cache_control("no-cache");
         }
-        if id == "crates" {
-            return Response::json(self.crate_graph.clone()).with_cache_control("no-cache");
+        if id == "modules" {
+            return Response::json(self.module_graph.clone()).with_cache_control("no-cache");
         }
         if id == "concepts" {
             return Response::json(self.concept_graph.clone()).with_cache_control("no-cache");
@@ -288,60 +289,60 @@ impl Router {
     fn api_index(&self) -> Response {
         let catalog = &self.state.api;
         let item_names = &catalog.item_names;
-        let crates: Vec<Value> = catalog
-            .crates
+        let modules: Vec<Value> = catalog
+            .modules
             .iter()
-            .map(|krate| {
+            .map(|module| {
                 json_object! {
-                    "name" => krate.name.clone(),
-                    "layer" => krate.layer.clone(),
-                    "summary" => crate_texts(krate, item_names),
-                    "items" => krate.items.len(),
+                    "name" => module.name.clone(),
+                    "layer" => module.layer.clone(),
+                    "summary" => module_texts(module, item_names),
+                    "items" => module.items.len(),
                 }
             })
             .collect();
         let items: Vec<Value> = catalog
-            .crates
+            .modules
             .iter()
-            .flat_map(|krate| {
-                krate.items.iter().map(move |item| {
+            .flat_map(|module| {
+                module.items.iter().map(move |item| {
                     json_object! {
                         "name" => item.name.clone(),
                         "kind" => item.kind.clone(),
-                        "crate" => krate.name.clone(),
+                        "module" => module.name.clone(),
                     }
                 })
             })
             .collect();
         let body = json_object! {
             "generated_from" => catalog.generated_from.iter().map(|path| Value::from(path.as_str())).collect::<Vec<Value>>(),
-            "crate_count" => catalog.crates.len(),
+            "module_count" => catalog.modules.len(),
             "item_count" => catalog.item_count(),
-            // The layers the crates belong to, in reading order, so that the
+            // The layers the modules belong to, in reading order, so that the
             // index is organized the same way as the concept documentation
             // rather than as one flat list.
 
-            // 各 crate 所属的层，按阅读顺序，使索引的组织方式与概念文档相同，
+            // 各模块所属的层，按阅读顺序，使索引的组织方式与概念文档相同，
             // 而不是一张平铺的列表。
             "layers" => api_layers(&self.state.docs),
-            "crates" => crates,
+            "modules" => modules,
             "items" => items,
         };
         Response::json(json::to_string(&body)).with_cache_control("no-cache")
     }
 
-    /// Returns one crate of the interface catalog.
+    /// Returns one module of the interface catalog.
     ///
-    /// 返回接口目录中的一个 crate。
-    fn api_crate(&self, path: &str) -> Response {
-        let name = path.trim_start_matches("/api/api/crates/");
-        match self.state.api.krate(name) {
-            Some(krate) => Response::json(json::to_string(&crate_json(
-                krate,
+    /// 返回接口目录中的一个模块。
+    fn api_module(&self, path: &str) -> Response {
+        let name = path.trim_start_matches("/api/api/modules/");
+        match self.state.api.module(name) {
+            Some(module) => Response::json(json::to_string(&module_json(
+                module,
                 &self.state.api.item_names,
             )))
             .with_cache_control("no-cache"),
-            None => not_found("crate"),
+            None => not_found("module"),
         }
     }
 
@@ -351,10 +352,10 @@ impl Router {
     fn api_item(&self, path: &str) -> Response {
         let name = path.trim_start_matches("/api/api/items/");
         match self.state.api.find_item(name) {
-            Some((krate, item)) => {
+            Some((module, item)) => {
                 let body = json_object! {
-                    "crate" => krate.name.clone(),
-                    "layer" => krate.layer.clone(),
+                    "module" => module.name.clone(),
+                    "layer" => module.layer.clone(),
                     "kind" => item.kind.clone(),
                     "name" => item.name.clone(),
                     "signature" => item.signature.clone(),
@@ -668,42 +669,45 @@ fn doc_texts(item: &crate::docs::ApiItem, items: &std::collections::HashSet<Stri
     }
 }
 
-/// Encodes a crate summary in both languages, with the plain text.
+/// Encodes a module summary in both languages, with the plain text.
 ///
-/// 以两种语言编码某个 crate 的概要，并附纯文本。
-fn crate_texts(krate: &crate::docs::ApiCrate, items: &std::collections::HashSet<String>) -> Value {
-    let zh = krate.summary_zh.as_deref().unwrap_or(&krate.summary);
+/// 以两种语言编码某个模块的概要，并附纯文本。
+fn module_texts(
+    module: &crate::docs::ApiModule,
+    items: &std::collections::HashSet<String>,
+) -> Value {
+    let zh = module.summary_zh.as_deref().unwrap_or(&module.summary);
     json_object! {
         "zh" => zh.to_string(),
-        "en" => krate.summary.clone(),
+        "en" => module.summary.clone(),
         "plain" => json_object! {
-            "zh" => crate_summary_plain(zh),
-            "en" => crate_summary_plain(&krate.summary),
+            "zh" => module_summary_plain(zh),
+            "en" => module_summary_plain(&module.summary),
         },
-        // The index card takes the opening sentence; the crate page shows the
+        // The index card takes the opening sentence; the module page shows the
         // whole summary under `html`.
 
-        // 索引卡片取首句；crate 页面在 `html` 下展示完整概要。
+        // 索引卡片取首句；模块页面在 `html` 下展示完整概要。
         "brief" => json_object! {
-            "zh" => crate_summary_brief(zh),
-            "en" => crate_summary_brief(&krate.summary),
+            "zh" => module_summary_brief(zh),
+            "en" => module_summary_brief(&module.summary),
         },
         "html" => json_object! {
             "zh" => crate::docs::markdown::render_with(zh, Some(items)),
-            "en" => crate::docs::markdown::render_with(&krate.summary, Some(items)),
+            "en" => crate::docs::markdown::render_with(&module.summary, Some(items)),
         },
     }
 }
 
-/// Returns the plain text of a crate summary.
+/// Returns the plain text of a module summary.
 ///
 /// The Markdown renderer is applied first so that a summary that opens with
 /// a list or a heading is reduced to its prose.
 ///
-/// 返回某个 crate 概要的纯文本。
+/// 返回某个模块概要的纯文本。
 ///
 /// 先施加 Markdown 渲染器，使以列表或标题开头的概要归约为其散文。
-fn crate_summary_plain(summary: &str) -> String {
+fn module_summary_plain(summary: &str) -> String {
     crate::docs::markdown::to_plain_text(summary)
 }
 
@@ -713,14 +717,14 @@ fn crate_summary_plain(summary: &str) -> String {
 ///
 /// Returns the layers of the concept documentation, in reading order.
 ///
-/// The interface catalog records which layer each crate belongs to. The index
-/// groups the crates by that layer, so it needs the layer's title and its
+/// The interface catalog records which layer each module belongs to. The index
+/// groups the modules by that layer, so it needs the layer's title and its
 /// place in the reading order, both of which the concept documentation
 /// already declares.
 ///
 /// 返回概念文档的各层，按阅读顺序。
 ///
-/// 接口目录记录了每个 crate 属于哪一层。索引按该层对 crate 分组，因此需要层的
+/// 接口目录记录了每个模块属于哪一层。索引按该层对模块分组，因此需要层的
 /// 标题与它在阅读顺序中的位置，而这两者概念文档都已经声明。
 fn api_layers(docs: &crate::docs::Tree) -> Value {
     let layers: Vec<Value> = docs
@@ -740,19 +744,19 @@ fn api_layers(docs: &crate::docs::Tree) -> Value {
 
 /// Returns the first sentence of a summary, for a card that links onward.
 ///
-/// The crate summary is the whole of the crate documentation, which runs to
-/// several paragraphs and a list of what the crate holds. A card on the index
-/// shows what a crate is, and the crate page shows the rest, so the card takes
+/// The module summary is the whole of the module documentation, which runs to
+/// several paragraphs and a list of what the module holds. A card on the index
+/// shows what a module is, and the module page shows the rest, so the card takes
 /// the opening sentence only. Without this the index cards are as tall as the
-/// longest crate document and the page reads as a wall.
+/// longest module document and the page reads as a wall.
 ///
 /// 返回概要的首句，供链接到别处的卡片使用。
 ///
-/// crate 概要是该 crate 的整份文档，长达数段并含一份它包含什么的列表。索引上的
-/// 卡片说明一个 crate 是什么，其余由 crate 页面展示，因此卡片只取首句。没有这一
-/// 处理，索引卡片会与最长的 crate 文档一样高，页面读起来像一堵墙。
-pub(crate) fn crate_summary_brief(summary: &str) -> String {
-    let text = crate_summary_plain(summary);
+/// 模块概要是该模块的整份文档，长达数段并含一份它包含什么的列表。索引上的卡片
+/// 说明一个模块是什么，其余由模块页面展示，因此卡片只取首句。没有这一处理，索引
+/// 卡片会与最长的模块文档一样高，页面读起来像一堵墙。
+pub(crate) fn module_summary_brief(summary: &str) -> String {
+    let text = module_summary_plain(summary);
     let text = text.trim();
     // A sentence ends at the first full stop that is not part of a number or
     // an abbreviation, which keeps `1.5` and `e.g.` from cutting a sentence
@@ -882,13 +886,13 @@ fn chapter_title(state: &AppState, chapter_id: &str) -> Value {
 ///
 /// A display label and a summary are carried in both languages when the
 /// authored data has a translation. A node whose label is a name, such as a
-/// crate, carries only the one form because it is written the same way in
+/// module, carries only the one form because it is written the same way in
 /// both languages.
 ///
 /// 把一张图编码为 JSON。
 ///
 /// 当撰写的数据有译文时，显示标签与概要都以两种语言携带。标签本身是名字的节点
-/// ——例如某个 crate——只携带一种形式，因为它在两种语言中写法相同。
+/// ——例如某个模块——只携带一种形式，因为它在两种语言中写法相同。
 fn graph_json(graph: &Graph) -> Value {
     let nodes: Vec<Value> = graph
         .nodes
@@ -943,14 +947,14 @@ fn graph_json(graph: &Graph) -> Value {
     }
 }
 
-/// Encodes a crate of the interface catalog as JSON.
+/// Encodes a module of the interface catalog as JSON.
 ///
-/// 把接口目录中的一个 crate 编码为 JSON。
-fn crate_json(
-    krate: &crate::docs::ApiCrate,
+/// 把接口目录中的一个模块编码为 JSON。
+fn module_json(
+    module: &crate::docs::ApiModule,
     item_names: &std::collections::HashSet<String>,
 ) -> Value {
-    let items: Vec<Value> = krate
+    let items: Vec<Value> = module
         .items
         .iter()
         .map(|item| {
@@ -964,9 +968,9 @@ fn crate_json(
         })
         .collect();
     json_object! {
-        "name" => krate.name.clone(),
-        "layer" => krate.layer.clone(),
-        "summary" => crate_texts(krate, item_names),
+        "name" => module.name.clone(),
+        "layer" => module.layer.clone(),
+        "summary" => module_texts(module, item_names),
         "items" => items,
     }
 }
@@ -1000,7 +1004,7 @@ fn tool_json(tool: &crate::tools::ToolSpec) -> Value {
 #[allow(dead_code)]
 fn catalog_summary(catalog: &ApiCatalog) -> Value {
     json_object! {
-        "crates" => catalog.crates.len(),
+        "modules" => catalog.modules.len(),
         "items" => catalog.item_count(),
     }
 }

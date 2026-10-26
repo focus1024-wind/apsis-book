@@ -22,7 +22,7 @@ ApsisRS 计算内核：概念文档、知识图谱、从库源码中提取的接
 | 板块 | 内容 | 路由前缀 |
 |------|------|----------|
 | 概念文档 | 关于时间尺度、参考系、元素格式、传播模型的文档，附各自的单位与适用范围 | `/api/docs` |
-| 知识图谱 | 概念及其关系，以及库的 crate 结构与算法流程图 | `/api/graph` |
+| 知识图谱 | 概念及其关系，以及库的模块结构与算法流程图 | `/api/graph` |
 | 接口文档 | 服务所构建的 ApsisRS 各层的公共接口，从源码文档注释中提取 | `/api/api` |
 | 在线工具 | TLE 解析、SGP4 传播、轨迹采样、时间尺度换算、坐标换算、参考系旋转、开普勒换算与霍曼转移规划 | `/api/tools` |
 
@@ -141,8 +141,8 @@ livenessProbe:
 
 - `GET /health`
 - `GET /api/docs`、`GET /api/docs/<id>`、`GET /api/docs/search?q=`
-- `GET /api/graph`、`GET /api/graph/crates`、`GET /api/graph/flows`、`GET /api/graph/<flow>`
-- `GET /api/api`、`GET /api/api/crates/<name>`、`GET /api/api/items/<name>`
+- `GET /api/graph`、`GET /api/graph/modules`、`GET /api/graph/flows`、`GET /api/graph/<flow>`
+- `GET /api/api`、`GET /api/api/modules/<name>`、`GET /api/api/items/<name>`
 - `GET /api/tools`、`GET /api/tools/<id>`、`POST /api/tools/<id>/run`
 
 一次工具调用接受一个参数 JSON 对象，返回一个已整形的结果：

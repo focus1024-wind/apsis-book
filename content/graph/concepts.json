@@ -183,9 +183,9 @@
       "summary_zh": "开普勒闭式解。实现为 apsis-kepler。"
     },
     {
-      "id": "crate-apsis-time",
-      "label": "apsis-time",
-      "kind": "crate",
+      "id": "module-apsis_time",
+      "label": "apsis_time",
+      "kind": "module",
       "group": "time",
       "summary": "Time scales, epochs, and calendar conversions.",
       "document": "time-scales",
@@ -193,9 +193,9 @@
       "summary_zh": "时间尺度、历元与日历转换。"
     },
     {
-      "id": "crate-apsis-coord",
-      "label": "apsis-coord",
-      "kind": "crate",
+      "id": "module-apsis_coord",
+      "label": "apsis_coord",
+      "kind": "module",
       "group": "geometry",
       "summary": "Positions that carry their reference frame in the type.",
       "document": "reference-frames",
@@ -203,9 +203,9 @@
       "summary_zh": "在类型中携带参考系的位置表示。"
     },
     {
-      "id": "crate-apsis-sgp4",
-      "label": "apsis-sgp4",
-      "kind": "crate",
+      "id": "module-apsis_sgp4",
+      "label": "apsis_sgp4",
+      "kind": "module",
       "group": "propagation",
       "summary": "The SGP4 and SDP4 analytical orbit propagator.",
       "document": "sgp4",
@@ -525,19 +525,19 @@
       "label": "selected forces"
     },
     {
-      "source": "crate-apsis-time",
+      "source": "module-apsis_time",
       "target": "time-scales",
       "kind": "implements",
       "label": "Epoch"
     },
     {
-      "source": "crate-apsis-coord",
+      "source": "module-apsis_coord",
       "target": "reference-frames",
       "kind": "implements",
       "label": "Eci, Ecef, Geodetic"
     },
     {
-      "source": "crate-apsis-sgp4",
+      "source": "module-apsis_sgp4",
       "target": "sgp4",
       "kind": "implements",
       "label": "Satellite"

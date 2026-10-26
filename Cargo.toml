@@ -32,7 +32,13 @@ name = "apsis-book"
 path = "src/main.rs"
 
 [dependencies]
-apsis = { version = "0.2.0", features = ["orbit"] }
+# Every layer is enabled. The service documents all seven of them, and its
+# interface catalog is extracted from the same set, so a build against a
+# smaller feature set would describe modules it does not compile.
+#
+# 所有层都已启用。服务为全部七层编写文档，其接口目录也从同一集合提取，因此以更小
+# 的特性集构建会描述到它并未编译的模块。
+apsis = { version = "0.2.0", features = ["full"] }
 
 [profile.release]
 opt-level = "z"

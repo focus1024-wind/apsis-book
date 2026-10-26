@@ -22,9 +22,9 @@ summary: 每个已实现算法各自遵循哪一公开标准或论文，以及�
 
 | 主题 | 来源 | 使用方 |
 |------|------|--------|
-| SGP4 与 SDP4 | Vallado、Crawford、Hujsak、Kelso，*Revisiting Spacetrack Report #3*，AIAA 2006-6753，2006 | `apsis-sgp4` |
+| SGP4 与 SDP4 | Vallado、Crawford、Hujsak、Kelso，*Revisiting Spacetrack Report #3*，AIAA 2006-6753，2006 | `apsis_sgp4` |
 | 两行元素格式 | CelesTrak，*FAQs: Two-Line Element Set Format*，记录原始 NORAD 列位置与校验和规则 | `apsis-tle` |
-| 引力模型常数 | WGS 72 取值同 SGP4 参考实现；WGS 84 取自 NIMA TR8350.2 | `apsis-sgp4` |
+| 引力模型常数 | WGS 72 取值同 SGP4 参考实现；WGS 84 取自 NIMA TR8350.2 | `apsis_sgp4` |
 | 地球自转角 | *IERS Conventions (2010)*，公式 8.32 | `apsis-frames` |
 | 大地坐标转换 | NIMA TR8350.2，*Department of Defense World Geodetic System 1984*，第三版，2000 | `apsis-geodesy` |
 | 儒略日与约化儒略日 | IAU 约定，见《天文年历解释性补充》 | `apsis-time` |

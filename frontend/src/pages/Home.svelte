@@ -35,7 +35,7 @@
   const metrics = $derived([
     { value: String(documentCount), label: tr('home.metric.documents', lang) },
     { value: String(health?.graph_nodes ?? 0), label: tr('home.metric.graph', lang) },
-    { value: String(health?.api_crates ?? 0), label: tr('home.metric.crates', lang) },
+    { value: String(health?.api_modules ?? 0), label: tr('home.metric.modules', lang) },
     { value: String(health?.api_items ?? 0), label: tr('home.metric.items', lang) },
     { value: String(health?.tools ?? 0), label: tr('home.metric.tools', lang) },
     { value: health?.version ?? '—', label: tr('home.metric.version', lang) },

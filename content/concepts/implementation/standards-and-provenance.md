@@ -31,9 +31,9 @@ Naming the source makes these choices checkable.
 
 | Topic | Source | Used by |
 |-------|--------|---------|
-| SGP4 and SDP4 | Vallado, Crawford, Hujsak, Kelso, *Revisiting Spacetrack Report #3*, AIAA 2006-6753, 2006 | `apsis-sgp4` |
+| SGP4 and SDP4 | Vallado, Crawford, Hujsak, Kelso, *Revisiting Spacetrack Report #3*, AIAA 2006-6753, 2006 | `apsis_sgp4` |
 | Two-line element format | CelesTrak, *FAQs: Two-Line Element Set Format*, documenting the original NORAD columns and the checksum rule | `apsis-tle` |
-| Gravity model constants | WGS 72 values as used by the SGP4 reference implementation; WGS 84 from NIMA TR8350.2 | `apsis-sgp4` |
+| Gravity model constants | WGS 72 values as used by the SGP4 reference implementation; WGS 84 from NIMA TR8350.2 | `apsis_sgp4` |
 | Earth Rotation Angle | *IERS Conventions (2010)*, equation 8.32 | `apsis-frames` |
 | Geodetic conversions | NIMA TR8350.2, *Department of Defense World Geodetic System 1984*, third edition, 2000 | `apsis-geodesy` |
 | Julian and Modified Julian Date | IAU conventions as described in the *Explanatory Supplement to the Astronomical Almanac* | `apsis-time` |

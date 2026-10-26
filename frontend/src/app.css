@@ -495,7 +495,7 @@ button {
   margin: 0 auto;
 }
 
-/* The graph and the crate grid use the whole width; a wide screen shows
+/* The graph and the module grid use the whole width; a wide screen shows
    more of them rather than more margin. */
 .content.wide {
   max-width: none;
@@ -663,14 +663,14 @@ button.ghost:hover:not(:disabled) {
  */
 
 /*
- * A card on the interface index shows what a crate is, in one or two lines.
+ * A card on the interface index shows what a module is, in one or two lines.
  *
  * The cards there are in a grid with three columns on a wide screen, so a
  * single long summary made every card in its row as tall as the longest one.
  * The text is cut rather than the card stretched, because the rest of the
  * summary is on the page the card leads to.
  */
-.crate-grid .card-clamp {
+.module-grid .card-clamp {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -1135,7 +1135,7 @@ tbody tr:hover {
   flex-wrap: wrap;
 }
 
-/* The items of one crate, two to a row, so that a crate with dozens of
+/* The items of one module, two to a row, so that a module with dozens of
    items stays a reasonable height. */
 .item-grid {
   display: grid;
@@ -1201,22 +1201,22 @@ tbody tr:hover {
   margin: 0.5rem 0;
 }
 
-/* A crate summary on the crate page */
+/* A module summary on the module page */
 
-.crate-summary {
+.module-summary {
   color: var(--text-muted);
   font-size: 0.9rem;
   max-width: 60rem;
   margin-bottom: 0.5rem;
 }
 
-.crate-summary p {
+.module-summary p {
   margin: 0.5rem 0;
 }
 
 /* A link to another interface item, rendered from a doc comment. */
 .api-doc a.api-link,
-.crate-summary a.api-link {
+.module-summary a.api-link {
   color: var(--accent);
   border-bottom: 1px dotted var(--accent-strong);
 }
@@ -1243,14 +1243,14 @@ tbody tr:hover {
 
 /* The interface index */
 
-.crate-grid {
+.module-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
   gap: 0.75rem;
   margin-top: 1rem;
 }
 
-.crate-card {
+.module-card {
   display: block;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1259,27 +1259,27 @@ tbody tr:hover {
   color: var(--text);
 }
 
-.crate-card:hover {
+.module-card:hover {
   border-color: var(--accent-strong);
   background: var(--surface-raised);
   text-decoration: none;
 }
 
-.crate-card header {
+.module-card header {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
   flex-wrap: wrap;
 }
 
-.crate-card .name {
+.module-card .name {
   font-family: var(--mono);
   font-size: 0.95rem;
   color: var(--accent);
   font-weight: 600;
 }
 
-.crate-card p {
+.module-card p {
   margin: 0.5rem 0 0;
   color: var(--text-muted);
   font-size: 0.85rem;

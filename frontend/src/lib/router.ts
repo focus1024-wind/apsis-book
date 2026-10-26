@@ -11,7 +11,7 @@
  * - `#/` or empty: the home page
  * - `#/docs` and `#/docs/<id>`: the concept documentation
  * - `#/graph` and `#/graph/<id>`: the knowledge graph and the flow graphs
- * - `#/api` and `#/api/<crate>`: the interface documentation
+ * - `#/api` and `#/api/<module>`: the interface documentation
  * - `#/tools` and `#/tools/<id>`: the online tools
  * - `#/search?q=...`: the search results
  */

@@ -44,13 +44,13 @@ pub enum NodeKind {
     ///
     /// 知识图谱中的一个概念。
     Concept,
-    /// A crate of the `apsis-rs` workspace.
+    /// A module of the `apsis` crate.
     ///
-    /// `apsis-rs` 工作区中的一个 crate。
-    Crate,
-    /// A layer of the `apsis-rs` workspace.
+    /// `apsis` crate 中的一个模块。
+    Module,
+    /// A layer of the `apsis` crate.
     ///
-    /// `apsis-rs` 工作区中的一个层。
+    /// `apsis` crate 中的一个层。
     Layer,
     /// A step of an algorithm.
     ///
@@ -76,7 +76,7 @@ impl NodeKind {
     /// 解析一个种类名，默认为 [`NodeKind::Concept`]。
     pub fn parse(name: &str) -> Self {
         match name {
-            "crate" => Self::Crate,
+            "module" => Self::Module,
             "layer" => Self::Layer,
             "step" => Self::Step,
             "decision" => Self::Decision,
@@ -92,7 +92,7 @@ impl NodeKind {
     pub const fn name(self) -> &'static str {
         match self {
             Self::Concept => "concept",
-            Self::Crate => "crate",
+            Self::Module => "module",
             Self::Layer => "layer",
             Self::Step => "step",
             Self::Decision => "decision",
@@ -409,21 +409,21 @@ fn text_field(value: &Value, key: &str) -> Option<String> {
         .map(str::to_string)
 }
 
-/// Builds the crate structure graph from the interface catalog.
+/// Builds the module structure graph from the interface catalog.
 ///
-/// The nodes are the crates, grouped by layer, and the edges follow the
-/// layer order that `apsis-rs` enforces:
+/// The nodes are the modules of the `apsis` crate, grouped by layer, and the
+/// edges follow the layer order the crate enforces:
 /// `foundation -> physics -> orbit -> rf -> network -> ops -> sim`. A layer
-/// edge is drawn from each layer to the next one that the enabled feature
-/// set contains, which is what the dependency rule means in practice.
+/// edge is drawn from each layer to the next one the catalog contains, which
+/// is what the dependency rule means in practice.
 ///
-/// 从接口目录构建 crate 结构图。
+/// 从接口目录构建模块结构图。
 ///
-/// 节点是各 crate，按层分组；边沿 `apsis-rs` 强制的层序：
+/// 节点是 `apsis` crate 的各模块，按层分组；边沿该 crate 强制的层序：
 /// `foundation -> physics -> orbit -> rf -> network -> ops -> sim`。
-/// 层边从每一层画向所启用特性集合中包含的下一层，这正是依赖规则在实践中
+/// 层边从每一层画向目录中包含的下一层，这正是依赖规则在实践中
 /// 的含义。
-pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
+pub fn module_structure(catalog: &ApiCatalog) -> Graph {
     let layers = [
         "foundation",
         "physics",
@@ -437,39 +437,36 @@ pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
     let mut edges = Vec::new();
     let mut present: Vec<&str> = Vec::new();
 
-    for krate in &catalog.crates {
-        // A crate that belongs to no layer has no place in a diagram of the
-        // layer structure: the workspace facade re-exports every layer and
-        // would sit under a layer it is not part of. It stays on the index,
-        // where it is a crate like any other.
+    for module in &catalog.modules {
+        // A module that belongs to no layer has no place in a diagram of the
+        // layer structure. It stays on the index, where it is a module like
+        // any other.
 
-        // 不属于任何层的 crate 在层结构图中没有位置：工作区门面转出所有层，
-        // 它会落在一个自己并不属于的层之下。它留在索引里，在那里它与别的 crate
-        // 无异。
-        if krate.layer.is_empty() {
+        // 不属于任何层的模块在层结构图中没有位置。它留在索引里，在那里它与别的
+        // 模块无异。
+        if module.layer.is_empty() {
             continue;
         }
         nodes.push(Node {
-            id: krate.name.clone(),
-            label: krate.name.clone(),
+            id: module.name.clone(),
+            label: module.name.clone(),
             label_zh: None,
-            kind: NodeKind::Crate,
-            group: krate.layer.clone(),
-            summary: crate_summary_zh(&krate.name)
-                .unwrap_or_else(|| krate.summary.lines().next().unwrap_or_default().to_string()),
-            summary_zh: None,
+            kind: NodeKind::Module,
+            group: module.layer.clone(),
+            summary: opening_line(&module.summary),
+            summary_zh: module_summary_zh(&module.name),
             document: None,
-            api: None,
+            api: Some(module.name.clone()),
         });
         edges.push(Edge {
-            source: krate.name.clone(),
-            target: krate.layer.clone(),
+            source: module.name.clone(),
+            target: module.layer.clone(),
             kind: "belongs-to".to_string(),
             label: None,
             label_zh: None,
         });
-        if !present.contains(&krate.layer.as_str()) {
-            present.push(match layers.iter().find(|layer| **layer == krate.layer) {
+        if !present.contains(&module.layer.as_str()) {
+            present.push(match layers.iter().find(|layer| **layer == module.layer) {
                 Some(layer) => layer,
                 None => "foundation",
             });
@@ -477,9 +474,9 @@ pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
     }
 
     // One node per layer that the catalog contains, so the graph describes
-    // this build rather than the whole workspace.
+    // this build rather than the whole crate.
 
-    // 目录中包含的每一层一个节点，因此该图描述的是本次构建，而不是整个工作区。
+    // 目录中包含的每一层一个节点，因此该图描述的是本次构建，而不是整个 crate。
     for layer in layers {
         if !present.contains(&layer) {
             continue;
@@ -518,42 +515,92 @@ pub fn crate_structure(catalog: &ApiCatalog) -> Graph {
     }
 
     Graph {
-        id: "crates".to_string(),
-        title: "apsis-rs crate structure".to_string(),
-        title_zh: Some("apsis-rs crate 结构".to_string()),
-        summary: "Workspace crates grouped by layer; edges follow the one way dependency rule."
+        id: "modules".to_string(),
+        title: "apsis module structure".to_string(),
+        title_zh: Some("apsis 模块结构".to_string()),
+        summary: "The modules of the apsis crate grouped by layer; edges follow the one way dependency rule."
             .to_string(),
-        summary_zh: Some("按层分组的 workspace crate；边表示单向依赖规则。".to_string()),
+        summary_zh: Some("按层分组的 apsis 模块；边表示单向依赖规则。".to_string()),
         nodes,
         edges,
     }
 }
 
-/// Returns the Chinese summary of a crate, when one is authored.
+/// Returns the opening paragraph of a module summary, for a graph node.
 ///
-/// The crate name is the key, so the table stays beside the graph rather
-/// than in a separate translation file.
+/// The module documentation opens with a sentence or two that say what the
+/// module is, which is what a node has room for. The paragraph is joined onto
+/// one line because the source wraps it to a column and a node does not.
 ///
-/// 返回某个 crate 的中文摘要，若已撰写。
+/// 返回模块概要的首段，供图节点使用。
 ///
-/// 以 crate 名为键，因此该表与图放在一起，而不在单独的译文文件中。
-fn crate_summary_zh(name: &str) -> Option<String> {
+/// 模块文档以一两句话开头，说明该模块是什么，这正是节点所能容纳的内容。该段被
+/// 接成一行，因为源码按列宽折行，而节点不折行。
+fn opening_line(summary: &str) -> String {
+    let mut lines = Vec::new();
+    for line in summary.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            break;
+        }
+        lines.push(line);
+    }
+    lines.join(" ")
+}
+
+/// Returns the Chinese summary of a module, when one is authored.
+///
+/// The module name is the key, so the table stays beside the graph rather
+/// than in a separate translation file. A module added to the crate without
+/// an entry falls back to its English opening line, which is why the table
+/// covers every module the crate has today.
+///
+/// 返回某个模块的中文摘要，若已撰写。
+///
+/// 以模块名为键，因此该表与图放在一起，而不在单独的译文文件中。新增而未在此
+/// 登记的模块回退到其英文首句，故该表覆盖该 crate 今天拥有的每一个模块。
+fn module_summary_zh(name: &str) -> Option<String> {
     let text = match name {
-        "apsis-core" => "共享基础类型：通用错误、常量与单位标记 trait。",
-        "apsis-units" => "物理量强类型 newtype：长度、时间、频率、角度、温度。",
-        "apsis-math" => "无依赖线性代数：三维矢量、三阶矩阵、四元数。",
-        "apsis-macros" => "支撑 workspace 的宏。",
-        "apsis-time" => "时间尺度、历元与日历转换。",
-        "apsis-leap" => "用于 UTC 转换的内嵌闰秒表。",
-        "apsis-coord" => "在类型中携带参考系的位置表示。",
-        "apsis-geodesy" => "参考椭球与大地坐标计算。",
-        "apsis-frames" => "参考系定义与地固系旋转。",
-        "apsis-tle" => "两行元素集解析。",
-        "apsis-sgp4" => "SGP4 与 SDP4 解析轨道传播器。",
-        "apsis-kepler" => "开普勒轨道元素与二体问题。",
-        "apsis-ephemeris" => "星历采样与插值。",
-        "apsis-maneuver" => "脉冲与有限推力轨道机动模型。",
-        "apsis-orbit" => "轨道层统一入口：元素、传播与机动。",
+        "apsis_core" => "共享基础类型：通用错误、常量与单位标记 trait。",
+        "apsis_macros" => "共享宏的保留路径，当前不含任何宏。",
+        "apsis_math" => "无依赖线性代数：三维矢量、三阶矩阵、四元数。",
+        "apsis_units" => "物理量强类型 newtype：长度、时间、频率、角度、温度。",
+        "apsis_coord" => "在类型中携带参考系的位置表示。",
+        "apsis_frames" => "参考系定义与惯性系到地固系的旋转。",
+        "apsis_geodesy" => "参考椭球与大地坐标计算。",
+        "apsis_leap" => "用于 UTC 转换的内嵌闰秒表。",
+        "apsis_time" => "时间尺度、历元与日历转换。",
+        "apsis_ephemeris" => "星历采样与插值。",
+        "apsis_kepler" => "开普勒轨道元素与二体问题。",
+        "apsis_maneuver" => "脉冲与有限推力轨道机动模型。",
+        "apsis_sgp4" => "SGP4 与 SDP4 解析轨道传播器。",
+        "apsis_tle" => "两行元素集解析。",
+        "apsis_orbit" => "轨道层统一入口：元素、传播与机动。",
+        "apsis_antenna" => "天线方向图与增益模型。",
+        "apsis_atmosphere" => "大气衰减与折射模型。",
+        "apsis_doppler" => "多普勒频移计算。",
+        "apsis_interference" => "干扰与载干比计算。",
+        "apsis_link" => "链路预算计算。",
+        "apsis_noise" => "噪声温度与噪声系数模型。",
+        "apsis_rf" => "射频层统一入口：分贝、自由空间损耗、功率与增益。",
+        "apsis_access" => "地面站可见窗口与访问计划。",
+        "apsis_constellation" => "星座定义与实例化。",
+        "apsis_coverage" => "地面覆盖分析：足迹几何与可见性。",
+        "apsis_handover" => "移动终端的切换决策。",
+        "apsis_isl" => "星间链路几何与可见性。",
+        "apsis_mesh" => "网状连通性抽象。",
+        "apsis_routing" => "时变拓扑上的路由。",
+        "apsis_topology" => "时变网络拓扑。",
+        "apsis_conflict" => "资源与时间冲突检测。",
+        "apsis_resource" => "卫星运营的资源建模。",
+        "apsis_schedule" => "调度结果的表示与评估。",
+        "apsis_scheduler" => "卫星任务规划的调度算法。",
+        "apsis_task" => "卫星运营的任务建模。",
+        "apsis_event" => "仿真事件类型与事件队列。",
+        "apsis_output" => "仿真输出记录。",
+        "apsis_scenario" => "场景定义与载入。",
+        "apsis_sim_engine" => "离散事件仿真引擎。",
+        "apsis_sim" => "仿真层统一入口：场景、事件、引擎与输出。",
         _ => return None,
     };
     Some(text.to_string())

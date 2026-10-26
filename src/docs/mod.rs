@@ -39,7 +39,7 @@ pub mod mathml;
 
 #[allow(unused_imports)]
 pub use api::ApiItem;
-pub use api::{ApiCatalog, ApiCrate};
+pub use api::{ApiCatalog, ApiModule};
 
 pub use document::{Document, DocumentVariant, Language, SearchIndex, Tree};
 
@@ -135,7 +135,7 @@ pub fn load_documents() -> Vec<Document> {
 pub fn load_api_catalog() -> ApiCatalog {
     let Some(text) = content::get("api.json") else {
         return ApiCatalog {
-            crates: Vec::new(),
+            modules: Vec::new(),
             generated_from: Vec::new(),
             item_names: std::collections::HashSet::new(),
         };

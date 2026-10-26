@@ -200,15 +200,15 @@ fn serves_the_document_index_and_a_document() {
 }
 
 #[test]
-fn serves_the_concept_and_crate_graphs() {
+fn serves_the_concept_and_module_graphs() {
     let service = Service::start();
     wait_ready(&service);
 
     let concepts = service.get("/api/graph");
     assert!(body(&concepts).contains("\"nodes\""), "{}", body(&concepts));
 
-    let crates = service.get("/api/graph/crates");
-    assert!(body(&crates).contains("apsis-sgp4"), "{}", body(&crates));
+    let modules = service.get("/api/graph/modules");
+    assert!(body(&modules).contains("apsis_sgp4"), "{}", body(&modules));
 
     let flow = service.get("/api/graph/sgp4-propagation");
     assert!(body(&flow).contains("\"edges\""), "{}", body(&flow));
@@ -242,10 +242,10 @@ fn interface_documentation_is_translated() {
 }
 
 #[test]
-fn crate_summaries_are_translated() {
+fn module_summaries_are_translated() {
     let service = Service::start();
     wait_ready(&service);
-    let response = service.get("/api/api/crates/apsis-sgp4");
+    let response = service.get("/api/api/modules/apsis_sgp4");
     let body = body(&response);
     // The Chinese summary and its plain form are both served.
     // 中文概要与它的纯文本形式都会被提供。
@@ -265,7 +265,11 @@ fn serves_the_interface_catalog() {
     wait_ready(&service);
 
     let index = service.get("/api/api");
-    assert!(body(&index).contains("\"crate_count\""), "{}", body(&index));
+    assert!(
+        body(&index).contains("\"module_count\""),
+        "{}",
+        body(&index)
+    );
 
     let item = service.get("/api/api/items/propagate_minutes");
     let item_body = body(&item);

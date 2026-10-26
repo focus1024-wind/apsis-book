@@ -2,9 +2,9 @@
   /**
    * The interface documentation.
    *
-   * The page has two views. The index lists the crates with a short
-   * description and lets a reader filter the public items by name. A crate
-   * view lists the items of one crate, grouped by kind, with the signature
+   * The page has two views. The index lists the modules with a short
+   * description and lets a reader filter the public items by name. A module
+   * view lists the items of one module, grouped by kind, with the signature
    * and the documentation of each. An item view shows one item on its own so
    * that a link from a tool or a graph node lands on a readable page.
    *
@@ -12,7 +12,7 @@
    * shown here is the interface as it is written rather than a description
    * of it.
    */
-  import type { ApiIndex, ApiCrate, ApiItem } from '../lib/types';
+  import type { ApiIndex, ApiModule, ApiItem } from '../lib/types';
   import { getJson } from '../lib/api';
   import { navigate } from '../lib/router';
   import { language, pick, tr } from '../lib/i18n';
@@ -40,8 +40,8 @@
   let page = $state<HTMLElement | null>(null);
   $effect(() => uniformCards(page));
 
-  let crate = $state<ApiCrate | null>(null);
-  let item = $state<(ApiItem & { crate: string; layer: string }) | null>(null);
+  let module = $state<ApiModule | null>(null);
+  let item = $state<(ApiItem & { module: string; layer: string }) | null>(null);
   let notFound = $state<string | null>(null);
   let filter = $state('');
   let loading = $state(false);
@@ -49,17 +49,17 @@
   /** The kind of a member, for the heading of a group. */
   const KIND_ORDER = ['struct', 'enum', 'trait', 'fn', 'const', 'type'];
 
-  /** Resolves a route segment: either a crate name or an item name. */
+  /** Resolves a route segment: either a module name or an item name. */
   async function resolve(segment: string | null) {
-    crate = null;
+    module = null;
     item = null;
     notFound = null;
     if (!segment || !index) return;
 
-    if (index.crates.some((candidate) => candidate.name === segment)) {
+    if (index.modules.some((candidate) => candidate.name === segment)) {
       loading = true;
       try {
-        crate = await getJson<ApiCrate>(`/api/api/crates/${segment}`);
+        module = await getJson<ApiModule>(`/api/api/modules/${segment}`);
       } finally {
         loading = false;
       }
@@ -72,7 +72,7 @@
     }
     loading = true;
     try {
-      item = await getJson<ApiItem & { crate: string; layer: string }>(
+      item = await getJson<ApiItem & { module: string; layer: string }>(
         `/api/api/items/${segment}`,
       );
     } finally {
@@ -93,14 +93,14 @@
       .filter(
         (candidate) =>
           candidate.name.toLowerCase().includes(needle) ||
-          candidate.crate.toLowerCase().includes(needle),
+          candidate.module.toLowerCase().includes(needle),
       )
       .slice(0, 80);
   });
 
-  /** The items of the crate grouped by kind. */
+  /** The items of the module grouped by kind. */
   const groups = $derived.by(() => {
-    const current = crate;
+    const current = module;
     if (!current) return [];
     return KIND_ORDER.map((kind) => ({
       kind,
@@ -120,41 +120,27 @@
   }
 
   /**
-   * The crates of the index, grouped by the layer they belong to.
+   * The modules of the index, grouped by the layer they belong to.
    *
    * The index is organized by layer for the same reason the concept
    * documentation is: a reader looking for a type is looking for the subject
-   * it belongs to, and one flat list of fifteen crates gives no hint of where
+   * it belongs to, and one flat list of fifteen modules gives no hint of where
    * to look. The layers come from the concept documentation, so the order and
    * the titles are the same in both.
    *
    * A layer the catalog names but the documentation does not declare would
-   * leave its crates with no heading, so those are collected at the end.
+   * leave its modules with no heading, so those are collected at the end.
    */
   const layers = $derived.by(() => {
     const current = index;
     if (!current) return [];
     const declared = current.layers ?? [];
-    const grouped = declared
+    return declared
       .map((layer) => ({
         ...layer,
-        crates: current.crates.filter((krate) => krate.layer === layer.id),
+        modules: current.modules.filter((module) => module.layer === layer.id),
       }))
-      .filter((layer) => layer.crates.length > 0);
-    const placed = new Set(declared.map((layer) => layer.id));
-    // A crate that belongs to no layer is the workspace facade, which only
-    // re-exports what the crates of the layers already define. It is shown
-    // nowhere: a listing of it would repeat every item of the layers under a
-    // second name, and it is not a subject a reader is looking for.
-    const rest = current.crates.filter(
-      (krate) => krate.layer !== '' && !placed.has(krate.layer),
-    );
-    return rest.length > 0
-      ? [
-          ...grouped,
-          { id: '', title: { zh: '其他', en: 'Others' }, summary: { zh: '', en: '' }, crates: rest },
-        ]
-      : grouped;
+      .filter((layer) => layer.modules.length > 0);
   });
 
   /** Opens an item route. */
@@ -190,16 +176,16 @@
 
 {#if !index}
   <p class="empty">{tr('api.loading', lang)}</p>
-{:else if crate}
-  <!-- One crate, with its items grouped by kind. -->
+{:else if module}
+  <!-- One module, with its items grouped by kind. -->
   <p class="breadcrumb">
-    <a href="#/api">{tr('nav.api', lang)}</a> / {crate.name}
-    <span class="badge" style="margin-left: 0.5rem">{crate.layer}</span>
+    <a href="#/api">{tr('nav.api', lang)}</a> / {module.name}
+    <span class="badge" style="margin-left: 0.5rem">{module.layer}</span>
   </p>
-  <h2 style="margin-top: 0.5rem">{crate.name}</h2>
+  <h2 style="margin-top: 0.5rem">{module.name}</h2>
   <!-- The HTML is rendered by the backend from the module documentation,
        and every text node is escaped there. -->
-  <div class="doc-body crate-summary">{@html pick(crate.summary.html, lang)}</div>
+  <div class="doc-body module-summary">{@html pick(module.summary.html, lang)}</div>
 
   {#each groups as group}
     <h3 id={`kind-${group.kind}`}>
@@ -242,7 +228,7 @@
   <section class="card">
     <p class="breadcrumb">
       <a href="#/api">{tr('nav.api', lang)}</a> /
-      <a href={`#/api/${item.crate}`}>{item.crate}</a> / {item.name}
+      <a href={`#/api/${item.module}`}>{item.module}</a> / {item.name}
     </p>
     <header style="display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap">
       <span class="kind">{item.kind}</span>
@@ -293,7 +279,7 @@
           {#each filtered as candidate}
             <a class="chip" href={`#/api/${candidate.name}`}>
               {candidate.name}
-              <span class="chip-note">{candidate.crate}</span>
+              <span class="chip-note">{candidate.module}</span>
             </a>
           {/each}
         </div>
@@ -304,14 +290,14 @@
   {#each layers as layer (layer.id)}
     <h3 class="api-layer-heading" id={`layer-${layer.id}`}>
       <a href={`#/docs`}>{pick(layer.title, lang)}</a>
-      <span class="badge">{layer.crates.length}</span>
+      <span class="badge">{layer.modules.length}</span>
     </h3>
     {#if pick(layer.summary, lang)}
       <p class="api-layer-summary">{pick(layer.summary, lang)}</p>
     {/if}
-    <div class="crate-grid">
-      {#each layer.crates as candidate (candidate.name)}
-        <a class="crate-card" href={`#/api/${candidate.name}`}>
+    <div class="module-grid">
+      {#each layer.modules as candidate (candidate.name)}
+        <a class="module-card" href={`#/api/${candidate.name}`}>
           <header>
             <span class="name">{candidate.name}</span>
             <span class="badge">{candidate.items} {tr('api.itemCount', lang)}</span>

@@ -1,9 +1,9 @@
-//! The interface catalog extracted from the `apsis-rs` sources.
+//! The interface catalog extracted from the `apsis` sources.
 //!
-//! Task two of the service is to present the public interface of `apsis-rs`
-//! as it is written in the source, rather than as someone retyped it. The
-//! extraction is performed by `scripts/extract_api.sh`, which reads the
-//! source tree, collects the module documentation and the public items with
+//! Task two of the service is to present the public interface of the `apsis`
+//! crate as it is written in the source, rather than as someone retyped it.
+//! The extraction is performed by `scripts/extract_api.sh`, which reads the
+//! module tree, collects the module documentation and the public items with
 //! their doc comments, and writes `content/api.json`. This module parses that
 //! file and exposes it to the HTTP layer.
 //!
@@ -12,10 +12,10 @@
 //! its signature changes, the script is rerun. It does not read the source
 //! at run time, so the binary does not depend on a checkout of `apsis-rs`.
 //!
-//! 从 `apsis-rs` 源码提取的接口目录。
+//! 从 `apsis` 源码提取的接口目录。
 //!
-//! 服务的第二项任务，是原样呈现 `apsis-rs` 在源码中写下的公共接口，而不是别人
-//! 重打一遍的版本。提取由 `scripts/extract_api.sh` 完成：它读取源码树，收集模块
+//! 服务的第二项任务，是原样呈现 `apsis` crate 在源码中写下的公共接口，而不是别人
+//! 重打一遍的版本。提取由 `scripts/extract_api.sh` 完成：它读取模块树，收集模块
 //! 文档与各公共条目的文档注释，写出 `content/api.json`。本模块解析该文件并把它
 //! 暴露给 HTTP 层。
 //!
@@ -24,9 +24,9 @@
 
 use crate::json::{self, Value};
 
-/// A single public item of a crate.
+/// A single public item of a module.
 ///
-/// 某个 crate 的一个公共条目。
+/// 某个模块的一个公共条目。
 #[derive(Debug, Clone)]
 pub struct ApiItem {
     /// Kind of item: `struct`, `enum`, `fn`, `trait`, `const`, or `type`.
@@ -64,40 +64,50 @@ impl ApiItem {
     /// Returns `true` when the item is a function.
     ///
     /// Used where a caller distinguishes the callable items, such as the
-    /// item listing of a crate.
+    /// item listing of a module.
     ///
     /// 当该条目是函数时返回 `true`。
     ///
-    /// 用于调用方需要区分可调用条目的地方，例如某个 crate 的条目列表。
+    /// 用于调用方需要区分可调用条目的地方，例如某个模块的条目列表。
     #[allow(dead_code)]
     pub fn is_function(&self) -> bool {
         self.kind == "fn"
     }
 }
 
-/// A public crate of the `apsis-rs` workspace.
+/// A public module of the `apsis` crate.
 ///
-/// `apsis-rs` 工作区中的一个公共 crate。
+/// The module name is the path the crate re-exports it under, so
+/// `apsis_sgp4` is reached as `apsis::apsis_sgp4`. The name is kept whole
+/// rather than split into a subject, because that is the path a reader types
+/// and the name a document link refers to.
+///
+/// `apsis` crate 的一个公共模块。
+///
+/// 模块名即 crate 重导出它的路径，因此 `apsis_sgp4` 以 `apsis::apsis_sgp4`
+/// 到达。名字整体保留而不拆成主题，因为读者键入的就是这条路径，文档链接所指的
+/// 也是这个名字。
 #[derive(Debug, Clone)]
-pub struct ApiCrate {
-    /// Crate name, such as `apsis-sgp4`.
-    /// crate 名，例如 `apsis-sgp4`。
+pub struct ApiModule {
+    /// Module name, such as `apsis_sgp4`.
+    /// 模块名，例如 `apsis_sgp4`。
     pub name: String,
-    /// Layer the crate belongs to: `foundation`, `physics`, or `orbit`.
-    /// 该 crate 所属的层：`foundation`、`physics`、`orbit` 等。
+    /// Layer the module belongs to: `foundation`, `physics`, `orbit`, and so
+    /// on.
+    /// 该模块所属的层：`foundation`、`physics`、`orbit` 等。
     pub layer: String,
-    /// Crate level documentation, with the leading `//!` markers removed.
-    /// crate 级文档，已去掉各行开头的 `//!` 标记。
+    /// Module level documentation, with the leading `//!` markers removed.
+    /// 模块级文档，已去掉各行开头的 `//!` 标记。
     pub summary: String,
-    /// The crate level documentation in Chinese, when a translation exists.
-    /// crate 级文档的中文部分，若有译文。
+    /// The module level documentation in Chinese, when a translation exists.
+    /// 模块级文档的中文部分，若有译文。
     pub summary_zh: Option<String>,
     /// Public items, in source order.
     /// 公共条目，按源码顺序。
     pub items: Vec<ApiItem>,
 }
 
-impl ApiCrate {
+impl ApiModule {
     /// Returns the items of the given kind.
     ///
     /// The kind is the one written in the source, such as `struct` or
@@ -120,82 +130,79 @@ pub struct ApiCatalog {
     /// The names of every item, for resolving a doc comment link.
     /// 每个条目的名字，用于解析文档注释中的链接。
     pub item_names: std::collections::HashSet<String>,
-    /// The crates, in dependency order.
-    /// 各 crate，按依赖顺序。
-    pub crates: Vec<ApiCrate>,
+    /// The modules, in dependency order.
+    /// 各模块，按依赖顺序。
+    pub modules: Vec<ApiModule>,
     /// Source paths the catalog was extracted from, for provenance.
     /// 目录所来自的源码路径，用于溯源自何处。
     pub generated_from: Vec<String>,
 }
 
 impl ApiCatalog {
-    /// Returns a crate by name.
-    /// 按名字返回一个 crate。
-    pub fn krate(&self, name: &str) -> Option<&ApiCrate> {
-        self.crates.iter().find(|krate| krate.name == name)
+    /// Returns a module by name.
+    /// 按名字返回一个模块。
+    pub fn module(&self, name: &str) -> Option<&ApiModule> {
+        self.modules.iter().find(|module| module.name == name)
     }
 
     /// Returns every item with the given name.
     ///
-    /// A name such as `propagate_minutes` is unique in the workspace, so a
+    /// A name such as `propagate_minutes` is unique in the crate, so a
     /// search by name finds the interface a tool or an internal link refers
     /// to.
     ///
     /// 返回具有给定名字的每一个条目。
     ///
-    /// 诸如 `propagate_minutes` 这样的名字在工作区内是唯一的，因此按名字查找
+    /// 诸如 `propagate_minutes` 这样的名字在该 crate 内是唯一的，因此按名字查找
     /// 就能找到某个工具或内部链接所指的接口。
-    pub fn find_item(&self, name: &str) -> Option<(&ApiCrate, &ApiItem)> {
-        self.crates.iter().find_map(|krate| {
-            krate
+    pub fn find_item(&self, name: &str) -> Option<(&ApiModule, &ApiItem)> {
+        self.modules.iter().find_map(|module| {
+            module
                 .items
                 .iter()
                 .find(|item| item.name == name)
-                .map(|item| (krate, item))
+                .map(|item| (module, item))
         })
     }
 
     /// Returns the number of items in the catalog.
     /// 返回目录中的条目数。
     pub fn item_count(&self) -> usize {
-        self.crates.iter().map(|krate| krate.items.len()).sum()
+        self.modules.iter().map(|module| module.items.len()).sum()
     }
 
     /// Returns `true` when the catalog is empty.
     /// 当目录为空时返回 `true`。
     #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
-        self.crates.is_empty()
+        self.modules.is_empty()
     }
 }
 
-/// Parses the catalog from its JSON representation.
-///
-/// A malformed member is skipped rather than failing the whole document, so
-/// that a partially generated catalog still serves the items it contains.
-///
-/// 从 JSON 表示解析目录。
-///
-/// 畸形的成员被跳过，而不是让整份文档失败，使生成不完整的目录仍能提供它所含的
-/// 条目。
 #[allow(dead_code)]
 /// Parses the catalogue.
 ///
-/// The catalogue carries both languages, because `apsis-rs` writes its doc
+/// The catalogue carries both languages, because `apsis` writes its doc
 /// comments in English and then in Chinese. `scripts/extract_api.sh` splits
 /// the two halves while it reads the sources, so no separate translation
 /// file is needed and a translation cannot fall behind the source it
 /// describes.
 ///
+/// A malformed member is skipped rather than failing the whole document, so
+/// that a partially generated catalog still serves the items it contains.
+///
 /// 解析接口目录。
 ///
-/// 目录同时携带两种语言，因为 `apsis-rs` 把文档注释先写成英文、再写成中文。
+/// 目录同时携带两种语言，因为 `apsis` 把文档注释先写成英文、再写成中文。
 /// `scripts/extract_api.sh` 在读取源码时把两半拆开，因此无需单独的译文文件，
 /// 译文也不会落后于它所描述的源码。
+///
+/// 畸形的成员被跳过，而不是让整份文档失败，使生成不完整的目录仍能提供它所含的
+/// 条目。
 pub fn parse(text: &str) -> ApiCatalog {
     let Ok(value) = json::parse(text) else {
         return ApiCatalog {
-            crates: Vec::new(),
+            modules: Vec::new(),
             generated_from: Vec::new(),
             item_names: std::collections::HashSet::new(),
         };
@@ -207,19 +214,19 @@ pub fn parse(text: &str) -> ApiCatalog {
         .iter()
         .filter_map(|path| path.as_str().map(str::to_string))
         .collect();
-    let crates: Vec<ApiCrate> = value
-        .get("crates")
+    let modules: Vec<ApiModule> = value
+        .get("modules")
         .map(Value::as_array)
         .unwrap_or_default()
         .iter()
-        .filter_map(parse_crate)
+        .filter_map(parse_module)
         .collect();
-    let item_names = crates
+    let item_names = modules
         .iter()
-        .flat_map(|krate| krate.items.iter().map(|item| item.name.clone()))
+        .flat_map(|module| module.items.iter().map(|item| item.name.clone()))
         .collect();
     ApiCatalog {
-        crates,
+        modules,
         generated_from,
         item_names,
     }
@@ -256,16 +263,16 @@ fn owner_of(items: &[Value], index: usize) -> Option<String> {
     owner
 }
 
-/// Parses one crate.
-/// 解析一个 crate。
-fn parse_crate(value: &Value) -> Option<ApiCrate> {
+/// Parses one module.
+/// 解析一个模块。
+fn parse_module(value: &Value) -> Option<ApiModule> {
     let name = value.get("name")?.as_str()?.to_string();
-    // A crate that belongs to no layer, which is the facade that re-exports
-    // every layer, is left empty. Defaulting it to a layer would file it
-    // under a subject it does not belong to.
-
-    // 不属于任何层的 crate——即转出所有层的门面——留空。给它一个默认的层，
-    // 等于把它归到一个它并不属于的主题之下。
+    // A module that belongs to no layer has no place in the layer index, so
+    // its layer is left empty rather than defaulted to one it does not
+    // belong to.
+    //
+    // 不属于任何层的模块在层索引中没有位置，故其层留空，而不是默认归到一个它并
+    // 不属于的层。
     let layer = value
         .get("layer")
         .and_then(Value::as_str)
@@ -287,7 +294,7 @@ fn parse_crate(value: &Value) -> Option<ApiCrate> {
 
     // 模块文档先写成英文、再写成中文；提取器已把两者分开。
     let summary_zh = string_member(value, "summary_zh");
-    Some(ApiCrate {
+    Some(ApiModule {
         name,
         layer,
         summary,
@@ -298,7 +305,7 @@ fn parse_crate(value: &Value) -> Option<ApiCrate> {
 
 /// Parses one item.
 /// 解析一个条目。
-pub(crate) fn parse_item(value: &Value, _krate: &str, _owner: Option<&str>) -> Option<ApiItem> {
+pub(crate) fn parse_item(value: &Value, _module: &str, _owner: Option<&str>) -> Option<ApiItem> {
     let name = value.get("name")?.as_str()?.to_string();
     let kind = value.get("kind")?.as_str()?.to_string();
     let signature = value

@@ -1,6 +1,6 @@
 //! A hand written JSON codec.
 //!
-//! The service must not depend on any crate other than `apsis-rs`, so
+//! The service must not depend on any crate other than `apsis`, so
 //! encoding and decoding of JavaScript Object Notation (JSON) is implemented
 //! here. The codec covers the subset of RFC 8259 that the service needs:
 //!
@@ -23,7 +23,7 @@
 //!
 //! 手写的 JSON 编解码器。
 //!
-//! 服务除 `apsis-rs` 外不得依赖任何 crate，因此 JSON 的编码与解码在此实现。
+//! 服务除 `apsis` 外不得依赖任何 crate，因此 JSON 的编码与解码在此实现。
 //! 该编解码器覆盖服务所需的 RFC 8259 子集：
 //!
 //! - [`Value`] 为任何 JSON 值建模，含嵌套的数组与对象。

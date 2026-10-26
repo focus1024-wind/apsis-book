@@ -155,7 +155,7 @@ the formula was written with.
 
 ## Graphs
 
-One graph shape serves the knowledge graph, the crate structure, and the
+One graph shape serves the knowledge graph, the module structure, and the
 algorithm flows: nodes with a kind and a group, and labelled edges. The
 backend supplies the structure; the layout is computed in the browser.
 
@@ -191,9 +191,9 @@ leak the shape of the implementation.
 ## Interface catalog
 
 The catalog is generated from the ApsisRS sources by
-`scripts/extract_api.sh`, which reads the crate directories, collects the
-module documentation and the public items with their doc comments and
-signatures, and writes `content/api.json`. The file is committed, so building
+`scripts/extract_api.sh`, which reads the module directories under
+`crates/apsis/src`, collects the module documentation and the public items
+with their doc comments and signatures, and writes `content/api.json`. The file is committed, so building
 the Rust binary does not depend on the ApsisRS checkout or on Python.
 
 Extraction rather than hand maintenance is what keeps the interface
@@ -201,21 +201,21 @@ documentation honest: a change to a signature in the library is a change to
 the generated catalog after the script is rerun, and a hand written
 description would drift silently.
 
-The script reports the crates it read in `generated_from`, which the service
+The script reports the modules it read in `generated_from`, which the service
 returns in `/api/api`, so the provenance of what is displayed is checkable.
 
 The translation is not a separate file. `apsis-rs` writes each doc comment in
 English and then in Chinese, in the one comment beside the code, and the
 extractor splits the two halves as it reads. Both languages therefore come
 from the same place as the code they describe, and neither can fall behind
-it: a crate that has not been translated shows up as an item with no Chinese
+it: a module that has not been translated shows up as an item with no Chinese
 rather than as an item quietly reading as English, and a test asserts that no
 such item is left in the committed catalog.
 
 An earlier revision kept the Chinese in `content/api.zh.json`, keyed by item
 name. That is the arrangement this replaced. It was wrong for a reason worth
 recording: the key was a name, and a name is not unique. `new` is defined by
-fifty-nine crates and they do not all mean the same thing by it, so a
+fifty-nine modules and they do not all mean the same thing by it, so a
 translation filed under the bare name could be shown against the wrong
 documentation. Splitting the comment removes the question, because the
 translation is attached to the item rather than looked up by a name.
@@ -306,9 +306,9 @@ document with no headings drops the column and uses the reading measure on
 its own. A graph breaks the rule the other way: it uses the whole width,
 because a wide screen should show more of the graph rather than more margin.
 
-The **interface index** shows one line per crate rather than the full module
-documentation. A crate summary is several paragraphs, and a grid of them is
-unreadable; the index shows the first sentence and the crate page shows the
+The **interface index** shows one line per module rather than the full module
+documentation. A module summary is several paragraphs, and a grid of them is
+unreadable; the index shows the first sentence and the module page shows the
 rest. A doc comment is rendered as Markdown by the backend, so a comment
 that contains a list, a table, or a code block is drawn as one, and the
 frontend does not have to parse it.
@@ -388,7 +388,7 @@ hand written dictionary in `frontend/src/lib/i18n.ts`, keyed by a stable
 name. It covers the graph group captions and the interface item kinds, so a
 Chinese reader sees a Chinese legend and Chinese group headings.
 
-Authored content — concept documents, crate summaries, item documentation —
+Authored content — concept documents, module summaries, item documentation —
 is a separate file per language, so the backend serves both and the reader
 switches without another request. A document declares its own tags in each
 language file under the same key, so the tag list follows the language too.

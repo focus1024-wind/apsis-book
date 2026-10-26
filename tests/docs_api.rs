@@ -11,13 +11,14 @@
 //! 经 `apsis_book::testkit` 开放。
 
 use apsis_book::docs::api::*;
+use apsis_book::docs::load_api_catalog;
 use apsis_book::testkit::parse_item;
 
 const SAMPLE: &str = r#"{
-      "generated_from": ["crates/orbit/apsis-sgp4/src/lib.rs"],
-      "crates": [
+      "generated_from": ["crates/apsis/src/orbit/apsis_sgp4"],
+      "modules": [
         {
-          "name": "apsis-sgp4",
+          "name": "apsis_sgp4",
           "layer": "orbit",
           "summary": "The SGP4 and SDP4 analytical orbit propagator.",
           "items": [
@@ -31,11 +32,11 @@ const SAMPLE: &str = r#"{
 #[test]
 fn parses_the_catalog() {
     let catalog = parse(SAMPLE);
-    assert_eq!(catalog.crates.len(), 1);
+    assert_eq!(catalog.modules.len(), 1);
     assert_eq!(catalog.item_count(), 2);
-    let krate = catalog.krate("apsis-sgp4").unwrap();
-    assert_eq!(krate.layer, "orbit");
-    assert_eq!(krate.items_of_kind("fn").len(), 1);
+    let module = catalog.module("apsis_sgp4").unwrap();
+    assert_eq!(module.layer, "orbit");
+    assert_eq!(module.items_of_kind("fn").len(), 1);
     let (_, item) = catalog.find_item("propagate_minutes").unwrap();
     assert!(item.is_function());
     assert!(item.associated);
@@ -57,7 +58,7 @@ fn an_item_carries_both_languages() {
             "doc_zh":"中文。","signature":"pub fn new()"}"#;
     let parsed = parse_item(
         &apsis_book::json::parse(item).expect("an item"),
-        "apsis-core",
+        "apsis_core",
         None,
     )
     .expect("an item");
@@ -75,7 +76,7 @@ fn an_item_without_a_translation_has_none() {
             "signature":"pub fn new()"}"#;
     let parsed = parse_item(
         &apsis_book::json::parse(item).expect("an item"),
-        "apsis-core",
+        "apsis_core",
         None,
     )
     .expect("an item");
@@ -92,13 +93,13 @@ fn the_committed_catalogue_carries_both_languages_for_every_item() {
     // crate 会在这里暴露出来，而不是悄悄以英文呈现给中文读者。
     let catalog = apsis_book::docs::load_api_catalog();
     let mut missing = Vec::new();
-    for krate in &catalog.crates {
-        if krate.summary_zh.is_none() {
-            missing.push(format!("{} (crate summary)", krate.name));
+    for module in &catalog.modules {
+        if module.summary_zh.is_none() {
+            missing.push(format!("{} (module summary)", module.name));
         }
-        for item in &krate.items {
+        for item in &module.items {
             if item.doc_zh.is_none() {
-                missing.push(format!("{}::{}", krate.name, item.name));
+                missing.push(format!("{}::{}", module.name, item.name));
             }
         }
     }
@@ -108,4 +109,35 @@ fn the_committed_catalogue_carries_both_languages_for_every_item() {
         missing.len(),
         &missing[..missing.len().min(8)]
     );
+}
+
+/// Every layer of the crate must be represented in the committed catalog.
+///
+/// The service documents all seven layers and the dependency enables every
+/// one of them, so a catalog that is short of a layer is a build defect
+/// rather than a smaller feature set.
+///
+/// 该 crate 的每一层都必须在已提交的目录中出现。
+///
+/// 服务为全部七层编写文档，依赖也启用了每一层，因此缺少某一层的目录属于构建缺陷，
+/// 而不是更小的特性集。
+#[test]
+fn every_layer_has_modules() {
+    let catalog = load_api_catalog();
+    for layer in [
+        "foundation",
+        "physics",
+        "orbit",
+        "rf",
+        "network",
+        "ops",
+        "sim",
+    ] {
+        let count = catalog
+            .modules
+            .iter()
+            .filter(|module| module.layer == layer)
+            .count();
+        assert!(count > 0, "no module in the {layer} layer");
+    }
 }

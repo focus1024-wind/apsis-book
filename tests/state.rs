@@ -32,7 +32,7 @@ fn embedded_content_parses_and_is_linked() {
         "tools should be registered"
     );
     assert!(
-        !state.api.crates.is_empty(),
+        !state.api.modules.is_empty(),
         "the interface catalog should be populated"
     );
     assert!(

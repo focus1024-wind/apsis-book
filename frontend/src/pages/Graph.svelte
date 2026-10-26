@@ -2,7 +2,7 @@
   /**
    * The knowledge graph page.
    *
-   * The concept graph and the crate structure graph are shown as two
+   * The concept graph and the module structure graph are shown as two
    * selectable views. Selecting a node shows its summary and the links to
    * its document and its interface item.
    */
@@ -23,29 +23,29 @@
   /** The current language, read so that the text re-renders on a switch. */
   let lang = $derived($language);
 
-  let view = $state<'concepts' | 'crates'>('concepts');
-  let crateGraph = $state<Graph | null>(null);
+  let view = $state<'concepts' | 'modules'>('concepts');
+  let moduleGraph = $state<Graph | null>(null);
   let selected = $state<string | null>(null);
-  let loadingCrates = $state(false);
+  let loadingModules = $state(false);
 
   /** The graph currently displayed. */
-  const graph = $derived(view === 'concepts' ? concepts : crateGraph);
+  const graph = $derived(view === 'concepts' ? concepts : moduleGraph);
 
   /** The selected node, when the view supplies one. */
   const selectedNode = $derived(
     graph && selected ? (graph.nodes.find((node) => node.id === selected) ?? null) : null,
   );
 
-  /** Loads the crate structure graph the first time it is shown. */
-  async function showCrates() {
-    view = 'crates';
+  /** Loads the module structure graph the first time it is shown. */
+  async function showModules() {
+    view = 'modules';
     selected = null;
-    if (crateGraph || loadingCrates) return;
-    loadingCrates = true;
+    if (moduleGraph || loadingModules) return;
+    loadingModules = true;
     try {
-      crateGraph = await getJson<Graph>('/api/graph/crates');
+      moduleGraph = await getJson<Graph>('/api/graph/modules');
     } finally {
-      loadingCrates = false;
+      loadingModules = false;
     }
   }
 
@@ -77,10 +77,10 @@
       view = 'concepts';
       selected = null;
     }}>{tr('graph.concepts', lang)}</button>
-  <button class={view === 'crates' ? '' : 'ghost'} type="button" onclick={showCrates}>
-    {tr('graph.crates', lang)}
+  <button class={view === 'modules' ? '' : 'ghost'} type="button" onclick={showModules}>
+    {tr('graph.modules', lang)}
   </button>
-  {#if loadingCrates && !crateGraph}
+  {#if loadingModules && !moduleGraph}
     <span class="badge"><span class="spinner"></span> {tr('common.loading', lang)}</span>
   {/if}
 </div>
@@ -124,9 +124,9 @@
   {/if}
 {/if}
 
-{#if api && view === 'crates'}
+{#if api && view === 'modules'}
   <div class="notice muted">
-    {tr('graph.crateNote', lang)}
-    {api.crates.map((crate) => crate.name).join(', ')}。
+    {tr('graph.moduleNote', lang)}
+    {api.modules.map((module) => module.name).join(', ')}。
   </div>
 {/if}

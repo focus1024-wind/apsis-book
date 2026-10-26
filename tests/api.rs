@@ -18,7 +18,7 @@ use apsis_book::http::server::Handler;
 use apsis_book::json::{self, Value};
 use apsis_book::state::AppState;
 use apsis_book::testkit::{
-    UNHASHED_CACHE_POLICY, cache_policy, crate_summary_brief, is_content_hashed,
+    UNHASHED_CACHE_POLICY, cache_policy, is_content_hashed, module_summary_brief,
 };
 
 use std::collections::HashMap;
@@ -153,19 +153,19 @@ fn search_returns_ranked_hits() {
 }
 
 #[test]
-fn graph_routes_serve_the_concept_and_crate_graphs() {
+fn graph_routes_serve_the_concept_and_module_graphs() {
     let router = router();
     let concepts = parse(&get(&router, "/api/graph"));
     assert!(!concepts.get("nodes").unwrap().as_array().is_empty());
-    let crates = parse(&get(&router, "/api/graph/crates"));
-    assert!(!crates.get("nodes").unwrap().as_array().is_empty());
+    let modules = parse(&get(&router, "/api/graph/modules"));
+    assert!(!modules.get("nodes").unwrap().as_array().is_empty());
 }
 
 #[test]
 fn api_catalog_routes_serve_items() {
     let router = router();
     let index = parse(&get(&router, "/api/api"));
-    assert!(!index.get("crates").unwrap().as_array().is_empty());
+    assert!(!index.get("modules").unwrap().as_array().is_empty());
     let items = index.get("items").unwrap().as_array();
     let name = items
         .first()
@@ -281,11 +281,11 @@ fn post_to_a_get_route_is_refused() {
 }
 
 #[test]
-fn a_crate_card_takes_the_first_sentence_only() {
-    // The index shows what a crate is; the crate page shows the rest.
-    // 索引说明一个 crate 是什么；其余内容由 crate 页面呈现。
+fn a_module_card_takes_the_first_sentence_only() {
+    // The index shows what a module is; the module page shows the rest.
+    // 索引说明一个模块是什么；其余内容由模块页面呈现。
     assert_eq!(
-        crate_summary_brief(
+        module_summary_brief(
             "ApsisRS \u{7684}\u{5171}\u{4eab}\u{57fa}\u{7840}\u{7c7b}\u{578b}\u{3002}\u{672c} crate \u{4f4d}\u{4e8e}\u{4f9d}\u{8d56}\u{56fe}\u{7684}\u{5e95}\u{5c42}\u{3002}"
         ),
         "ApsisRS \u{7684}\u{5171}\u{4eab}\u{57fa}\u{7840}\u{7c7b}\u{578b}\u{3002}"
@@ -297,7 +297,7 @@ fn a_number_is_not_a_sentence_end() {
     // A version or a measurement must not cut a sentence in half.
     // 版本号或量值不得把句子截成两半。
     assert_eq!(
-        crate_summary_brief("Reads version 1.5 of the format. Then it checksums."),
+        module_summary_brief("Reads version 1.5 of the format. Then it checksums."),
         "Reads version 1.5 of the format."
     );
 }
@@ -305,7 +305,7 @@ fn a_number_is_not_a_sentence_end() {
 #[test]
 fn a_summary_without_a_full_stop_is_capped() {
     let long = "word ".repeat(80);
-    let brief = crate_summary_brief(&long);
+    let brief = module_summary_brief(&long);
     assert!(brief.chars().count() <= 158, "the brief is too long");
     assert!(brief.ends_with('\u{2026}'), "it should be marked as cut");
 }

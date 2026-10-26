@@ -28,7 +28,7 @@ the top bar.
 | Section | Content | Route prefix |
 |---------|---------|--------------|
 | Concepts | Documents on the time scales, the reference frames, the element formats, and the propagation models, with the units and the applicable range of each | `/api/docs` |
-| Knowledge graph | The concepts and their relationships, plus the crate structure of the library and the algorithm flow graphs | `/api/graph` |
+| Knowledge graph | The concepts and their relationships, plus the module structure of the library and the algorithm flow graphs | `/api/graph` |
 | Interface | The public interface of the ApsisRS layers the service builds against, extracted from the source doc comments | `/api/api` |
 | Online tools | TLE parsing, SGP4 propagation, track sampling, time scale conversion, coordinate conversion, frame rotation, Keplerian conversion, and Hohmann transfer planning | `/api/tools` |
 
@@ -167,8 +167,8 @@ frontend:
 
 - `GET /health`
 - `GET /api/docs`, `GET /api/docs/<id>`, `GET /api/docs/search?q=`
-- `GET /api/graph`, `GET /api/graph/crates`, `GET /api/graph/flows`, `GET /api/graph/<flow>`
-- `GET /api/api`, `GET /api/api/crates/<name>`, `GET /api/api/items/<name>`
+- `GET /api/graph`, `GET /api/graph/modules`, `GET /api/graph/flows`, `GET /api/graph/<flow>`
+- `GET /api/api`, `GET /api/api/modules/<name>`, `GET /api/api/items/<name>`
 - `GET /api/tools`, `GET /api/tools/<id>`, `POST /api/tools/<id>/run`
 
 A tool call takes a JSON object of parameters and returns a shaped result:

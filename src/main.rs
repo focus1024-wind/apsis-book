@@ -5,7 +5,7 @@
 //!
 //! - the concept documentation and the knowledge graph data, read from the
 //!   `content/` directory at compile time;
-//! - the interface documentation of the `apsis-rs` orbit layer, extracted
+//! - the interface documentation of every layer of `apsis`, extracted
 //!   from its source doc comments and embedded as `content/api.json`;
 //! - the frontend build output under `frontend/dist/`, embedded by
 //!   `build.rs`.
@@ -21,7 +21,7 @@
 //! 该进程绑定一个 HTTP/1.1 监听器，并以内嵌在二进制中的三种内容来源回应请求：
 //!
 //! - 概念文档与知识图谱数据，在编译期从 `content/` 目录读入；
-//! - `apsis-rs` 各层的接口文档，从其源码文档注释提取，并作为
+//! - `apsis` 各层的接口文档，从其源码文档注释提取，并作为
 //!   `content/api.json` 内嵌；
 //! - `frontend/dist/` 下的前端构建产物，由 `build.rs` 内嵌。
 //!

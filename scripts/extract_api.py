@@ -1,28 +1,31 @@
 #!/usr/bin/env python3
-"""Extract the public interface of apsis-rs into content/api.json.
+"""Extract the public interface of `apsis` into content/api.json.
 
-The service presents the public interface of the `apsis-rs` workspace as it
-is written in the source, so the catalog is generated from the source rather
-than maintained by hand. This script reads the crate directories, collects
-the crate level documentation and every public item with its doc comment and
-signature, and writes the result to `content/api.json`. The file is embedded
-in the binary by `build.rs`.
+The service presents the public interface of the `apsis` crate as it is
+written in the source, so the catalog is generated from the source rather than
+maintained by hand. This script reads the module directories under
+`crates/apsis/src`, collects the module documentation and every public item
+with its doc comment and signature, and writes the result to
+`content/api.json`. The file is embedded in the binary by `build.rs`.
 
-Each doc comment in `apsis-rs` is written in English and then in Chinese, in
-the one comment beside the code. The two halves are split here, on the first
-line that contains a Chinese character, and both are written to the catalog.
-The service shows one of them, so no separate translation file is needed and
-a translation cannot fall behind the code it describes. This replaced an
-earlier arrangement that kept the Chinese in `content/api.zh.json` keyed by
-item name, which was unsound because a name such as `new` is defined by many
-crates and does not mean the same thing in each.
+A layer is a directory directly under `src`, and a module is a directory
+directly under it, named `apsis_<subject>` — the path the crate re-exports as
+`apsis::apsis_<subject>`. The directories are read rather than listed here, so
+a module appears in the catalog as soon as it exists and no page built from
+the catalog can be quietly short of a layer.
 
-Run it from the `apsis-book` directory when the `apsis-rs` sources change:
+Each doc comment in `apsis` is written in English and then in Chinese, in the
+one comment beside the code. The two halves are split here, on the first line
+that contains a Chinese character, and both are written to the catalog. The
+service shows one of them, so no separate translation file is needed and a
+translation cannot fall behind the code it describes.
+
+Run it from the `apsis-book` directory when the `apsis` sources change:
 
     scripts/extract_api.sh
 
-It requires Python 3.8 or later. It is a development tool: the Rust build
-does not run it and does not depend on Python.
+It requires Python 3.8 or later. It is a development tool: the Rust build does
+not run it and does not depend on Python.
 """
 
 import json
@@ -30,79 +33,59 @@ import os
 import re
 import sys
 
-# The layer of a crate is the directory it sits under, so the catalog is
-# grouped the same way the workspace is laid out.
+# The layer of a module is the directory it sits under, so the catalog is
+# grouped the same way the crate is laid out. The order is the dependency
+# order: a layer may use the layers to its left and no layer to its right.
 LAYER_ORDER = [
     "foundation",
     "physics",
     "orbit",
-    "network",
     "rf",
+    "network",
     "ops",
     "sim",
 ]
 
 
-def manifest_crates(workspace):
-    """Return (layer, name, directory) for every crate of the workspace.
+def crate_modules(crate_dir):
+    """Return (layer, name, directory) for every module of the crate.
 
-    The crates come from the workspace manifest rather than from a list kept
-    here. A list goes stale the moment a crate is added, and a stale list is
-    silent: the catalog is simply short of the interface and every page
-    built from it is quietly incomplete. The manifest is the one place the
-    workspace states which crates there are, and each member path carries its
-    layer in the directory above the crate name.
-
-    The order is the one the workspace defines, which is also dependency
-    order within each layer.
+    A layer is a directory directly under `src`, and a module is a directory
+    directly under it whose name begins with `apsis_`, which is the path the
+    crate re-exports it under. The directories are read rather than listed
+    here: a list kept in this script would go stale in silence the moment a
+    module were added, and every page built from the catalog would then be
+    quietly incomplete.
     """
-    manifest = manifest_path(workspace)
-    members = []
-    inside = False
-    with open(manifest, "r", encoding="utf-8") as handle:
-        for line in handle:
-            stripped = line.strip()
-            if stripped.startswith("members"):
-                inside = True
-                continue
-            if inside:
-                if stripped.startswith("]"):
-                    break
-                # A member is a quoted path, possibly with a trailing comma.
-                entry = stripped.split("#")[0].strip().strip(",").strip('"')
-                if entry:
-                    members.append(entry)
-
-    crates = []
-    for directory in members:
-        parts = directory.split("/")
-        if len(parts) < 2:
+    source = os.path.join(crate_dir, "src")
+    modules = []
+    for layer in LAYER_ORDER:
+        layer_dir = os.path.join(source, layer)
+        if not os.path.isdir(layer_dir):
             continue
-        name = parts[-1]
-        # A member that sits directly in `crates` is the facade, which
-        # re-exports every layer and so belongs to none of them. It is left
-        # without a layer rather than given the wrong one, and the page that
-        # lists crates by layer shows it apart from the layers.
-        layer = parts[-2] if len(parts) >= 3 else None
-        crates.append((layer, name, directory))
-    return crates
+        for name in sorted(os.listdir(layer_dir)):
+            directory = os.path.join(layer_dir, name)
+            if name.startswith("apsis_") and os.path.isdir(directory):
+                modules.append((layer, name, directory))
+    return modules
 
 
-def manifest_path(workspace):
-    """The workspace manifest path."""
-    return os.path.join(workspace, "Cargo.toml")
+def ordered(modules):
+    """Order the modules by layer, with the layer's own module last.
 
-
-def ordered(crates):
-    """Order the crates by layer, keeping the workspace order within a layer."""
+    Within a layer the module named after the layer, such as `apsis_orbit`, is
+    the reader's entry point: it re-exports the items the other modules of the
+    layer define, so it comes after them. The remaining modules keep the name
+    order they are discovered in, which is stable without being a list this
+    script has to maintain.
+    """
     rank = {layer: index for index, layer in enumerate(LAYER_ORDER)}
     return sorted(
-        enumerate(crates),
-        # The facade goes last: it re-exports what the layers define, so a
-        # reader reaches it after the crate that defines an item.
-        key=lambda pair: (
-            rank.get(pair[1][0], len(rank) + 1) if pair[1][0] else len(rank),
-            pair[0],
+        modules,
+        key=lambda module: (
+            rank.get(module[0], len(rank)),
+            module[1] == "apsis_" + module[0],
+            module[1],
         ),
     )
 
@@ -283,25 +266,29 @@ def collect_file(path):
     return module_doc_pair(lines), items
 
 
-def collect_crate(workspace, name, directory):
-    """Return the catalog entry of one crate."""
-    root = os.path.join(workspace, directory, "src")
+def collect_module(name, directory):
+    """Return the catalog entry of one module.
+
+    The module's own documentation comes from its `mod.rs`, and the items are
+    every public declaration under the directory, in file name order so that
+    the page reads the same way every time it is generated.
+    """
     summary = ""
     summary_zh = None
     items = []
-    lib = os.path.join(root, "lib.rs")
-    if os.path.exists(lib):
-        (summary, summary_zh), _ = collect_file(lib)
-    for current, _, files in os.walk(root):
+    entry_point = os.path.join(directory, "mod.rs")
+    if os.path.exists(entry_point):
+        (summary, summary_zh), _ = collect_file(entry_point)
+    for current, _, files in os.walk(directory):
         for file_name in sorted(files):
             if not file_name.endswith(".rs"):
                 continue
             path = os.path.join(current, file_name)
             _, file_items = collect_file(path)
             items.extend(file_items)
-    # The facade crate re-exports items that are documented on the crates
-    # below it, so a name that occurs more than once keeps its first
-    # occurrence, which is the definition.
+    # A module re-exports the items of the modules below it, so a name that
+    # occurs more than once keeps its first occurrence, which is the
+    # definition.
     seen = set()
     unique = []
     for item in items:
@@ -326,35 +313,29 @@ def main():
         "APSIS_RS_WORKSPACE",
         os.path.normpath(os.path.join(web_dir, "..", "apsis-rs")),
     )
-    if not os.path.isdir(workspace):
-        sys.stderr.write("apsis-rs workspace not found at %s\n" % workspace)
+    crate_dir = os.path.join(workspace, "crates", "apsis")
+    if not os.path.isdir(crate_dir):
+        sys.stderr.write("the apsis crate was not found at %s\n" % crate_dir)
         return 1
 
-    discovered = manifest_crates(workspace)
+    discovered = crate_modules(crate_dir)
     if not discovered:
-        sys.stderr.write("no crates found in %s\n" % manifest_path(workspace))
+        sys.stderr.write(
+            "no modules found in %s\n" % os.path.join(crate_dir, "src")
+        )
         return 1
 
-    crates = []
+    modules = []
     sources = []
-    for _, (layer, name, directory) in ordered(discovered):
-        if not os.path.isdir(os.path.join(workspace, directory)):
-            sys.stderr.write("skipping %s: no such directory\n" % directory)
-            continue
-        if layer is None:
-            # The facade sits directly in `crates` and re-exports every layer.
-            # It defines nothing of its own, so listing it would repeat every
-            # item of the layers under a second name without adding anything.
-            sys.stderr.write("skipping %s: the workspace facade\n" % name)
-            continue
-        entry = collect_crate(workspace, name, directory)
+    for layer, name, directory in ordered(discovered):
+        entry = collect_module(name, directory)
         entry["layer"] = layer
-        crates.append(entry)
-        sources.append(os.path.join(directory, "src"))
+        modules.append(entry)
+        sources.append(os.path.relpath(directory, workspace))
 
     document = {
         "generated_from": sources,
-        "crates": crates,
+        "modules": modules,
     }
     output = os.path.join(web_dir, "content", "api.json")
     os.makedirs(os.path.dirname(output), exist_ok=True)
@@ -362,8 +343,8 @@ def main():
         json.dump(document, handle, ensure_ascii=False, indent=1, sort_keys=False)
         handle.write("\n")
 
-    total = sum(len(crate["items"]) for crate in crates)
-    print("wrote %s: %d crates, %d items" % (output, len(crates), total))
+    total = sum(len(module["items"]) for module in modules)
+    print("wrote %s: %d modules, %d items" % (output, len(modules), total))
     return 0
 
 

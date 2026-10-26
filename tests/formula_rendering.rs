@@ -213,8 +213,8 @@ fn every_formula_shows_every_character_it_was_written_with() {
 
     // 以及接口文档，它在其所描述的 crate 的文档注释中自带公式。把它排除在外会
     // 让那里的每一个公式都无人检查。
-    for krate in apsis_book::docs::load_api_catalog().crates {
-        for item in &krate.items {
+    for module in apsis_book::docs::load_api_catalog().modules {
+        for item in &module.items {
             // The doc comment is Markdown, and the service renders it with
             // the same renderer as a document.
 
@@ -224,7 +224,7 @@ fn every_formula_shows_every_character_it_was_written_with() {
                 .flatten()
             {
                 sources.push((
-                    format!("{}::{}", krate.name, item.name),
+                    format!("{}::{}", module.name, item.name),
                     apsis_book::docs::markdown::render(text),
                 ));
             }

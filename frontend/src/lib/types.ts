@@ -28,7 +28,7 @@ export interface Health {
   documents: number;
   chapters: number;
   graph_nodes: number;
-  api_crates: number;
+  api_modules: number;
   api_items: number;
   tools: number;
   frontend_embedded: boolean;
@@ -188,15 +188,15 @@ export interface ApiText {
   html: Bilingual;
 }
 
-/** A crate of the interface catalog. */
-export interface ApiCrateSummary {
+/** A module of the interface catalog. */
+export interface ApiModuleSummary {
   name: string;
   layer: string;
   summary: BilingualSummary;
   items: number;
 }
 
-/** A crate summary in both languages, with the plain and rendered forms. */
+/** A module summary in both languages, with the plain and rendered forms. */
 export interface BilingualSummary {
   zh: string;
   en: string;
@@ -229,16 +229,16 @@ export interface ApiLayer {
 /** The interface catalog index. */
 export interface ApiIndex {
   generated_from: string[];
-  crate_count: number;
+  module_count: number;
   item_count: number;
-  /** The layers, in reading order, that the crates are grouped by. */
+  /** The layers, in reading order, that the modules are grouped by. */
   layers: ApiLayer[];
-  crates: ApiCrateSummary[];
-  items: { name: string; kind: string; crate: string }[];
+  modules: ApiModuleSummary[];
+  items: { name: string; kind: string; module: string }[];
 }
 
-/** One crate with its items. */
-export interface ApiCrate {
+/** One module with its items. */
+export interface ApiModule {
   name: string;
   layer: string;
   summary: BilingualSummary;

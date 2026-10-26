@@ -58,15 +58,15 @@ pub fn is_content_hashed(path: &str) -> bool {
 /// Returns the opening sentence of a summary, for a card that links onward.
 ///
 /// 返回概要的首句，供链接到别处的卡片使用。
-pub fn crate_summary_brief(summary: &str) -> String {
-    crate::api::crate_summary_brief(summary)
+pub fn module_summary_brief(summary: &str) -> String {
+    crate::api::module_summary_brief(summary)
 }
 
 /// Parses one interface item of the catalogue.
 ///
 /// 解析目录中的一个接口条目。
-pub fn parse_item(value: &Value, krate: &str, owner: Option<&str>) -> Option<ApiItem> {
-    crate::docs::api::parse_item(value, krate, owner)
+pub fn parse_item(value: &Value, module: &str, owner: Option<&str>) -> Option<ApiItem> {
+    crate::docs::api::parse_item(value, module, owner)
 }
 
 /// Splits text into the tokens the search index is built from.
