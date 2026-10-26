@@ -12,13 +12,14 @@
 # 内容目录，没有前端构建产物，除 C 库外没有运行期依赖。构建分三个阶段，每个阶段
 # 所需的工具链下一个阶段并不需要。
 #
-# The build context is the directory above this one, because the crate depends
-# on `apsis-rs` by path. From the workspace root:
+# The build context is this directory. The one dependency, `apsis`, comes
+# from crates.io at the version the lock file records, so no sibling checkout
+# is needed:
 #
-#     docker build -f apsis-book/Dockerfile -t apsis-book:0.1.0 .
+#     docker build -t apsis-book:0.1.0 .
 #
-# 构建上下文是本目录的上一级，因为该 crate 以路径依赖引用 `apsis-rs`。在工作区
-# 根目录执行上面那条命令。
+# 构建上下文就是本目录。唯一的依赖 `apsis` 按 lock 文件记录的版本从 crates.io
+# 获取，因此不需要同级的检出。在本目录执行上面那条命令。
 #
 # Run it with the listener bound to every interface, because the default is
 # the loopback address and a container that listens only there cannot be
@@ -49,10 +50,10 @@ WORKDIR /build/frontend
 #
 # 单独复制清单文件，使源码改动不会触发重新安装依赖。`npm ci` 依据 lock 文件安装，
 # 因此镜像得到的是经过测试的那些版本。
-COPY apsis-book/frontend/package.json apsis-book/frontend/package-lock.json ./
+COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 
-COPY apsis-book/frontend/ ./
+COPY frontend/ ./
 RUN npm run build
 
 # The binary.
@@ -69,32 +70,30 @@ FROM rust:${RUST_VERSION}-${DEBIAN_RELEASE} AS builder
 # 安装 Node。它嵌入在 `frontend/dist` 中找到的内容，下一行正是把它放到那里。
 ENV APSIS_BOOK_SKIP_FRONTEND=1
 
-WORKDIR /build
+WORKDIR /build/apsis-book
 
-# The crate depends on `apsis-rs` by the relative path `../apsis-rs`, so the
-# workspace keeps its shape inside the image.
+# The project is copied over itself, so the build sees exactly the sources in
+# the context. `apsis` is not copied: `cargo` fetches it from crates.io.
 #
-# 该 crate 以相对路径 `../apsis-rs` 依赖 `apsis-rs`，因此工作区在镜像内保持原样。
-COPY apsis-rs/ ./apsis-rs/
-COPY apsis-book/ ./apsis-book/
-COPY --from=frontend /build/frontend/dist ./apsis-book/frontend/dist
+# 项目被复制到自身之上，因此构建看到的就是上下文中的源码。`apsis` 不在其中：
+# `cargo` 会从 crates.io 获取它。
+COPY . ./
+COPY --from=frontend /build/frontend/dist ./frontend/dist
 
 # The image provides the toolchain this project builds with, and the
 # toolchain file asks for the `stable` channel by name, which rustup would
 # then fetch over the network. The file is removed here so that the image's
-# own toolchain is the one used, and the build needs no network beyond the
-# frontend's dependencies.
+# own toolchain is the one used.
 #
 # 镜像提供了项目构建所用的工具链，而工具链文件按名字要求 `stable` 通道，rustup
-# 会因此去网络上拉取。这里移除该文件，使镜像自带的工具链成为所用者，构建除前端的
-# 依赖之外不需要网络。
-RUN rm -f apsis-book/rust-toolchain.toml
+# 会因此去网络上拉取。这里移除该文件，使镜像自带的工具链成为所用者。
+RUN rm -f rust-toolchain.toml
 
 # `--locked` fails rather than quietly updating a dependency, so the image is
 # built from the versions the lock file records.
 #
 # `--locked` 会直接失败而不是悄悄更新依赖，因此镜像由 lock 文件所记录的版本构建。
-RUN cargo build --release --locked --manifest-path apsis-book/Cargo.toml
+RUN cargo build --release --locked
 
 # The runtime. It holds the binary and the C library the binary links
 # against, and nothing that a build needed.

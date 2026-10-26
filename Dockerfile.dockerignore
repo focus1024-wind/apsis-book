@@ -1,16 +1,15 @@
 # What the Docker build does not send to the daemon.
 #
-# The build context is the workspace directory above this one, so the patterns
-# here are relative to that directory rather than to this file. This file is
-# named `Dockerfile.dockerignore`, which is the name the builder looks for when
-# the ignore file is not in the context root; it is kept beside the Dockerfile
-# so that the two stay together.
+# The build context is this directory, so the patterns here are relative to
+# it. This file is named `Dockerfile.dockerignore`, which is the name the
+# builder looks for when the ignore file is not in the context root; it is
+# kept beside the Dockerfile so that the two stay together.
 #
 # Docker 构建不发给守护进程的内容。
 #
-# 构建上下文是本目录的上一级工作区目录，因此这里的模式相对于那个目录，而不是
-# 相对于本文件。本文件名为 `Dockerfile.dockerignore`，当忽略文件不在上下文根时
-# 构建器就找这个名字；它与 Dockerfile 放在一起，使两者不致分离。
+# 构建上下文就是本目录，因此这里的模式相对于它。本文件名为
+# `Dockerfile.dockerignore`，当忽略文件不在上下文根时构建器就找这个名字；它与
+# Dockerfile 放在一起，使两者不致分离。
 
 # Build output. Both are produced inside the image, and a copy from the host
 # would be used in place of the newly built one, which is the sort of mistake
@@ -19,7 +18,7 @@
 # 构建产物。两者都在镜像内产生，而从宿主机复制来的副本会被用来代替新构建的那个
 # ——这正是会产出旧版本镜像的那类失误。
 **/target
-apsis-book/frontend/dist
+frontend/dist
 
 # Dependencies, which the frontend stage installs from the lock file.
 #
@@ -35,4 +34,4 @@ apsis-book/frontend/dist
 # under inspection.
 #
 # 丢在项目旁边的临时笔记，例如正在检查的页面截图。
-apsis-book/tmp
+tmp

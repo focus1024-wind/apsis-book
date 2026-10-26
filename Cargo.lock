@@ -3,132 +3,14 @@
 version = 4
 
 [[package]]
+name = "apsis"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "486aaed5492ccb2599351008e4f53d5b6970f3827fadd32beb4e148d9e4a3c61"
+
+[[package]]
 name = "apsis-book"
 version = "0.1.0"
 dependencies = [
- "apsis-rs",
-]
-
-[[package]]
-name = "apsis-coord"
-version = "0.1.0"
-dependencies = [
- "apsis-frames",
- "apsis-geodesy",
- "apsis-math",
-]
-
-[[package]]
-name = "apsis-core"
-version = "0.1.0"
-
-[[package]]
-name = "apsis-ephemeris"
-version = "0.1.0"
-dependencies = [
- "apsis-math",
-]
-
-[[package]]
-name = "apsis-frames"
-version = "0.1.0"
-dependencies = [
- "apsis-math",
-]
-
-[[package]]
-name = "apsis-geodesy"
-version = "0.1.0"
-dependencies = [
- "apsis-math",
-]
-
-[[package]]
-name = "apsis-kepler"
-version = "0.1.0"
-dependencies = [
- "apsis-math",
-]
-
-[[package]]
-name = "apsis-leap"
-version = "0.1.0"
-
-[[package]]
-name = "apsis-macros"
-version = "0.1.0"
-
-[[package]]
-name = "apsis-maneuver"
-version = "0.1.0"
-dependencies = [
- "apsis-kepler",
- "apsis-math",
-]
-
-[[package]]
-name = "apsis-math"
-version = "0.1.0"
-
-[[package]]
-name = "apsis-orbit"
-version = "0.1.0"
-dependencies = [
- "apsis-ephemeris",
- "apsis-kepler",
- "apsis-maneuver",
- "apsis-math",
- "apsis-sgp4",
- "apsis-tle",
-]
-
-[[package]]
-name = "apsis-rs"
-version = "0.1.0"
-dependencies = [
- "apsis-coord",
- "apsis-core",
- "apsis-ephemeris",
- "apsis-frames",
- "apsis-geodesy",
- "apsis-kepler",
- "apsis-leap",
- "apsis-macros",
- "apsis-maneuver",
- "apsis-math",
- "apsis-orbit",
- "apsis-sgp4",
- "apsis-time",
- "apsis-tle",
- "apsis-units",
-]
-
-[[package]]
-name = "apsis-sgp4"
-version = "0.1.0"
-dependencies = [
- "apsis-math",
- "apsis-time",
- "apsis-tle",
-]
-
-[[package]]
-name = "apsis-time"
-version = "0.1.0"
-dependencies = [
- "apsis-leap",
-]
-
-[[package]]
-name = "apsis-tle"
-version = "0.1.0"
-dependencies = [
- "apsis-time",
-]
-
-[[package]]
-name = "apsis-units"
-version = "0.1.0"
-dependencies = [
- "apsis-core",
+ "apsis",
 ]

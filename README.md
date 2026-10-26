@@ -14,7 +14,7 @@ does not need either to be present next to the binary.
 
 ## The running service
 
-The service is deployed at <https://apsis.focus1024.com/>. It serves this
+The service is deployed at <https://apsis.rs/>. It serves this
 project: the same documents, graphs, interface catalogue, and tools, from the
 same build. Nothing about it is particular to a deployment, because
 everything it serves is inside the binary, so a copy built from the source is
@@ -34,12 +34,13 @@ the top bar.
 
 ## Design constraints
 
-The service follows the constraints of the workspace it belongs to.
+The service holds itself to the following constraints.
 
 - **One runtime dependency.** The only entry in `[dependencies]` is
-  `apsis-rs`, through a path dependency. The HTTP server, the JSON codec,
-  the router, the Markdown renderer, and the graph model are all written
-  against the standard library.
+  `apsis`, the ApsisRS kernel crate published on crates.io, at the version
+  the lock file records. The HTTP server, the JSON codec, the router, the
+  Markdown renderer, and the graph model are all written against the
+  standard library.
 - **No `unsafe`.** The crate does not contain an unsafe block.
 - **No panic in a request path.** A malformed request, a bad parameter, or
   a failing computation produces a response, not a panic. The worker that
@@ -119,12 +120,12 @@ English to every reader, with a note saying so.
 ### Docker
 
 The image carries the binary and nothing else, because the binary carries
-everything it serves. The build context is the directory above this one,
-because the crate depends on `apsis-rs` by path:
+everything it serves. The build context is this directory: the one
+dependency comes from crates.io, so nothing outside the project is needed.
 
 ```sh
-# From the workspace root.
-docker build -f apsis-book/Dockerfile -t apsis-book:0.1.0 .
+# From this directory.
+docker build -t apsis-book:0.1.0 .
 docker run --rm -p 8080:8080 apsis-book:0.1.0
 ```
 
@@ -251,7 +252,7 @@ a link that the frontend routes without a page load.
 ```text
 apsis-book/
 ├── build.rs                  embed the frontend build and the text content
-├── Cargo.toml                one runtime dependency: apsis-rs
+├── Cargo.toml                one runtime dependency: apsis
 ├── content/                  authored documents, graphs, and generated catalog
 │   └── concepts/<layer>/     documents, one directory per layer
 ├── Dockerfile                the release image, in three stages
@@ -308,7 +309,7 @@ plain TCP requests against it.
 GNU General Public License, version 3 or later, and that alone. See
 `LICENSE`.
 
-The service depends on `apsis-rs`, which is offered under MIT or
-Apache-2.0. Both of those permit redistribution inside a GPL work, so the
-two are distributed together under these terms. No other licence is
-offered for this service.
+The service depends on `apsis`, which is offered under the GNU General
+Public License, version 3 or later, as this service is. The two are
+distributed together under these terms. No other licence is offered for
+this service.

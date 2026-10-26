@@ -16,20 +16,21 @@
 #
 # 在本目录执行上面那条命令。
 #
-# The build context is the directory above, because the crate depends on
-# `apsis-rs` by path. A reader who only wants to run a published image can
-# drop the `build` section and keep `image`.
+# The build context is this directory: the one dependency comes from
+# crates.io, so nothing outside the project is needed. A reader who only
+# wants to run a published image can drop the `build` section and keep
+# `image`.
 #
-# 构建上下文是上一级目录，因为该 crate 以路径依赖引用 `apsis-rs`。如果只想运行
-# 已发布的镜像，可以删去 `build` 一节而保留 `image`。
+# 构建上下文就是本目录：唯一的依赖从 crates.io 获取，因此不需要项目之外的任何
+# 东西。如果只想运行已发布的镜像，可以删去 `build` 一节而保留 `image`。
 
 name: apsis-book
 
 services:
   apsis-book:
     build:
-      context: ..
-      dockerfile: apsis-book/Dockerfile
+      context: .
+      dockerfile: Dockerfile
     image: apsis-book:0.1.0
 
     # The container listens on 8080 and the host side is a matter of taste,

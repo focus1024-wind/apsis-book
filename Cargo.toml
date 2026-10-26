@@ -2,15 +2,14 @@
 #
 # The service exposes the ApsisRS computational kernels over HTTP together
 # with the concept documentation, the knowledge graph, and the online tool
-# set. The only runtime dependency is the public `apsis-rs` facade; every
+# set. The only runtime dependency is the public `apsis` crate; every
 # other facility, including the HTTP server and the JSON codec, is written
 # against the standard library so that the crate stays self-contained and
 # auditable.
 #
 # The licence is the GNU General Public License, version 3 or later, and
-# that alone. `apsis-rs` is offered under MIT or Apache-2.0; those terms
-# permit redistribution inside a GPL work, so the two may be distributed
-# together under these terms.
+# that alone. `apsis` is offered under the same terms, so the two may be
+# distributed together under this licence.
 
 [package]
 name = "apsis-book"
@@ -19,7 +18,7 @@ edition = "2024"
 rust-version = "1.85"
 license = "GPL-3.0-or-later"
 description = "The documentation and tool service for the ApsisRS computational kernels."
-homepage = "https://apsis.focus1024.com/"
+homepage = "https://apsis.rs/"
 repository = "https://git.focus1024.com/ApsisRS/apsis-book"
 readme = "README.md"
 publish = false
@@ -33,7 +32,7 @@ name = "apsis-book"
 path = "src/main.rs"
 
 [dependencies]
-apsis-rs = { path = "../apsis-rs/crates/apsis-rs", features = ["orbit"] }
+apsis = { version = "0.2.0", features = ["orbit"] }
 
 [profile.release]
 opt-level = "z"
