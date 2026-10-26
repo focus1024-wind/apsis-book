@@ -50,10 +50,26 @@ impl Service {
             for line in reader.lines().map_while(Result::ok) {
                 if let Some(rest) = line.split("http://").nth(1) {
                     let _ = sender.send(rest.trim().to_string());
-                    break;
                 }
             }
         });
+
+        // The child writes a second status line when no frontend build is
+        // embedded, so stderr is drained as well: a pipe nobody reads fills
+        // and stops the child, and a pipe that is closed under it turns its
+        // next `println!` into a panic. The drained text is discarded
+        // because a test reports failures through its assertions.
+        //
+        // 内嵌的前端构建不存在时，子进程还会写第二行状态，故 stderr 也一并排空：
+        // 无人读取的管道会写满并阻塞子进程，而提前关闭的管道会让它下一次
+        // `println!` panic。排空的内容被丢弃，因为测试通过断言报告失败。
+        if let Some(stderr) = child.stderr.take() {
+            thread::spawn(move || {
+                let mut reader = BufReader::new(stderr);
+                let mut sink = Vec::new();
+                let _ = std::io::copy(&mut reader, &mut sink);
+            });
+        }
 
         let address = receiver
             .recv_timeout(Duration::from_secs(15))
